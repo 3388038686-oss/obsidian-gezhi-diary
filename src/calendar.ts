@@ -425,18 +425,26 @@ export class CalendarSidebarView extends ItemView {
           e.stopPropagation();
           new ConfirmModal(this.app, {
             title: "删除这篇日记？",
-            desc: `${file.path}\n将移入 Obsidian 回收站，可在系统回收站里找回。`,
-            okText: "删除",
+            desc: `${file.path}\n将移入系统回收站（不是永久删除），可随时找回。`,
+            okText: "移入回收站",
             danger: true,
             onOk: async () => {
               try {
-                await this.app.fileManager.trashFile(file);
-                new Notice(`已删除 ${file.basename}`);
-                this.plugin.refreshAll();
+                // 官方回收站 API：true = 系统回收站；失败再退到 vault 的 .trash
+                await this.app.vault.trash(file, true);
+                new Notice(`已移入回收站：${file.basename}`);
               } catch (err) {
-                console.error("[grid-diary] 删除失败", err);
-                new Notice("删除失败");
+                console.error("[grid-diary] 系统回收站失败，改用 .trash", err);
+                try {
+                  await this.app.vault.trash(file, false);
+                  new Notice(`已移入 .trash：${file.basename}`);
+                } catch (err2) {
+                  console.error("[grid-diary] 移入回收站失败", err2);
+                  new Notice("删除失败，文件未改动");
+                  return;
+                }
               }
+              this.plugin.refreshAll();
             },
           }).open();
         });

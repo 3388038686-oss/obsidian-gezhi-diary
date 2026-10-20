@@ -1,6 +1,6 @@
 ﻿import { ItemView, MarkdownRenderer, Menu, Notice, TFile, WorkspaceLeaf, normalizePath } from "obsidian";
 import type GridDiaryPlugin from "./main";
-import { PromptModal, TemplatePickModal } from "./modals";
+import { PromptModal, TemplatePickModal, ConfirmModal } from "./modals";
 import { DayCell, DaySnapshot, shiftDate, todayStr, weekdayCn } from "./store";
 import { appendColoredMonth } from "./datecolor";
 import { mirrorSections, paragraphsFromSoftBreaks, parseDay, stripEmptyHeadings } from "./sections";
@@ -375,26 +375,34 @@ export class GridDiaryView extends ItemView {
       // —— 删除这一条 ——
       const del = row.createEl("button", { text: "×", cls: "gd-tl-del" });
       del.setAttribute("aria-label", "删除这一条");
-      del.addEventListener("click", async (e) => {
+      del.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.selfWriteUntil = Date.now() + 1200;
-        const removed = await this.plugin.store.deleteSection(this.currentDate, card.title);
-        if (!removed) {
-          new Notice("删除失败");
-          return;
-        }
-        const notice = new Notice(`已删除「${card.title}」`, 5000);
-        let done = false;
-        const btn = notice.noticeEl.createEl("button", { text: "撤销", cls: "gd-undo-btn" });
-        btn.addEventListener("click", async () => {
-          if (done) return;
-          done = true;
-          this.selfWriteUntil = Date.now() + 1200;
-          await this.plugin.store.restoreSection(this.currentDate, removed.title, removed.body, removed.index);
-          notice.hide();
-          await this.render();
-        });
-        await this.render();
+        new ConfirmModal(this.app, {
+          title: "删除这一条？",
+          desc: `只会删除文件里的「## ${card.title}」这一节，其他内容不动。删除后还有 5 秒可撤销。`,
+          okText: "删除这一节",
+          danger: true,
+          onOk: async () => {
+            this.selfWriteUntil = Date.now() + 1200;
+            const removed = await this.plugin.store.deleteSection(this.currentDate, card.title);
+            if (!removed) {
+              new Notice("删除失败");
+              return;
+            }
+            const notice = new Notice(`已删除「${card.title}」`, 5000);
+            let done = false;
+            const btn = notice.noticeEl.createEl("button", { text: "撤销", cls: "gd-undo-btn" });
+            btn.addEventListener("click", async () => {
+              if (done) return;
+              done = true;
+              this.selfWriteUntil = Date.now() + 1200;
+              await this.plugin.store.restoreSection(this.currentDate, removed.title, removed.body, removed.index);
+              notice.hide();
+              await this.render();
+            });
+            await this.render();
+          },
+        }).open();
       });
 
       const open = row.createEl("button", { text: "↗", cls: "gd-cell-more gd-tl-open" });
@@ -416,52 +424,75 @@ export class GridDiaryView extends ItemView {
     }
   }
 
-  /** 给渲染出来的图片套一层可拖拽缩放的框，拖完才把宽度写回 md */
+  /** 给渲染出来的图片套一层可缩放的框（手动拖拽，不依赖 CSS resize），拖完写回 md */
   private bindImages(root: HTMLElement): void {
-    // 清理已经脱离文档的监听，避免越积越多
     this.imgRos = this.imgRos.filter((x) => x.box.isConnected);
     for (const img of Array.from(root.querySelectorAll("img"))) {
       if (img.parentElement?.classList.contains("gd-imgbox")) continue;
-      const box = root.ownerDocument.createElement("div");
+      const doc = root.ownerDocument;
+      const box = doc.createElement("div");
       box.className = "gd-imgbox";
       img.replaceWith(box);
       box.appendChild(img);
 
-      // 记录"当前文件里的宽度"，用于判断用户是否真的拖过
       const attrW = Number.parseInt(img.getAttribute("width") || "", 10);
-      const baseW = Number.isFinite(attrW) && attrW > 0 ? attrW : 0;
+      if (Number.isFinite(attrW) && attrW > 0) {
+        box.style.width = `${attrW}px`;
+      } else {
+        // 文件里没写宽度：默认 400px，避免一张图铺满整条气泡
+        box.style.width = "400px";
+      }
+      img.style.width = "100%";
 
-      let armed = false;
-      let timer: number | null = null;
+      // 右下角拖拽手柄（CSS resize 在 Obsidian 里不可靠，改手动实现）
+      const handle = doc.createElement("span");
+      handle.className = "gd-img-handle";
+      handle.setAttribute("aria-label", "拖动调整图片大小");
+      box.appendChild(handle);
+
+      let dragging = false;
+      let startX = 0;
+      let startW = 0;
+      let moved = false;
+      handle.addEventListener("pointerdown", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        dragging = true;
+        moved = false;
+        startX = ev.clientX;
+        startW = box.getBoundingClientRect().width;
+        handle.setPointerCapture(ev.pointerId);
+      });
+      handle.addEventListener("pointermove", (ev) => {
+        if (!dragging) return;
+        ev.preventDefault();
+        const parentW = (box.parentElement?.clientWidth ?? 800) || 800;
+        const next = Math.max(60, Math.min(parentW, Math.round(startW + (ev.clientX - startX))));
+        if (Math.abs(next - startW) > 2) moved = true;
+        box.style.width = `${next}px`;
+      });
+      handle.addEventListener("pointerup", (ev) => {
+        if (!dragging) return;
+        dragging = false;
+        try {
+          handle.releasePointerCapture(ev.pointerId);
+        } catch {
+          /* ignore */
+        }
+        if (!moved) return;
+        const w = Math.round(box.getBoundingClientRect().width);
+        if (w >= 60) void this.persistImageWidth(img, w);
+      });
+      handle.addEventListener("pointercancel", () => {
+        dragging = false;
+      });
+
+      // 兼容：拖框边缘（非手柄）不触发任何写盘
       const ro = new ResizeObserver(() => {
-        if (!armed || !box.isConnected) return;
-        if (timer) window.clearTimeout(timer);
-        timer = window.setTimeout(() => {
-          armed = false;
-          const w = Math.round(box.getBoundingClientRect().width);
-          if (w < 40) return;
-          if (baseW && Math.abs(w - baseW) <= 6) return;
-          void this.persistImageWidth(img, w);
-        }, 300);
+        /* 仅用于占位，保持 imgRos 结构，实际写盘由手柄控制 */
       });
       ro.observe(box);
       this.imgRos.push({ ro, box });
-
-      // 只有用户按下鼠标（拖右下角）之后的尺寸变化才算修改
-      box.addEventListener("pointerdown", () => {
-        armed = true;
-      });
-      box.addEventListener("pointerup", () => {
-        // 拖得快时 RO 可能已经在 armed=false 前触发过，这里兜一层
-        window.setTimeout(() => {
-          if (!armed || !box.isConnected) return;
-          armed = false;
-          const w = Math.round(box.getBoundingClientRect().width);
-          if (w < 40) return;
-          if (baseW && Math.abs(w - baseW) <= 6) return;
-          void this.persistImageWidth(img, w);
-        }, 220);
-      });
     }
   }
 

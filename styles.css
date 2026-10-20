@@ -1648,3 +1648,59 @@ body.gd-split-resizing { cursor: row-resize !important; user-select: none; }
 .grid-diary-view .gd-cell-text .internal-embed {
   max-width: 100%;
 }
+
+/* ============ 图片框最终版：始终可见的拖拽手柄，手动缩放 ============ */
+.grid-diary-view .gd-imgbox {
+  display: inline-block !important;
+  position: relative;
+  width: auto;
+  max-width: 100%;
+  min-width: 60px;
+  border-radius: 10px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  overflow: hidden !important;
+  resize: none !important;
+  line-height: 0;
+  margin: 6px 0;
+  vertical-align: bottom;
+}
+.grid-diary-view .gd-imgbox::after {
+  content: none !important;
+}
+.grid-diary-view .gd-imgbox img {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  margin: 0 !important;
+  border-radius: 0;
+}
+.grid-diary-view .gd-img-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  z-index: 3;
+  opacity: 0.55;
+  background: linear-gradient(135deg, transparent 46%, currentColor 46%);
+  color: var(--text-muted);
+  border-bottom-right-radius: 8px;
+  touch-action: none;
+}
+.grid-diary-view .gd-img-handle:hover {
+  opacity: 1;
+}
+/* 图片在气泡里不允许撑破 */
+.grid-diary-view .gd-tl-bubble {
+  resize: none;
+  max-width: 100%;
+  overflow: visible;
+}
+.grid-diary-view .gd-tl-bubble .gd-imgbox {
+  max-width: 100%;
+}
