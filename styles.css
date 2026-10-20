@@ -1,0 +1,1528 @@
+﻿/* ============ 格间日记 · 样式 ============ */
+
+.grid-diary-view {
+  padding: 0 !important;
+  position: relative;
+  overflow: hidden;
+  --gd-op: 0.82;
+  --gd-cols: 2;
+  --gd-font: "LXGW WenKai", "Kaiti SC", "STKaiti", "楷体", serif;
+  --gd-weight: 300;
+  --gd-cell-h: 150px;
+  font-weight: var(--gd-weight, 300);
+}
+.gd-cal-side {
+  font-weight: var(--gd-weight, 300);
+}
+.grid-diary-view .view-content,
+.grid-diary-view > div {
+  position: relative;
+}
+
+/* 背景层 */
+.grid-diary-view .gd-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+.grid-diary-view .gd-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+}
+
+/* 滚动容器 */
+.grid-diary-view .gd-scroll {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  overflow-y: auto;
+  padding: 26px 30px 60px;
+  box-sizing: border-box;
+}
+
+/* 头部 */
+.grid-diary-view .gd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+.grid-diary-view .gd-date {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-family: var(--gd-font);
+  color: var(--text-normal);
+}
+.grid-diary-view .gd-daynum {
+  font-size: 62px;
+  line-height: 0.92;
+  font-weight: 300;
+  letter-spacing: -2px;
+  font-family: var(--gd-font);
+  opacity: 0.92;
+}
+.grid-diary-view .gd-datemeta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding-top: 10px;
+}
+.grid-diary-view .gd-datemeta-line {
+  font-size: 15px;
+  letter-spacing: 1px;
+  opacity: 0.85;
+}
+
+/* 顶部按钮组 */
+.grid-diary-view .gd-actions {
+  position: relative;
+  display: flex;
+  gap: 10px;
+}
+
+.gd-cal-side .gd-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.gd-cal-side .gd-cal-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+.gd-cal-side .gd-cal-nav {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-normal);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.gd-cal-side .gd-cal-nav:hover {
+  background: var(--background-modifier-hover);
+}
+.gd-cal-side .gd-cal-week,
+.gd-cal-side .gd-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  text-align: center;
+}
+.gd-cal-side .gd-cal-week div {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  padding: 4px 0;
+}
+.gd-cal-side .gd-cal-day {
+  position: relative;
+  padding: 7px 0;
+  border-radius: 9px;
+  font-size: 13.5px;
+  cursor: pointer;
+  user-select: none;
+}
+.gd-cal-side .gd-cal-day:hover {
+  background: var(--background-modifier-hover);
+}
+.gd-cal-side .gd-cal-day.empty {
+  visibility: hidden;
+}
+.gd-cal-side .gd-cal-day.today {
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px var(--interactive-accent);
+}
+.gd-cal-side .gd-cal-day.active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.gd-cal-side .gd-cal-day.has::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.gd-cal-side .gd-cal-day.active.has::after {
+  background: var(--text-on-accent);
+}
+
+/* 粒度切换：按日 / 按周 / 按月 */
+.gd-cal-side .gd-cal-seg {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.gd-cal-side .gd-cal-seg-btn {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.gd-cal-side .gd-cal-seg-btn:hover {
+  background: var(--background-modifier-hover);
+}
+.gd-cal-side .gd-cal-seg-btn.is-on {
+  background: var(--interactive-accent);
+  border-color: transparent;
+  color: var(--text-on-accent);
+}
+
+/* 时间数轴：拖动即切日期 */
+.gd-cal-side .gd-cal-axis {
+  margin: 2px 0 12px;
+  padding: 8px 10px 6px;
+  border-radius: 10px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+.gd-cal-side .gd-cal-axis-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+.gd-cal-side .gd-cal-axis-top .now {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-accent);
+  letter-spacing: 0.3px;
+}
+.gd-cal-side .gd-cal-axis-range {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--interactive-accent);
+  cursor: pointer;
+}
+.gd-cal-side .gd-cal-body {
+  display: block;
+}
+
+/* 按日视图 */
+.gd-cal-side .gd-cal-day-view {
+  text-align: center;
+  padding: 4px 0 2px;
+}
+.gd-cal-side .gd-cal-day-view .big {
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.gd-cal-side .gd-cal-day-view .sub {
+  color: var(--text-muted);
+  font-size: 13.5px;
+  margin: 6px 0 2px;
+}
+.gd-cal-side .gd-cal-day-view .state {
+  font-size: 13px;
+  margin-bottom: 12px;
+  color: var(--text-muted);
+}
+.gd-cal-side .gd-cal-open {
+  width: 100%;
+  padding: 8px 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-size: 14px;
+  cursor: pointer;
+}
+.gd-cal-side .gd-cal-open:hover {
+  filter: brightness(1.08);
+}
+
+/* 按周视图 */
+.gd-cal-side .gd-cal-wlist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gd-cal-side .gd-cal-week-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.gd-cal-side .gd-cal-week-row:hover {
+  background: var(--background-modifier-hover);
+}
+.gd-cal-side .gd-cal-week-row .w {
+  width: 34px;
+  color: var(--text-faint);
+  font-size: 12.5px;
+}
+.gd-cal-side .gd-cal-week-row .d {
+  font-weight: 600;
+  font-size: 14px;
+}
+.gd-cal-side .gd-cal-week-row .st {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.gd-cal-side .gd-cal-week-row.today {
+  box-shadow: inset 0 0 0 1.5px var(--interactive-accent);
+}
+.gd-cal-side .gd-cal-week-row.active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.gd-cal-side .gd-cal-week-row.active .w,
+.gd-cal-side .gd-cal-week-row.active .st {
+  color: var(--text-on-accent);
+}
+.grid-diary-view .gd-btn {
+  min-width: 46px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--text-normal);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.grid-diary-view .gd-btn:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+.grid-diary-view .gd-btn:active {
+  transform: scale(0.96);
+}
+.grid-diary-view .gd-btn-primary {
+  font-size: 15px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+
+/* 翻日 */
+.grid-diary-view .gd-nav {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 16px;
+  opacity: 0.7;
+}
+.grid-diary-view .gd-nav-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.grid-diary-view .gd-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--text-normal);
+}
+
+/* 格子墙 */
+.grid-diary-view .gd-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--gd-cols), minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 700px) {
+  .grid-diary-view .gd-scroll {
+    padding: 18px 16px 60px;
+  }
+  .grid-diary-view .gd-grid {
+    grid-template-columns: 1fr;
+  }
+  .grid-diary-view .gd-daynum {
+    font-size: 48px;
+  }
+}
+
+/* 单个格子 —— 每格自己独立滚动 */
+.grid-diary-view .gd-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 210px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, var(--gd-op));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.grid-diary-view .gd-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.12);
+}
+.grid-diary-view .gd-cell.is-done {
+  background: rgba(214, 236, 222, var(--gd-op));
+}
+.theme-dark .grid-diary-view .gd-cell {
+  background: rgba(38, 42, 48, var(--gd-op));
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.theme-dark .grid-diary-view .gd-cell.is-done {
+  background: rgba(42, 58, 48, var(--gd-op));
+}
+
+.grid-diary-view .gd-cell-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(128, 128, 128, 0.28);
+}
+.grid-diary-view .gd-cell-title {
+  font-family: var(--gd-font);
+  font-size: 17px;
+  line-height: 1.35;
+  color: var(--text-normal);
+  font-weight: 600;
+}
+.grid-diary-view .gd-cell-more {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+.grid-diary-view .gd-cell-more:hover {
+  background: rgba(128, 128, 128, 0.16);
+  color: var(--text-normal);
+}
+
+.grid-diary-view .gd-cell-body {
+  flex: 0 0 auto;
+  height: var(--gd-cell-h, 150px);
+  min-height: 0;
+  max-height: var(--gd-cell-h, 150px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-top: 8px;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.grid-diary-view .gd-cell-body::-webkit-scrollbar {
+  width: 7px;
+}
+.grid-diary-view .gd-cell-body::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.35);
+  border-radius: 6px;
+}
+.grid-diary-view .gd-cell-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.6);
+}
+.grid-diary-view .gd-cell-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.grid-diary-view .gd-cell-preview {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text-normal);
+  opacity: 0.92;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.grid-diary-view .gd-cell-placeholder {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.grid-diary-view .gd-cell-done {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  color: #3f9b6a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* 空状态 */
+.grid-diary-view .gd-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  font-family: var(--gd-font);
+}
+.grid-diary-view .gd-empty p {
+  margin-bottom: 16px;
+  font-size: 15px;
+}
+
+/* 模板选择弹窗 */
+.grid-diary-tpl-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--background-modifier-border);
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.grid-diary-tpl-row:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+}
+.grid-diary-tpl-main {
+  flex: 1;
+  min-width: 0;
+}
+.grid-diary-tpl-set {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.grid-diary-tpl-row:hover .grid-diary-tpl-set {
+  opacity: 1;
+}
+.grid-diary-tpl-set:hover {
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
+}
+.grid-diary-tpl-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.grid-diary-tpl-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.grid-diary-modal-desc {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: -6px;
+}
+
+/* ============ 单文件模式补充 ============ */
+.grid-diary-view .gd-quote {
+  font-size: 12.5px;
+  opacity: 0.6;
+  max-width: 380px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.grid-diary-view .gd-nav-right {
+  margin-left: auto;
+}
+.grid-diary-view .gd-cell-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.grid-diary-view .gd-cell.is-blank {
+  border-style: dashed;
+  opacity: 0.85;
+}
+.grid-diary-view .gd-cell-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  word-break: break-word;
+}
+
+/* 单格编辑层 */
+.grid-diary-edit-modal .grid-diary-edit-title {
+  margin: 0 0 10px;
+  font-family: "LXGW WenKai", "Kaiti SC", "STKaiti", "楷体", serif;
+  letter-spacing: 1px;
+}
+.grid-diary-edit-modal .grid-diary-edit-area {
+  width: 100%;
+  height: min(58vh, 520px);
+  resize: vertical;
+  padding: 14px 16px;
+  border-radius: 10px;
+  line-height: 1.85;
+  font-size: 15px;
+  font-family: "LXGW WenKai", "Kaiti SC", "STKaiti", "楷体", var(--font-text);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+}
+.grid-diary-edit-modal .grid-diary-edit-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.grid-diary-edit-modal .grid-diary-edit-hint {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-right: auto;
+}
+
+/* ============ 就地编辑模式 ============ */
+/* 等高对齐：同一行卡片一样高，内容少也撑满分配高度 */
+.grid-diary-view .gd-grid {
+  align-items: stretch;
+  grid-auto-rows: minmax(var(--gd-cell-min, 250px), auto);
+}
+.grid-diary-view .gd-cell {
+  height: 100%;
+  min-height: var(--gd-cell-min, 250px);
+  max-height: none;
+  resize: vertical;
+  overflow: hidden;
+}
+/* 格内文本区：固定上限，超出立刻出现滚动条（显示态与编辑态都生效） */
+.grid-diary-view .gd-cell-body {
+  flex: 1 1 auto;
+  height: auto;
+  max-height: var(--gd-cell-h, 200px);
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+.grid-diary-view .gd-cell-head {
+  align-items: center;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+.grid-diary-view .gd-cell-editor {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: none !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  resize: none;
+  color: var(--text-normal);
+  font-family: var(--gd-font);
+  font-size: 15px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.grid-diary-view .gd-cell-editor::placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+}
+.grid-diary-view .gd-cell-editor:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+.grid-diary-view .gd-cell:focus-within {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, calc(var(--gd-op) + 0.1));
+}
+.theme-dark .grid-diary-view .gd-cell:focus-within {
+  background: rgba(48, 52, 60, var(--gd-op));
+}
+.grid-diary-view .gd-cell-status {
+  font-size: 11px;
+  color: var(--text-faint);
+  min-width: 30px;
+  text-align: right;
+  transition: opacity 0.2s ease;
+}
+.grid-diary-view .gd-save-hint {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  margin-left: 4px;
+  opacity: 0.7;
+}
+/* 让格子本身可以撑满一列而不被压扁 */
+.grid-diary-view .gd-cell {
+  padding-bottom: 12px;
+}
+.grid-diary-view .gd-cell {
+  cursor: text;
+}
+.grid-diary-view .gd-cell:hover {
+  transform: none;
+}
+.grid-diary-view .gd-cell-more,
+.grid-diary-view .gd-cell-tools {
+  cursor: default;
+}
+
+/* 拖拽换位 */
+.grid-diary-view .gd-cell-handle {
+  cursor: grab;
+  user-select: none;
+  color: var(--text-faint);
+  padding: 0 3px;
+  font-size: 13px;
+  line-height: 1;
+  font-family: var(--font-interface), "Segoe UI Symbol", sans-serif;
+}
+.grid-diary-view .gd-cell-handle:hover {
+  color: var(--text-normal);
+}
+.grid-diary-view .gd-cell-handle:active {
+  cursor: grabbing;
+}
+.grid-diary-view .gd-cell.gd-dragging {
+  opacity: 0.45;
+}
+.grid-diary-view .gd-cell.gd-drop-before {
+  box-shadow: inset 0 4px 0 -1px var(--interactive-accent);
+}
+.grid-diary-view .gd-cell.gd-drop-after {
+  box-shadow: inset 0 -4px 0 -1px var(--interactive-accent);
+}
+/* ---------- 右侧边栏日历视图 ---------- */
+.gd-cal-side {
+  padding: 10px 10px 24px;
+  overflow-y: auto;
+  font-family: var(--gd-font, var(--font-interface));
+}
+.gd-cal-side .gd-cal-seg {
+  width: 100%;
+  margin-bottom: 10px;
+}
+.gd-cal-side .gd-cal-week,
+.gd-cal-side .gd-cal-grid {
+  font-size: 12px;
+}
+.gd-cal-side .gd-cal-day {
+  aspect-ratio: 1 / 1;
+}
+.gd-cal-side .gd-cal-day-view .big {
+  font-size: 56px;
+}
+
+/* 侧栏：当天日记文件区 */
+.gd-cal-filebox {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+.gd-cal-filehead {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.gd-cal-filename {
+  font-weight: 600;
+  font-size: 13px;
+  word-break: break-all;
+}
+.gd-cal-filepath {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-faint);
+  word-break: break-all;
+}
+.gd-cal-filebox .gd-cal-open {
+  margin-top: 8px;
+  width: 100%;
+}
+
+/* 侧栏：当天文件内容（整块可点开） */
+.gd-cal-filebox.is-clickable {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.gd-cal-filebox.is-clickable:hover {
+  background: var(--background-modifier-hover);
+}
+.gd-cal-filebox.is-empty {
+  cursor: pointer;
+  border-style: dashed;
+}
+.gd-cal-filecontent {
+  margin-top: 6px;
+  max-height: 132px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-normal);
+  mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+}
+.gd-cal-fileh {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-accent);
+}
+.gd-cal-filep {
+  margin-top: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 格子内容：显示态渲染 Markdown，点击进入编辑态 */
+.grid-diary-view .gd-cell-preview {
+  cursor: text;
+  min-height: 62px;
+}
+.grid-diary-view .is-hidden {
+  display: none !important;
+}
+.grid-diary-view .gd-cell-preview.markdown-rendered > :first-child { margin-top: 0; }
+.grid-diary-view .gd-cell-preview.markdown-rendered > :last-child { margin-bottom: 0; }
+.grid-diary-view .gd-cell-preview.markdown-rendered p { margin: 0.35em 0; }
+.grid-diary-view .gd-cell-preview.markdown-rendered ul,
+.grid-diary-view .gd-cell-preview.markdown-rendered ol { margin: 0.35em 0; padding-inline-start: 1.35em; }
+.grid-diary-view .gd-cell-preview.markdown-rendered li { margin: 0.15em 0; }
+.grid-diary-view .gd-cell-preview.markdown-rendered img { max-width: 100%; border-radius: 6px; }
+.grid-diary-view .gd-cell-preview.markdown-rendered code { font-size: 0.92em; }
+.grid-diary-view .gd-cell-preview.markdown-rendered h1,
+.grid-diary-view .gd-cell-preview.markdown-rendered h2,
+.grid-diary-view .gd-cell-preview.markdown-rendered h3 { font-size: 1.05em; margin: 0.5em 0 0.25em; }
+.grid-diary-view .gd-cell-preview .gd-cell-placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+  font-size: 13.5px;
+}
+
+/* ===== 右侧栏：顶部工具条与下拉框 ===== */
+.gd-cal-side .gd-cal-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.gd-cal-side .gd-cal-bar .gd-cal-seg {
+  width: 100%;
+  margin-bottom: 0;
+}
+.gd-cal-side .gd-cal-dd {
+  width: 100%;
+}
+.gd-cal-side .gd-cal-dd select.dropdown {
+  width: 100%;
+  height: 30px;
+  font-size: 12.5px;
+  padding: 0 26px 0 8px;
+}
+
+/* ===== 右侧栏：底部摘要列表（折叠分组） ===== */
+.gd-cal-side .gd-cal-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gd-cal-side details.gd-cal-group {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+  overflow: hidden;
+}
+.gd-cal-side summary.gd-cal-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-normal);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.gd-cal-side summary.gd-cal-summary::-webkit-details-marker { display: none; }
+.gd-cal-side summary.gd-cal-summary::before {
+  content: "▸";
+  margin-right: 2px;
+  color: var(--text-faint);
+}
+.gd-cal-side details[open] > summary.gd-cal-summary::before {
+  content: "▾";
+}
+.gd-cal-side summary.gd-cal-summary:hover {
+  background: var(--background-modifier-hover);
+}
+.gd-cal-side .gd-cal-gtitle { flex: 1 1 auto; }
+.gd-cal-side .gd-cal-count {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+.gd-cal-side .gd-cal-item {
+  padding: 7px 10px;
+  border-top: 1px solid var(--background-modifier-border);
+  border-radius: 0;
+}
+.gd-cal-side .gd-cal-item.is-clickable { cursor: pointer; }
+.gd-cal-side .gd-cal-item.is-clickable:hover { background: var(--background-modifier-hover); }
+.gd-cal-side .gd-cal-item.active {
+  background: var(--background-modifier-active-hover, var(--background-modifier-hover));
+}
+.gd-cal-side .gd-cal-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.gd-cal-side .gd-cal-item-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+.gd-cal-side .gd-cal-item.active .gd-cal-item-date { color: var(--text-accent); }
+.gd-cal-side .gd-cal-item-badge {
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+.gd-cal-side .gd-cal-item-sum {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+.gd-cal-side .gd-cal-item-sum.is-empty {
+  font-style: italic;
+  color: var(--text-faint);
+}
+.gd-cal-side .gd-cal-day-view { margin-bottom: 4px; }
+
+/* ============ 日期多彩配色（年浅蓝 / 月浅紫 / 日浅橙） ============ */
+.gd-cdate {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.gd-cy {
+  color: #8ec5e8;
+}
+.gd-cm {
+  color: #c3a9e8;
+}
+.gd-cd {
+  color: #f2b47c;
+}
+.gd-csep {
+  color: var(--text-faint);
+}
+.gd-cweek {
+  color: var(--text-muted);
+}
+.theme-dark .gd-cy { color: #7fb6dd; }
+.theme-dark .gd-cm { color: #b79fe0; }
+.theme-dark .gd-cd { color: #e8a86f; }
+
+/* 主视图顶部大日期 */
+.grid-diary-view .gd-daynum .gd-cd {
+  color: #f2b47c;
+}
+.theme-dark .grid-diary-view .gd-daynum .gd-cd {
+  color: #e8a86f;
+}
+
+/* ============ 侧栏列表：细字与彩色日期 ============ */
+.gd-cal-side .gd-cal-item-date {
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.gd-cal-side .gd-cal-gtitle,
+.gd-cal-side .gd-cal-summary > .gd-cdate {
+  font-weight: 500;
+}
+
+/* ============ 设置面板 Tab ============ */
+.gd-settings .gd-set-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin: 8px 0 16px;
+}
+.gd-settings .gd-set-tab {
+  padding: 7px 14px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+.gd-settings .gd-set-tab:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+.gd-settings .gd-set-tab.is-on {
+  color: var(--text-accent);
+  border-bottom-color: var(--interactive-accent);
+  font-weight: 500;
+}
+.gd-settings .gd-set-panel .setting-item {
+  padding: 12px 0;
+}
+.gd-settings .gd-set-css textarea {
+  min-height: 220px;
+  font-family: var(--font-monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* ============ 侧栏上下分屏（上=文件列表 下=日历） ============ */
+.gd-cal-side {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.gd-cal-side .gd-cal-bar { flex: 0 0 auto; }
+.gd-cal-side .gd-split {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.gd-cal-side .gd-split-top {
+  flex: 0 0 60%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.gd-cal-side .gd-split-bottom {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.gd-cal-side .gd-cal-list-pane,
+.gd-cal-side .gd-cal-cal-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.gd-cal-side .gd-cal-cal-pane { padding-bottom: 6px; }
+.gd-cal-side .gd-cal-cal-pane .gd-cal-list { margin-top: 0; }
+.gd-cal-side .gd-split-grip {
+  flex: 0 0 9px;
+  position: relative;
+  cursor: row-resize;
+}
+.gd-cal-side .gd-split-grip::before {
+  content: "";
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: var(--background-modifier-border);
+}
+.gd-cal-side .gd-split-grip:hover::before {
+  background: var(--interactive-accent);
+  height: 3px;
+}
+body.gd-split-resizing { cursor: row-resize !important; user-select: none; }
+
+/* ============ 编辑态 / 预览态共用同一套排版 ============ */
+.grid-diary-view .gd-cell-text,
+.grid-diary-view .gd-cell-text.markdown-rendered {
+  font-family: var(--gd-font) !important;
+  font-size: 15px !important;
+  line-height: 1.8 !important;
+  color: var(--text-normal) !important;
+  font-weight: var(--gd-weight, 300);
+  letter-spacing: 0.01em;
+}
+.grid-diary-view .gd-cell-text.markdown-rendered p,
+.grid-diary-view .gd-cell-text.markdown-rendered li,
+.grid-diary-view .gd-cell-text.markdown-rendered span,
+.grid-diary-view .gd-cell-text.markdown-rendered div {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  color: inherit;
+}
+.grid-diary-view .gd-cell-text.markdown-rendered p { margin: 0.35em 0; }
+
+/* ============ 格子内容固定高度 + 顶部对齐 ============ */
+.grid-diary-view .gd-cell-body {
+  flex: 0 0 auto;
+  height: var(--gd-cell-h, 200px) !important;
+  max-height: var(--gd-cell-h, 200px) !important;
+  min-height: var(--gd-cell-h, 200px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  display: block;
+  justify-content: flex-start;
+  align-items: flex-start;
+  text-align: left;
+}
+.grid-diary-view .gd-cell-preview,
+.grid-diary-view .gd-cell-editor {
+  display: block;
+  text-align: left;
+  vertical-align: top;
+}
+.grid-diary-view .gd-cell-preview > :first-child,
+.grid-diary-view .gd-cell-preview p:first-child {
+  margin-top: 0 !important;
+}
+.grid-diary-view .gd-cell-preview > :last-child,
+.grid-diary-view .gd-cell-preview p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* ============ 格子格式快捷键 ============ */
+.grid-diary-view .gd-cell-fmt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 6px;
+  flex: 0 0 auto;
+}
+.grid-diary-view .gd-fmt-btn {
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border-radius: 5px;
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: none;
+}
+.grid-diary-view .gd-fmt-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
+}
+
+/* ============ 日历：恢复默认比例 / 加载更多 ============ */
+.gd-cal-side .gd-cal-reset {
+  flex: 0 0 auto;
+  width: 30px;
+  padding: 0;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  box-shadow: none;
+}
+.gd-cal-side .gd-cal-reset:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.gd-cal-side .gd-cal-more {
+  margin: 8px 0 2px;
+  width: 100%;
+  padding: 7px 0;
+  border-radius: 8px;
+  border: 1px dashed var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  box-shadow: none;
+}
+.gd-cal-side .gd-cal-more:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* ============ 删除撤销按钮（Notice 内） ============ */
+.gd-undo-btn {
+  margin-left: 10px;
+  padding: 1px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--interactive-accent);
+  background: transparent;
+  color: var(--interactive-accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+.gd-undo-btn:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+/* ============ 时间流（带时间戳的追加笔记） ============ */
+.grid-diary-view .gd-timeline {
+  margin: 18px 0 4px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--background-modifier-border);
+}
+.grid-diary-view .gd-tl-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.grid-diary-view .gd-tl-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+.grid-diary-view .gd-tl-count {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.grid-diary-view .gd-tl-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 58px 1fr 22px;
+  gap: 10px;
+  padding: 8px 10px 8px 0;
+  border-left: 2px solid var(--background-modifier-border);
+  margin-left: 6px;
+  padding-left: 12px;
+}
+.grid-diary-view .gd-tl-item::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 15px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--interactive-accent);
+  opacity: 0.65;
+}
+.grid-diary-view .gd-tl-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+.grid-diary-view .gd-tl-body {
+  font-size: var(--gd-cell-font, 15px);
+  line-height: 1.8;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.grid-diary-view .gd-tl-body img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+.grid-diary-view .gd-tl-open {
+  align-self: start;
+  opacity: 0.5;
+}
+.grid-diary-view .gd-tl-open:hover {
+  opacity: 1;
+}
+
+/* 格子里的图片 / 音频 / 视频 */
+.grid-diary-view .gd-cell-text img {
+  max-width: 100%;
+  border-radius: 8px;
+  display: block;
+  margin: 4px 0;
+}
+.grid-diary-view .gd-cell-text audio,
+.grid-diary-view .gd-cell-text video {
+  max-width: 100%;
+}
+.grid-diary-view .gd-cell-text .internal-embed {
+  margin: 4px 0;
+}
+
+/* 右侧列表缩略图 */
+.gd-cal-side .gd-cal-item-thumb {
+  margin: 6px 0 4px;
+}
+.gd-cal-side .gd-cal-item-thumb img {
+  width: 100%;
+  max-height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  border: 1px solid var(--background-modifier-border);
+}
+
+/* 快速笔记弹窗 */
+.gd-quick-area {
+  width: 100%;
+  resize: vertical;
+}
+
+/* ============ 时间流：气泡卡片 + 可缩放图片 ============ */
+.grid-diary-view .gd-tl-item {
+  grid-template-columns: 52px 1fr 18px;
+  padding-left: 10px;
+  margin-bottom: 8px;
+}
+.grid-diary-view .gd-tl-bubble {
+  background: var(--background-primary-alt, rgba(127, 127, 127, 0.09));
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 14px;
+  border-top-left-radius: 4px;
+  padding: 10px 14px;
+  max-width: min(100%, 640px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+.grid-diary-view .gd-tl-bubble:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.grid-diary-view .gd-tl-bubble > .gd-tl-body {
+  padding: 0;
+  font-size: var(--gd-cell-font, 15px);
+  line-height: 1.8;
+}
+.grid-diary-view .gd-tl-bubble .gd-tl-body > :first-child {
+  margin-top: 0;
+}
+.grid-diary-view .gd-tl-bubble .gd-tl-body > :last-child {
+  margin-bottom: 0;
+}
+.grid-diary-view .gd-tl-bubble h3 {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 10px 0 4px;
+  color: var(--text-muted);
+}
+.grid-diary-view .gd-tl-bubble h3:first-child {
+  margin-top: 0;
+}
+
+/* 图片外框：可拖拽缩放，限制最大尺寸 */
+.grid-diary-view .gd-imgbox {
+  display: inline-block;
+  max-width: 100%;
+  max-height: 360px;
+  overflow: hidden;
+  resize: both;
+  border-radius: 10px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  vertical-align: bottom;
+  margin: 6px 0;
+  cursor: zoom-in;
+}
+.grid-diary-view .gd-imgbox img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  margin: 0 !important;
+  border-radius: 0;
+}
+.grid-diary-view .gd-imgbox::after {
+  content: "";
+  position: absolute;
+}
+.grid-diary-view .gd-imgbox {
+  position: relative;
+}
+
+/* ============ 时间流：可拉伸卡片 + 折叠 ============ */
+.grid-diary-view .gd-tl-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+.grid-diary-view .gd-tl-caret {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-left: 2px;
+  transition: transform 120ms ease;
+}
+.grid-diary-view .gd-tl-item.is-collapsed .gd-tl-caret {
+  transform: rotate(-90deg);
+}
+.grid-diary-view .gd-tl-item.is-collapsed .gd-tl-bubble {
+  display: none;
+}
+.grid-diary-view .gd-tl-bubble {
+  resize: both;
+  overflow: auto;
+  min-width: 160px;
+  min-height: 60px;
+  max-height: 520px;
+  height: auto;
+  position: relative;
+}
+/* 右下角拉伸提示 */
+.grid-diary-view .gd-tl-bubble::after,
+.grid-diary-view .gd-imgbox::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--text-faint);
+  border-bottom: 2px solid var(--text-faint);
+  opacity: 0.45;
+  pointer-events: none;
+  border-bottom-right-radius: 2px;
+}
+.grid-diary-view .gd-imgbox {
+  min-width: 120px;
+  min-height: 80px;
+  max-height: 420px;
+  resize: both;
+  overflow: hidden;
+}
+.grid-diary-view .gd-tl-empty {
+  font-size: 12px;
+  color: var(--text-faint);
+  padding: 2px 0 6px;
+}
+
+/* ============ 修正：图片框无滚动条、宽度随图 ============ */
+.grid-diary-view .gd-imgbox {
+  display: inline-block !important;
+  width: -moz-fit-content;
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden !important;
+  resize: both;
+  line-height: 0;
+  min-width: 60px;
+  min-height: 40px;
+  max-height: 420px;
+}
+.grid-diary-view .gd-imgbox img {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+}
+.grid-diary-view .gd-tl-body::-webkit-scrollbar,
+.grid-diary-view .gd-imgbox::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============ 时间流（第 15 轮）：可编辑卡片 / 删除 / 格子镜像 ============ */
+.grid-diary-view .gd-tl-item {
+  grid-template-columns: 56px 1fr 20px 20px;
+  gap: 4px;
+  align-items: start;
+}
+.grid-diary-view .gd-tl-time {
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gd-c-day, var(--text-muted));
+}
+.grid-diary-view .gd-tl-item.is-cell .gd-tl-time {
+  color: var(--text-accent);
+  font-weight: 600;
+}
+.grid-diary-view .gd-tl-label {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+  display: inline-block;
+  vertical-align: bottom;
+}
+.grid-diary-view .gd-tl-del {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  line-height: 16px;
+  font-size: 14px;
+  color: var(--text-faint);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.grid-diary-view .gd-tl-del:hover {
+  color: var(--text-error, #e05555);
+  background: var(--background-modifier-hover);
+}
+.grid-diary-view .gd-tl-body.is-hidden {
+  display: none !important;
+}
+.grid-diary-view .gd-tl-editor {
+  width: 100%;
+  min-height: 80px;
+  max-height: 360px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border-focus, var(--background-modifier-border));
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: inherit;
+  font-size: var(--gd-cell-font, 15px);
+  line-height: 1.8;
+  resize: vertical;
+  outline: none;
+}
+/* 气泡内滚动条不要鬼影 */
+.grid-diary-view .gd-tl-bubble {
+  scrollbar-width: thin;
+}
