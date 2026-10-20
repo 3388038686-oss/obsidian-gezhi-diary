@@ -1,9 +1,9 @@
 {
   "id": "grid-diary",
   "name": "Grid Diary",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "minAppVersion": "1.5.0",
-  "description": "Write question-guided diary entries in a grid, with a calendar sidebar and a timeline. 问题引导式日记：九宫格记录，右侧日历与列表，下方时间流。",
+  "description": "Write question-guided diary entries in a grid, with a calendar sidebar and a timeline. 问题引导式日记：九宫格记录、右侧日历、下方时间流.",
   "author": "ko",
   "isDesktopOnly": false,
   "authorUrl": "https://github.com/3388038686-oss"
