@@ -237,6 +237,19 @@ export default class GridDiaryPlugin extends Plugin {
     }).open();
   }
 
+  /** 把任意文件写进 attachments 目录，返回文件名（不含目录） */
+  async saveAttachment(date: string, data: ArrayBuffer | Blob, ext: string, prefix = ""): Promise<string> {
+    const dir = normalizePath(`${this.settings.rootFolder || "日记"}/attachments`);
+    if (!this.app.vault.getAbstractFileByPath(dir)) {
+      await this.app.vault.createFolder(dir).catch(() => undefined);
+    }
+    const clean = (ext || "bin").replace(/^\./, "").toLowerCase();
+    const name = `${date}-${prefix}${Date.now().toString(36)}.${clean}`;
+    const buf = data instanceof Blob ? await data.arrayBuffer() : data;
+    await this.app.vault.createBinary(normalizePath(`${dir}/${name}`), buf);
+    return name;
+  }
+
   /** 插入图片：写入 attachments，并在当天文件追加 ![[文件名]] */
   async insertImage(date: string): Promise<void> {
     const input = document.createElement("input");
@@ -247,14 +260,8 @@ export default class GridDiaryPlugin extends Plugin {
       if (!f) return;
       void (async () => {
         try {
-          const dir = normalizePath(`${this.settings.rootFolder || "日记"}/attachments`);
-          if (!this.app.vault.getAbstractFileByPath(dir)) {
-            await this.app.vault.createFolder(dir).catch(() => undefined);
-          }
           const ext = (f.name.split(".").pop() || "png").toLowerCase();
-          const name = `${date}-${Date.now().toString(36)}.${ext}`;
-          const buf = await f.arrayBuffer();
-          await this.app.vault.createBinary(normalizePath(`${dir}/${name}`), buf);
+          const name = await this.saveAttachment(date, f, ext);
           await this.store.appendTimelineNote(date, `![[${name}|400]]`, "图片");
           new Notice("已插入图片");
           this.setActiveDate(date);

@@ -226,3 +226,37 @@ export class TemplatePickModal extends Modal {
     this.contentEl.empty();
   }
 }
+
+export class ConfirmModal extends Modal {
+  constructor(
+    app: App,
+    private opts: {
+      title: string;
+      desc?: string;
+      okText?: string;
+      danger?: boolean;
+      onOk: () => void | Promise<void>;
+    }
+  ) {
+    super(app);
+  }
+
+  onOpen(): void {
+    this.titleEl.setText(this.opts.title);
+    if (this.opts.desc) this.contentEl.createEl("p", { text: this.opts.desc });
+    const row = this.contentEl.createDiv({ cls: "gd-modal-row" });
+    const cancel = row.createEl("button", { text: "取消", cls: "gd-btn" });
+    cancel.addEventListener("click", () => this.close());
+    const ok = row.createEl("button", {
+      text: this.opts.okText || "确定",
+      cls: this.opts.danger ? "gd-btn gd-btn-danger" : "gd-btn gd-btn-primary",
+    });
+    ok.addEventListener("click", () => {
+      void Promise.resolve(this.opts.onOk()).finally(() => this.close());
+    });
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+}

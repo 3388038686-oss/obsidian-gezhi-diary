@@ -2,6 +2,7 @@ import { DropdownComponent, ItemView, Menu, Notice, WorkspaceLeaf } from "obsidi
 import type GridDiaryPlugin from "./main";
 import { appendColoredDate, appendColoredMonth } from "./datecolor";
 import { todayStr, weekdayCn } from "./store";
+import { ConfirmModal } from "./modals";
 
 export const VIEW_TYPE_CAL = "grid-diary-calendar";
 
@@ -414,6 +415,32 @@ export class CalendarSidebarView extends ItemView {
         e.stopPropagation();
         void this.plugin.activateView(ds);
       });
+      if (file) {
+        const del = headEl.createEl("button", { cls: "gd-cal-del" });
+        del.type = "button";
+        del.setText("🗑");
+        del.setAttribute("aria-label", "删除这篇日记");
+        del.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          new ConfirmModal(this.app, {
+            title: "删除这篇日记？",
+            desc: `${file.path}\n将移入 Obsidian 回收站，可在系统回收站里找回。`,
+            okText: "删除",
+            danger: true,
+            onOk: async () => {
+              try {
+                await this.app.fileManager.trashFile(file);
+                new Notice(`已删除 ${file.basename}`);
+                this.plugin.refreshAll();
+              } catch (err) {
+                console.error("[grid-diary] 删除失败", err);
+                new Notice("删除失败");
+              }
+            },
+          }).open();
+        });
+      }
       if (!file) {
         headEl.createEl("span", { text: "空", cls: "gd-cal-item-badge" });
         item.createDiv({ cls: "gd-cal-item-sum is-empty", text: "这天还没有日记，点这里去写" });

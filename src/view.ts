@@ -27,7 +27,7 @@ export class GridDiaryView extends ItemView {
   /** 时间流容器（只重绘它，避免整页重建） */
   private timelineSlot: HTMLElement | null = null;
   private tlTimer: number | null = null;
-  private imgRos: ResizeObserver[] = [];
+  private imgRos: Array<{ ro: ResizeObserver; box: HTMLElement }> = [];
 
   constructor(leaf: WorkspaceLeaf, plugin: GridDiaryPlugin) {
     super(leaf);
@@ -418,6 +418,8 @@ export class GridDiaryView extends ItemView {
 
   /** 给渲染出来的图片套一层可拖拽缩放的框，拖完才把宽度写回 md */
   private bindImages(root: HTMLElement): void {
+    // 清理已经脱离文档的监听，避免越积越多
+    this.imgRos = this.imgRos.filter((x) => x.box.isConnected);
     for (const img of Array.from(root.querySelectorAll("img"))) {
       if (img.parentElement?.classList.contains("gd-imgbox")) continue;
       const box = root.ownerDocument.createElement("div");
@@ -429,19 +431,36 @@ export class GridDiaryView extends ItemView {
       const attrW = Number.parseInt(img.getAttribute("width") || "", 10);
       const baseW = Number.isFinite(attrW) && attrW > 0 ? attrW : 0;
 
-      // 只有用户按下鼠标（拖右下角）之后的 pointerup 才算一次修改
+      let armed = false;
+      let timer: number | null = null;
+      const ro = new ResizeObserver(() => {
+        if (!armed || !box.isConnected) return;
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          armed = false;
+          const w = Math.round(box.getBoundingClientRect().width);
+          if (w < 40) return;
+          if (baseW && Math.abs(w - baseW) <= 6) return;
+          void this.persistImageWidth(img, w);
+        }, 300);
+      });
+      ro.observe(box);
+      this.imgRos.push({ ro, box });
+
+      // 只有用户按下鼠标（拖右下角）之后的尺寸变化才算修改
       box.addEventListener("pointerdown", () => {
-        const doc = box.ownerDocument;
-        const onUp = () => {
-          window.setTimeout(() => {
-            if (!box.isConnected) return;
-            const w = Math.round(box.getBoundingClientRect().width);
-            if (w < 40) return;
-            if (baseW && Math.abs(w - baseW) <= 6) return;
-            void this.persistImageWidth(img, w);
-          }, 260);
-        };
-        doc.addEventListener("pointerup", onUp, { once: true });
+        armed = true;
+      });
+      box.addEventListener("pointerup", () => {
+        // 拖得快时 RO 可能已经在 armed=false 前触发过，这里兜一层
+        window.setTimeout(() => {
+          if (!armed || !box.isConnected) return;
+          armed = false;
+          const w = Math.round(box.getBoundingClientRect().width);
+          if (w < 40) return;
+          if (baseW && Math.abs(w - baseW) <= 6) return;
+          void this.persistImageWidth(img, w);
+        }, 220);
       });
     }
   }
@@ -608,7 +627,216 @@ export class GridDiaryView extends ItemView {
     addFmt("I", "斜体 *文字*", "*", "*");
     addFmt("S", "删除线 ~~文字~~", "~~", "~~");
     addFmt("H", "高亮 ==文字==", "==", "==");
-    addFmt("A", "红色文字", '<span style="color:#e05555">', "</span>");
+
+    /** 在光标处插入纯文本（不替换选区） */
+    const insertAt = (text: string) => {
+      if (ta.classList.contains("is-hidden")) {
+        editing = false;
+        enterEdit();
+        lastSel = { start: ta.value.length, end: ta.value.length };
+      }
+      const { start, end } = readSel();
+      const v = ta.value;
+      ta.value = v.slice(0, start) + text + v.slice(end);
+      const caret = start + text.length;
+      lastSel = { start: caret, end: caret };
+      ta.focus({ preventScroll: true });
+      ta.setSelectionRange(caret, caret);
+      ta.dispatchEvent(new Event("input"));
+    };
+
+    // —— 调色盘：莫兰迪浅色 + 原生取色器 ——
+    const COLORS: Array<[string, string]> = [
+      ["#e05555", "胭脂"],
+      ["#d97706", "琥珀"],
+      ["#c2a20a", "芥末"],
+      ["#4d9e6a", "薄荷"],
+      ["#3d9b8f", "青瓷"],
+      ["#4a86c5", "雾蓝"],
+      ["#6a6fc4", "靛青"],
+      ["#9a6bbd", "浅紫"],
+      ["#c76ba0", "樱花"],
+      ["#a8766b", "陶土"],
+      ["#8a8f98", "石灰"],
+      ["#5a5f66", "墨灰"],
+    ];
+    const paletteBtn = fmt.createEl("button", { text: "🎨", cls: "gd-fmt-btn gd-fmt-color" });
+    paletteBtn.type = "button";
+    paletteBtn.setAttribute("aria-label", "文字颜色");
+    paletteBtn.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    paletteBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const pop = document.createElement("div");
+      pop.className = "gd-palette";
+      const grid = pop.createDiv({ cls: "gd-palette-grid" });
+      for (const [hex, name] of COLORS) {
+        const sw = grid.createEl("button", { cls: "gd-swatch" });
+        sw.type = "button";
+        sw.setAttribute("aria-label", name);
+        sw.style.background = hex;
+        sw.addEventListener("mousedown", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+        });
+        sw.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (ta.classList.contains("is-hidden")) {
+            editing = false;
+            enterEdit();
+            lastSel = { start: ta.value.length, end: ta.value.length };
+          }
+          applyFormat(`<span style="color:${hex}">`, "</span>");
+          pop.remove();
+        });
+      }
+      const custom = pop.createEl("label", { cls: "gd-palette-custom" });
+      custom.createSpan({ text: "自定义" });
+      const picker = custom.createEl("input");
+      picker.type = "color";
+      picker.value = "#e05555";
+      picker.addEventListener("input", () => {
+        if (ta.classList.contains("is-hidden")) {
+          editing = false;
+          enterEdit();
+          lastSel = { start: ta.value.length, end: ta.value.length };
+        }
+        // 实时替换：先去掉上一次自定义，再包新的
+        const v = ta.value;
+        const hex = picker.value;
+        const last = (picker as HTMLInputElement).dataset.lastColor || "";
+        let { start, end } = readSel();
+        if (last && end - start > 0) {
+          // 选区内容可能已被包装，简单处理：直接包一层
+        }
+        const sel = v.slice(start, end) || "文字";
+        ta.value = v.slice(0, start) + `<span style="color:${hex}">${sel}</span>` + v.slice(end);
+        const caret = start + `<span style="color:${hex}">${sel}</span>`.length;
+        lastSel = { start: caret, end: caret };
+        picker.dataset.lastColor = hex;
+        ta.focus({ preventScroll: true });
+        ta.setSelectionRange(caret, caret);
+        ta.dispatchEvent(new Event("input"));
+        pop.remove();
+      });
+      const rect = paletteBtn.getBoundingClientRect();
+      pop.style.position = "fixed";
+      pop.style.left = `${Math.min(rect.left, window.innerWidth - 220)}px`;
+      pop.style.top = `${rect.bottom + 6}px`;
+      document.body.appendChild(pop);
+      const close = (ev: MouseEvent) => {
+        if (!pop.contains(ev.target as Node)) {
+          pop.remove();
+          document.removeEventListener("mousedown", close, true);
+        }
+      };
+      window.setTimeout(() => document.addEventListener("mousedown", close, true), 0);
+    });
+
+    // —— 多媒体：图片 / 附件 / 录音 ——
+    const pickAndInsert = (accept: string, asImage: boolean) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      if (accept) input.accept = accept;
+      input.addEventListener("change", () => {
+        const f = input.files?.[0];
+        if (!f) return;
+        void (async () => {
+          try {
+            const ext = (f.name.split(".").pop() || "bin").toLowerCase();
+            const name = await this.plugin.saveAttachment(this.currentDate, f, ext);
+            insertAt(asImage ? `![[${name}|400]]` : `![[${name}]]`);
+            new Notice(`已插入 ${f.name}`);
+          } catch (err) {
+            console.error("[grid-diary] 插入附件失败", err);
+            new Notice("插入失败");
+          }
+        })();
+      });
+      input.click();
+    };
+
+    const addMedia = (label: string, tip: string, cb: () => void) => {
+      const b = fmt.createEl("button", { text: label, cls: "gd-fmt-btn gd-fmt-media" });
+      b.type = "button";
+      b.setAttribute("aria-label", tip);
+      b.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      b.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // 保证之后插入有落脚点
+        if (ta.classList.contains("is-hidden")) {
+          editing = false;
+          enterEdit();
+          lastSel = { start: ta.value.length, end: ta.value.length };
+        }
+        cb();
+      });
+    };
+    addMedia("🖼", "插入图片", () => pickAndInsert("image/*", true));
+    addMedia("📎", "插入附件（PDF / 音频 / 任意文件）", () => pickAndInsert("", false));
+
+    // 录音：MediaRecorder，存成 webm，插入 ![[name]]
+    let recorder: MediaRecorder | null = null;
+    let chunks: Blob[] = [];
+    const mic = fmt.createEl("button", { text: "🎙", cls: "gd-fmt-btn gd-fmt-media" });
+    mic.type = "button";
+    mic.setAttribute("aria-label", "录音");
+    mic.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    mic.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      void (async () => {
+        // 停止录音
+        if (recorder && recorder.state === "recording") {
+          recorder.stop();
+          mic.removeClass("is-recording");
+          mic.setText("🎙");
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          chunks = [];
+          const rec = new MediaRecorder(stream);
+          recorder = rec;
+          rec.addEventListener("dataavailable", (ev) => {
+            if (ev.data.size > 0) chunks.push(ev.data);
+          });
+          rec.addEventListener("stop", () => {
+            stream.getTracks().forEach((t) => t.stop());
+            void (async () => {
+              try {
+                const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+                const ext = blob.type.includes("ogg") ? "ogg" : "webm";
+                const name = await this.plugin.saveAttachment(this.currentDate, blob, ext, "rec-");
+                insertAt(`![[${name}]]`);
+                new Notice("录音已插入");
+              } catch (err) {
+                console.error("[grid-diary] 保存录音失败", err);
+                new Notice("录音保存失败");
+              }
+            })();
+          });
+          rec.start();
+          mic.addClass("is-recording");
+          mic.setText("■");
+          new Notice("开始录音，再点一次停止");
+        } catch (err) {
+          console.error("[grid-diary] 无法录音", err);
+          new Notice("无法访问麦克风");
+        }
+      })();
+    });
 
     let timer: number | null = null;
     const commit = async () => {
