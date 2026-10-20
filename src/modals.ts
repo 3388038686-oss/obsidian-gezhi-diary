@@ -235,7 +235,9 @@ export class ConfirmModal extends Modal {
       desc?: string;
       okText?: string;
       danger?: boolean;
-      onOk: () => void | Promise<void>;
+      checkboxLabel?: string;
+      /** 返回是否勾选了「不再提示」 */
+      onOk: (checked: boolean) => void | Promise<void>;
     }
   ) {
     super(app);
@@ -244,15 +246,25 @@ export class ConfirmModal extends Modal {
   onOpen(): void {
     this.titleEl.setText(this.opts.title);
     if (this.opts.desc) this.contentEl.createEl("p", { text: this.opts.desc });
-    const row = this.contentEl.createDiv({ cls: "gd-modal-row" });
-    const cancel = row.createEl("button", { text: "取消", cls: "gd-btn" });
+    let box: HTMLInputElement | null = null;
+    if (this.opts.checkboxLabel) {
+      const row = this.contentEl.createDiv({ cls: "gd-check-row" });
+      box = row.createEl("input");
+      box.type = "checkbox";
+      box.id = "gd-confirm-check";
+      const lb = row.createEl("label", { text: this.opts.checkboxLabel });
+      lb.setAttribute("for", "gd-confirm-check");
+    }
+    const btns = this.contentEl.createDiv({ cls: "gd-modal-row" });
+    const cancel = btns.createEl("button", { text: "取消", cls: "gd-btn" });
     cancel.addEventListener("click", () => this.close());
-    const ok = row.createEl("button", {
+    const ok = btns.createEl("button", {
       text: this.opts.okText || "确定",
       cls: this.opts.danger ? "gd-btn gd-btn-danger" : "gd-btn gd-btn-primary",
     });
     ok.addEventListener("click", () => {
-      void Promise.resolve(this.opts.onOk()).finally(() => this.close());
+      const checked = box ? box.checked : false;
+      void Promise.resolve(this.opts.onOk(checked)).finally(() => this.close());
     });
   }
 

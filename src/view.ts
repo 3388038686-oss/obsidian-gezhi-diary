@@ -28,6 +28,8 @@ export class GridDiaryView extends ItemView {
   private timelineSlot: HTMLElement | null = null;
   private tlTimer: number | null = null;
   private imgRos: Array<{ ro: ResizeObserver; box: HTMLElement }> = [];
+  /** 当天文件最后修改时间（HH:mm），给没有时间戳的卡片兜底显示 */
+  private fileMtime = "";
 
   constructor(leaf: WorkspaceLeaf, plugin: GridDiaryPlugin) {
     super(leaf);
@@ -149,6 +151,16 @@ export class GridDiaryView extends ItemView {
 
     const snap = await this.plugin.store.readDay(this.currentDate);
     this.snapshot = snap;
+    {
+      const f = this.plugin.store.fileFor(this.currentDate);
+      if (f) {
+        const dt = new Date(f.stat.mtime);
+        const p2 = (n: number) => String(n).padStart(2, "0");
+        this.fileMtime = `${p2(dt.getHours())}:${p2(dt.getMinutes())}`;
+      } else {
+        this.fileMtime = "";
+      }
+    }
     await this.refreshRawCache();
 
     const scroll = root.createDiv({ cls: "gd-scroll" });
@@ -312,11 +324,14 @@ export class GridDiaryView extends ItemView {
 
       const bar = row.createDiv({ cls: "gd-tl-bar gd-tl-toggle" });
       bar.setAttribute("aria-label", "点击折叠/展开");
+      const label = card.kind === "cell"
+        ? card.title
+        : card.title.replace(/^\s*\d{1,2}\s*[:：]\s*\d{2}\s*/, "");
       bar.createEl("span", {
-        text: card.time || card.title,
+        text: card.time || this.fileMtime || "--:--",
         cls: "gd-tl-time",
       });
-      if (card.time) bar.createEl("span", { text: card.title.replace(/^\s*\d{1,2}\s*[:：]\s*\d{2}\s*/, ""), cls: "gd-tl-label" });
+      bar.createEl("span", { text: label, cls: "gd-tl-label" });
       bar.createEl("span", { text: "▾", cls: "gd-tl-caret" });
       bar.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -377,32 +392,20 @@ export class GridDiaryView extends ItemView {
       del.setAttribute("aria-label", "删除这一条");
       del.addEventListener("click", (e) => {
         e.stopPropagation();
-        new ConfirmModal(this.app, {
-          title: "删除这一条？",
-          desc: `只会删除文件里的「## ${card.title}」这一节，其他内容不动。删除后还有 5 秒可撤销。`,
-          okText: "删除这一节",
-          danger: true,
-          onOk: async () => {
-            this.selfWriteUntil = Date.now() + 1200;
-            const removed = await this.plugin.store.deleteSection(this.currentDate, card.title);
-            if (!removed) {
-              new Notice("删除失败");
-              return;
-            }
-            const notice = new Notice(`已删除「${card.title}」`, 5000);
-            let done = false;
-            const btn = notice.noticeEl.createEl("button", { text: "撤销", cls: "gd-undo-btn" });
-            btn.addEventListener("click", async () => {
-              if (done) return;
-              done = true;
-              this.selfWriteUntil = Date.now() + 1200;
-              await this.plugin.store.restoreSection(this.currentDate, removed.title, removed.body, removed.index);
-              notice.hide();
-              await this.render();
-            });
-            await this.render();
-          },
-        }).open();
+        const menu = new Menu();
+        menu.addItem((i) =>
+          i
+            .setTitle("删除这一节（5 秒可撤销）")
+            .setIcon("undo-2")
+            .onClick(() => void this.removeSection(card, false))
+        );
+        menu.addItem((i) =>
+          i
+            .setTitle("删除这一节（需确认）")
+            .setIcon("trash")
+            .onClick(() => void this.removeSection(card, true))
+        );
+        menu.showAtMouseEvent(e);
       });
 
       const open = row.createEl("button", { text: "↗", cls: "gd-cell-more gd-tl-open" });
@@ -1066,6 +1069,73 @@ export class GridDiaryView extends ItemView {
     ).open();
   }
 
+  private pickRetitleTemplate(): void {
+    new TemplatePickModal(
+      this.app,
+      this.plugin.settings.templates,
+      async (tpl) => {
+        const r = await this.plugin.store.retitleTemplate(this.currentDate, tpl.titles);
+        if (!r) return;
+        const parts = [`已按「${tpl.name}」重排，保留 ${r.kept} 节内容`];
+        if (r.orphans.length) parts.push(`${r.orphans.length} 节归入「未分类内容」`);
+        new Notice(parts.join("，"));
+        await this.render();
+      },
+      async (tpl) => {
+        this.plugin.settings.defaultTemplate = tpl.name;
+        await this.plugin.saveSettings();
+        new Notice(`已把「${tpl.name}」设为当前模板`);
+        await this.render();
+      }
+    ).open();
+  }
+
+  /** 删除时间流里的一节：需确认时先弹窗 */
+  private async removeSection(
+    card: { title: string; body: string; raw: string; time: string; kind: "cell" | "note" },
+    needConfirm: boolean
+  ): Promise<void> {
+    const doDelete = async () => {
+      this.selfWriteUntil = Date.now() + 1200;
+      const removed = await this.plugin.store.deleteSection(this.currentDate, card.title);
+      if (!removed) {
+        new Notice("删除失败");
+        return;
+      }
+      const notice = new Notice(`已删除「${card.title}」`, 5000);
+      let done = false;
+      const btn = notice.noticeEl.createEl("button", { text: "撤销", cls: "gd-undo-btn" });
+      btn.addEventListener("click", async () => {
+        if (done) return;
+        done = true;
+        this.selfWriteUntil = Date.now() + 1200;
+        await this.plugin.store.restoreSection(this.currentDate, removed.title, removed.body, removed.index);
+        notice.hide();
+        await this.render();
+      });
+      await this.render();
+    };
+
+    if (!needConfirm) {
+      await doDelete();
+      return;
+    }
+    new ConfirmModal(this.app, {
+      title: "删除这一节？",
+      desc: `「## ${card.title}」会从文件中移除，其他内容不动。这一操作不经过回收站。`,
+      okText: "删除",
+      danger: true,
+      checkboxLabel: "以后不再提示",
+      onOk: async (checked) => {
+        if (checked) {
+          this.plugin.settings.skipPermanentConfirm = true;
+          await this.plugin.saveSettings();
+        }
+        await doDelete();
+      },
+    }).open();
+  }
+
   private openHeaderMenu(evt: MouseEvent): void {
     const menu = new Menu();
     menu.addItem((i) =>
@@ -1088,6 +1158,12 @@ export class GridDiaryView extends ItemView {
     );
     menu.addItem((i) =>
       i.setTitle("用模板补齐格子").setIcon("layout-template").onClick(() => this.pickTemplate())
+    );
+    menu.addItem((i) =>
+      i
+        .setTitle("更换模板（保留旧内容）")
+        .setIcon("replace")
+        .onClick(() => this.pickRetitleTemplate())
     );
     menu.addItem((i) =>
       i.setTitle("打开这一天的文件").setIcon("file-text").onClick(() => void this.openWholeFile())

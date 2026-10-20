@@ -1,4 +1,4 @@
-import { DropdownComponent, ItemView, Menu, Notice, WorkspaceLeaf } from "obsidian";
+import { DropdownComponent, ItemView, Menu, Notice, TAbstractFile, WorkspaceLeaf } from "obsidian";
 import type GridDiaryPlugin from "./main";
 import { appendColoredDate, appendColoredMonth } from "./datecolor";
 import { todayStr, weekdayCn } from "./store";
@@ -423,30 +423,20 @@ export class CalendarSidebarView extends ItemView {
         del.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
-          new ConfirmModal(this.app, {
-            title: "删除这篇日记？",
-            desc: `${file.path}\n将移入系统回收站（不是永久删除），可随时找回。`,
-            okText: "移入回收站",
-            danger: true,
-            onOk: async () => {
-              try {
-                // 官方回收站 API：true = 系统回收站；失败再退到 vault 的 .trash
-                await this.app.vault.trash(file, true);
-                new Notice(`已移入回收站：${file.basename}`);
-              } catch (err) {
-                console.error("[grid-diary] 系统回收站失败，改用 .trash", err);
-                try {
-                  await this.app.vault.trash(file, false);
-                  new Notice(`已移入 .trash：${file.basename}`);
-                } catch (err2) {
-                  console.error("[grid-diary] 移入回收站失败", err2);
-                  new Notice("删除失败，文件未改动");
-                  return;
-                }
-              }
-              this.plugin.refreshAll();
-            },
-          }).open();
+          const menu = new Menu();
+          menu.addItem((i) =>
+            i
+              .setTitle("移入回收站（秒删，可恢复）")
+              .setIcon("trash")
+              .onClick(() => void this.trashFile(file, false))
+          );
+          menu.addItem((i) =>
+            i
+              .setTitle("永久删除…")
+              .setIcon("x-circle")
+              .onClick(() => void this.trashFile(file, true))
+          );
+          menu.showAtMouseEvent(e);
         });
       }
       if (!file) {
@@ -471,6 +461,70 @@ export class CalendarSidebarView extends ItemView {
       }
       item.createDiv({ cls: "gd-cal-item-sum", text: summarize(raw, 50) || "（这天没有正文）" });
     }
+  }
+
+  /** 删除一篇日记：false = 移入回收站（秒删，可恢复）；true = 永久删除（需确认） */
+  private async trashFile(file: TAbstractFile, permanent: boolean): Promise<void> {
+    const toTrash = async () => {
+      try {
+        await this.app.vault.trash(file, true);
+        new Notice(`已移入系统回收站：${file.name}`);
+      } catch (err) {
+        console.error("[grid-diary] 系统回收站失败，改用 .trash", err);
+        try {
+          await this.app.vault.trash(file, false);
+          new Notice(`已移入 .trash：${file.name}`);
+        } catch (err2) {
+          console.error("[grid-diary] 移入回收站失败", err2);
+          new Notice("移入回收站失败，文件未改动");
+          return;
+        }
+      }
+      this.plugin.refreshAll();
+    };
+
+    if (!permanent) {
+      await toTrash();
+      return;
+    }
+
+    const show = () =>
+      new ConfirmModal(this.app, {
+        title: "永久删除这篇日记？",
+        desc: `${file.path}\n不会进入回收站，删除后无法通过 Obsidian 找回。`,
+        okText: "永久删除",
+        danger: true,
+        checkboxLabel: "以后不再提示永久删除",
+        onOk: async (checked) => {
+          if (checked) {
+            this.plugin.settings.skipPermanentConfirm = true;
+            await this.plugin.saveSettings();
+          }
+          try {
+            await this.app.vault.delete(file);
+            new Notice(`已永久删除：${file.name}`);
+          } catch (err) {
+            console.error("[grid-diary] 永久删除失败", err);
+            new Notice("删除失败，文件未改动");
+            return;
+          }
+          this.plugin.refreshAll();
+        },
+      }).open();
+
+    if (this.plugin.settings.skipPermanentConfirm) {
+      try {
+        await this.app.vault.delete(file);
+        new Notice(`已永久删除：${file.name}`);
+      } catch (err) {
+        console.error("[grid-diary] 永久删除失败", err);
+        new Notice("删除失败，文件未改动");
+        return;
+      }
+      this.plugin.refreshAll();
+      return;
+    }
+    show();
   }
 
   /** 日期快捷菜单：打开 / 快速笔记 / 插入图片 */

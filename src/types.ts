@@ -20,6 +20,8 @@ export interface GridDiarySettings {
   /** 格子内容区固定高度（px） */
   cellHeight: number;
   splitRatio: number;
+  /** 永久删除时不再弹确认（元数据偏好） */
+  skipPermanentConfirm: boolean;
   /** 自定义导入字体的 base64 dataURL（.ttf/.otf） */
   fontDataUrl: string;
   fontFileName: string;

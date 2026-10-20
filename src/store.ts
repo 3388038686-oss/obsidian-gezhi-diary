@@ -1,5 +1,5 @@
 import { App, Notice, TFile, normalizePath } from "obsidian";
-import { ParsedDay, isTimelineTitle, parseDay, paragraphsFromSoftBreaks, plainText, reorderSection, replaceSectionBody } from "./sections";
+import { ParsedDay, isTimelineTitle, parseDay, paragraphsFromSoftBreaks, plainText, reorderSection, replaceSectionBody, retitleDay } from "./sections";
 import { hasSections } from "./template";
 
 export function pad2(n: number): string {
@@ -204,6 +204,22 @@ export class DayStore {
     const body2 = paragraphsFromSoftBreaks(body);
     await this.app.vault.process(file, (data) => replaceSectionBody(data, title, body2));
     return true;
+  }
+
+  /** 无损更换模板：保留每一节正文，未知标题归入「未分类内容」 */
+  async retitleTemplate(date: string, titles: string[]): Promise<{ kept: number; orphans: string[] } | null> {
+    const file = this.fileFor(date);
+    if (!file) {
+      new Notice("这一天的文件不存在");
+      return null;
+    }
+    let result: { kept: number; orphans: string[] } = { kept: 0, orphans: [] };
+    await this.app.vault.process(file, (data) => {
+      const r = retitleDay(data, titles, 2);
+      result = { kept: r.kept, orphans: r.orphans };
+      return r.text;
+    });
+    return result;
   }
 
   /** 新增一个格子 */

@@ -286,3 +286,100 @@ export function plainText(s: string): string {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
+/**
+ * 无损更换模板：按新模板的标题顺序重排，保留每一节的正文。
+ * - 新模板里没有、旧文件里有的非时间流小节，统一并入末尾 `## 未分类内容`（用 ### 保留原标题）
+ * - 时间流小节（## 14:30 xxx）放在最后，原样保留，绝不丢弃
+ */
+export function retitleDay(text: string, newTitles: string[], level = 2): {
+  text: string;
+  orphans: string[];
+  kept: number;
+} {
+  const nl = text.replace(/\r\n/g, "\n");
+  const lines = nl.split("\n");
+  const h = "#".repeat(level) + " ";
+  const hh = "#".repeat(level + 1) + " ";
+
+  // 找第一个本级别标题
+  let first = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const m = /^(#{1,6})\s+(.*?)\s*$/.exec(lines[i]);
+    if (m && m[1].length === level) {
+      first = i;
+      break;
+    }
+  }
+  const preamble = first >= 0 ? lines.slice(0, first) : lines.slice();
+
+  // 切分小节
+  const secs: Array<{ title: string; body: string[] }> = [];
+  let cur: { title: string; body: string[] } | null = null;
+  for (let i = first >= 0 ? first : lines.length; i < lines.length; i++) {
+    const line = lines[i];
+    const m = /^(#{1,6})\s+(.*?)\s*$/.exec(line);
+    if (m && m[1].length === level) {
+      if (cur) secs.push(cur);
+      cur = { title: m[2], body: [] };
+    } else if (cur) {
+      cur.body.push(line);
+    }
+  }
+  if (cur) secs.push(cur);
+
+  const trimBody = (arr: string[]): string[] => {
+    let a = arr.slice();
+    while (a.length && !a[0].trim()) a.shift();
+    while (a.length && !a[a.length - 1].trim()) a.pop();
+    return a;
+  };
+
+  const byTitle = new Map<string, string[]>();
+  const timelines: Array<{ title: string; body: string[] }> = [];
+  const orphans: Array<{ title: string; body: string[] }> = [];
+
+  for (const s of secs) {
+    if (isTimelineTitle(s.title)) {
+      timelines.push({ title: s.title, body: trimBody(s.body) });
+      continue;
+    }
+    if (!byTitle.has(s.title)) byTitle.set(s.title, trimBody(s.body));
+  }
+  for (const s of secs) {
+    if (!isTimelineTitle(s.title) && !newTitles.includes(s.title)) {
+      orphans.push({ title: s.title, body: trimBody(s.body) });
+    }
+  }
+
+  const out: string[] = preamble.slice();
+  while (out.length && !out[out.length - 1].trim()) out.pop();
+  if (out.length) out.push("");
+
+  let kept = 0;
+  for (const t of newTitles) {
+    out.push(`${h}${t}`, "");
+    const body = byTitle.get(t);
+    if (body && body.length) {
+      out.push(...body, "");
+      kept++;
+    }
+  }
+
+  if (orphans.length) {
+    out.push(`${h}未分类内容`, "");
+    for (const o of orphans) {
+      out.push(`${hh}${o.title}`, "");
+      if (o.body.length) out.push(...o.body, "");
+    }
+  }
+
+  for (const t of timelines) {
+    out.push(`${h}${t.title}`, "");
+    if (t.body.length) out.push(...t.body, "");
+  }
+
+  // 去掉尾部多余空行，保留单个换行
+  while (out.length && !out[out.length - 1].trim()) out.pop();
+  return { text: out.join("\n") + "\n", orphans: orphans.map((o) => o.title), kept };
+}

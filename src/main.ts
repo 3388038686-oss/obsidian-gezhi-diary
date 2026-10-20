@@ -75,6 +75,36 @@ export default class GridDiaryPlugin extends Plugin {
       },
     });
 
+    this.addCommand({
+      id: "images-to-html",
+      name: "把当前文件的图片转成通用 <img>（导出用）",
+      checkCallback: () => {
+        const f = this.app.workspace.getActiveFile();
+        if (!f) return false;
+        void (async () => {
+          const n = await this.convertImagesToHtml(f);
+          new Notice(n ? `已转换 ${n} 张图片` : "没有需要转换的图片");
+        })();
+        return true;
+      },
+    });
+
+    this.addCommand({
+      id: "images-to-wiki",
+      name: "把当前文件的 <img> 还原成 Obsidian 内链",
+      checkCallback: () => {
+        const f = this.app.workspace.getActiveFile();
+        if (!f) return false;
+        void (async () => {
+          const n = await this.convertImagesToWiki(f);
+          new Notice(n ? `已还原 ${n} 张图片` : "没有需要还原的图片");
+        })();
+        return true;
+      },
+    });
+
+    this.registerTemplateCommands();
+
     this.addSettingTab(new GridDiarySettingTab(this.app, this));
 
     // —— 动态监听：文件新增/修改/删除/改名 → 全视图自动刷新，无需重启 ——
@@ -83,6 +113,69 @@ export default class GridDiaryPlugin extends Plugin {
     this.registerEvent(this.app.vault.on("create", onVaultChange));
     this.registerEvent(this.app.vault.on("delete", onVaultChange));
     this.registerEvent(this.app.vault.on("rename", onVaultChange));
+  }
+
+  // ---------- 模板命令 / 兼容导出 ----------
+  private templateCommandIds: string[] = [];
+  private templateSig = "";
+
+  /** 为每个模板注册一条命令：命令面板搜索「插入模板：xxx」直接插到当天文件末尾 */
+  registerTemplateCommands(): void {
+    const sig = this.settings.templates.map((t) => `${t.name}:${t.titles.join(",")}`).join("|");
+    if (sig === this.templateSig) return;
+    this.templateSig = sig;
+    for (const id of this.templateCommandIds) {
+      try {
+        (this as unknown as { removeCommand?: (id: string) => void }).removeCommand?.(id);
+      } catch {
+        /* 旧版本没有 removeCommand，忽略 */
+      }
+    }
+    this.templateCommandIds = [];
+    for (const tpl of this.settings.templates) {
+      const id = `insert-template-${tpl.name.replace(/[^\w\u4e00-\u9fa5]+/g, "-")}`;
+      this.addCommand({
+        id,
+        name: `插入模板：${tpl.name}`,
+        callback: async () => {
+          const date = todayStr();
+          if (!this.store.fileFor(date)) await this.createDayFileFor(date);
+          await this.insertTemplateNote(date, tpl);
+          new Notice(`已插入模板「${tpl.name}」`);
+          this.setActiveDate(date);
+          this.refreshAll();
+        },
+      });
+      this.templateCommandIds.push(id);
+    }
+  }
+
+  /** 把当前文件的 ![[图|宽]] 转成 <img src width>，方便导出到别的 Markdown 软件 */
+  async convertImagesToHtml(file: TFile): Promise<number> {
+    let count = 0;
+    await this.app.vault.process(file, (data) => {
+      const out = data.replace(/!\[\[([^\]|#]+?)(?:\|(\d+))?\]\]/g, (_m, name: string, w?: string) => {
+        const src = normalizePath(`${this.settings.rootFolder || "日记"}/attachments/${name.trim()}`);
+        count++;
+        return `<img src="${src}"${w ? ` width="${w}"` : ""}>`;
+      });
+      return out;
+    });
+    return count;
+  }
+
+  /** 反向：把 <img src width> 还原成 ![[图|宽]] */
+  async convertImagesToWiki(file: TFile): Promise<number> {
+    let count = 0;
+    await this.app.vault.process(file, (data) => {
+      const out = data.replace(/<img\s+[^>]*src="([^"]+)"[^>]*?(?:width="(\d+)")?[^>]*>/g, (_m, src: string, w?: string) => {
+        const base = src.split("/").pop() || src;
+        count++;
+        return `![[${base}${w ? `|${w}` : ""}]]`;
+      });
+      return out;
+    });
+    return count;
   }
 
   // ---------- 自定义 CSS ----------
@@ -336,5 +429,6 @@ export default class GridDiaryPlugin extends Plugin {
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+    this.registerTemplateCommands();
   }
 }

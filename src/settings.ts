@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: GridDiarySettings = {
   columns: 2,
   cellHeight: 200,
   splitRatio: 0.6,
+  skipPermanentConfirm: false,
   fontDataUrl: "",
   fontFileName: "",
   fontDirFile: "",
@@ -213,6 +214,16 @@ export class GridDiarySettingTab extends PluginSettingTab {
           this.plugin.refreshViews();
         });
       });
+
+    new Setting(panel)
+      .setName("永久删除时不再确认")
+      .setDesc("开启后，「永久删除」直接执行不弹窗（移入回收站始终秒删、始终可恢复）。随时可在这里关回来。")
+      .addToggle((t) =>
+        t.setValue(this.plugin.settings.skipPermanentConfirm).onChange(async (v) => {
+          this.plugin.settings.skipPermanentConfirm = v;
+          await this.plugin.saveSettings();
+        })
+      );
 
     const tplSetting = new Setting(panel)
       .setName("模板库")

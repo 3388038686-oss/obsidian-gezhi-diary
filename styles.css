@@ -1704,3 +1704,44 @@ body.gd-split-resizing { cursor: row-resize !important; user-select: none; }
 .grid-diary-view .gd-tl-bubble .gd-imgbox {
   max-width: 100%;
 }
+
+/* ============ 时间流：图片环绕 + 时间戳 ============ */
+.grid-diary-view .gd-tl-body {
+  display: flow-root;
+}
+.grid-diary-view .gd-tl-body .gd-imgbox {
+  float: right;
+  margin: 0 0 8px 12px;
+  max-width: 60%;
+}
+.grid-diary-view .gd-tl-body .gd-imgbox img {
+  max-height: 320px;
+}
+.grid-diary-view .gd-tl-bar {
+  align-items: baseline;
+  gap: 8px;
+}
+.grid-diary-view .gd-tl-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--text-accent);
+  min-width: 44px;
+  letter-spacing: 0.02em;
+}
+.grid-diary-view .gd-tl-label {
+  flex: 1 1 auto;
+  color: var(--text-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gd-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
