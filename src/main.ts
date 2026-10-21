@@ -4,7 +4,6 @@ import { DayStore, todayStr } from "./store";
 import { DiaryTemplate, GridDiarySettings } from "./types";
 import { GridDiaryView, VIEW_TYPE_GRID_DIARY } from "./view";
 import { CalendarSidebarView, VIEW_TYPE_CAL } from "./calendar";
-import { renderTemplate } from "./template";
 import { QuickNoteModal } from "./modals";
 
 export default class GridDiaryPlugin extends Plugin {
@@ -16,8 +15,10 @@ export default class GridDiaryPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     this.applyCustomCss();
+    this.applyLayout();
     this.store = new DayStore(this.app, () => this.settings.rootFolder);
     this.store.getDefaultTitles = () => this.getDefaultTemplate()?.titles ?? [];
+    this.store.ensureDayFile = (date: string) => this.createDayFileFor(date);
 
     this.registerView(VIEW_TYPE_GRID_DIARY, (leaf: WorkspaceLeaf) => new GridDiaryView(leaf, this));
     this.registerView(VIEW_TYPE_CAL, (leaf: WorkspaceLeaf) => new CalendarSidebarView(leaf, this));
@@ -26,6 +27,32 @@ export default class GridDiaryPlugin extends Plugin {
       id: "open-calendar-sidebar",
       name: "打开日记日历侧栏",
       callback: () => void this.activateCalendar(),
+    });
+
+    this.addCommand({
+      id: "toggle-calendar-sidebar",
+      name: "打开 / 关闭日记日历侧栏",
+      callback: async () => {
+        const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_CAL);
+        if (leaves.length) {
+          for (const leaf of leaves) leaf.detach();
+          new Notice("已关闭日记日历侧栏");
+        } else {
+          await this.activateCalendar();
+          new Notice("已打开日记日历侧栏");
+        }
+      },
+    });
+
+    this.addCommand({
+      id: "toggle-left-panel",
+      name: "显示 / 隐藏左侧目录面板",
+      callback: async () => {
+        this.settings.showLeftPanel = !this.settings.showLeftPanel;
+        await this.saveSettings();
+        this.refreshViews();
+        new Notice(this.settings.showLeftPanel ? "已显示左侧目录面板" : "已隐藏左侧目录面板");
+      },
     });
 
     this.addRibbonIcon("layout-grid", "打开格间日记", () => {
@@ -368,23 +395,46 @@ export default class GridDiaryPlugin extends Plugin {
     input.click();
   }
 
-  /** 按设置里的模板文件建当天文件；无模板则用内置格子模板 */
+  /** 极简变量替换：{{date}} {{date:格式}} {{time}} {{time:格式}} {{title}} */
+  applyVars(text: string, date: string): string {
+    const m = window.moment;
+    return text.replace(
+      /\{\{\s*(date|time|title)\s*(?::([^}]*))?\}\}/g,
+      (_all: string, key: string, fmt?: string) => {
+        if (key === "title") return date;
+        const format = (fmt != null ? fmt : "").trim() || (key === "time" ? "HH:mm" : "YYYY-MM-DD");
+        return key === "date" ? m(date, "YYYY-MM-DD").format(format) : m().format(format);
+      }
+    );
+  }
+
+  /**
+   * 新建当天文件：路径固定为 <日记目录>/YYYY-MM-DD.md
+   * 已存在就直接用，不新建；有模板就读纯文本做 {{ }} 替换后写入。
+   */
   async createDayFileFor(date: string): Promise<void> {
-    if (this.store.fileFor(date)) return;
-    const titles = this.getDefaultTemplate()?.titles ?? [];
+    const dir = (this.settings.rootFolder || "").trim().replace(/^\/+|\/+$/g, "") || "日记";
+    const path = normalizePath(`${dir}/${date}.md`);
+    const existing = this.app.vault.getAbstractFileByPath(path);
+    if (existing instanceof TFile) return;
+    await this.store.ensureFolder();
     let text = "";
-    const tplPath = this.settings.dailyTemplatePath?.trim();
+    const tplPath = (this.settings.dailyTemplatePath || "").trim();
     if (tplPath) {
-      const f = this.app.vault.getAbstractFileByPath(normalizePath(tplPath));
-      if (f instanceof TFile) {
+      const tpl = this.app.vault.getAbstractFileByPath(normalizePath(tplPath));
+      if (tpl instanceof TFile) {
         try {
-          text = renderTemplate(await this.app.vault.cachedRead(f), date);
+          text = this.applyVars(await this.app.vault.read(tpl), date);
         } catch (e) {
           console.error("[grid-diary] 读取模板失败", e);
         }
+      } else {
+        new Notice(`模板文件不存在：${tplPath}`);
       }
     }
-    await this.store.createDayFile(date, titles, text);
+    const body = text ? text.replace(/\s*$/, "") + "\n" : "";
+    const file = await this.app.vault.create(path, body);
+    await this.store.syncAttrs(file);
   }
 
   async activateView(date?: string): Promise<void> {
@@ -398,7 +448,7 @@ export default class GridDiaryPlugin extends Plugin {
     const view = leaf.view;
     if (view instanceof GridDiaryView) {
       if (date) {
-        view.currentDate = date;
+        view.jumpTo(date);
         this.setActiveDate(date, view);
       }
       await view.render();
@@ -411,6 +461,12 @@ export default class GridDiaryPlugin extends Plugin {
 
   async loadSettings(): Promise<void> {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    // 旧配置一次性迁移：左侧栏默认收窄、最近文件默认关闭
+    if (!this.settings.leftPanelMigrated) {
+      this.settings.showRecentFiles = false;
+      this.settings.leftPanelMigrated = true;
+      await this.saveSettings();
+    }
     // 旧版默认 150，统一迁移到 200（用户可再自行调整）
     if (this.settings.cellHeight === 150) this.settings.cellHeight = 200;
     // 兼容旧配置：模板若用 questions 字段，转成 titles
@@ -425,6 +481,46 @@ export default class GridDiaryPlugin extends Plugin {
       (t) => Array.isArray(t.titles) && t.titles.length
     );
     if (!this.settings.templates.length) this.settings.templates = DEFAULT_SETTINGS.templates;
+    if (typeof this.settings.showLeftPanel !== "boolean") this.settings.showLeftPanel = true;
+    if (typeof this.settings.showRecentFiles !== "boolean") this.settings.showRecentFiles = true;
+    if (typeof this.settings.showTreeLines !== "boolean") this.settings.showTreeLines = true;
+    if (typeof this.settings.treeDefaultOpen !== "boolean") this.settings.treeDefaultOpen = true;
+    if (typeof this.settings.hoverGlow !== "boolean") this.settings.hoverGlow = true;
+    if (!this.settings.iconFile) this.settings.iconFile = DEFAULT_SETTINGS.iconFile;
+    if (!this.settings.iconFolder) this.settings.iconFolder = DEFAULT_SETTINGS.iconFolder;
+    if (!this.settings.iconFolderOpen) this.settings.iconFolderOpen = DEFAULT_SETTINGS.iconFolderOpen;
+    if (!this.settings.leftWidth || this.settings.leftWidth < 120) this.settings.leftWidth = 190;
+    if (!this.settings.layoutMigrated) {
+      if (this.settings.leftWidth === 240) this.settings.leftWidth = 190;
+      this.settings.layoutMigrated = true;
+      await this.saveSettings();
+    }
+    if (!Array.isArray(this.settings.layoutPresets)) this.settings.layoutPresets = DEFAULT_SETTINGS.layoutPresets;
+    if (typeof this.settings.pluginFontSize !== "number") this.settings.pluginFontSize = 15;
+    if (typeof this.settings.contentPad !== "number") this.settings.contentPad = 18;
+    if (typeof this.settings.gridGap !== "number") this.settings.gridGap = 14;
+    if (typeof this.settings.rightDockWidth !== "number") this.settings.rightDockWidth = 0;
+  }
+
+  /** 应用布局：字号/边距/间距 CSS 变量 + 右栏宽度接管（全部只作用于本插件界面） */
+  applyLayout(): void {
+    const s = this.settings;
+    const root = document.documentElement;
+    root.style.setProperty("--gd-font-size", `${s.pluginFontSize ?? 15}px`);
+    root.style.setProperty("--gd-pad", `${s.contentPad ?? 18}px`);
+    root.style.setProperty("--gd-gap", `${s.gridGap ?? 14}px`);
+    const w = s.rightDockWidth ?? 0;
+    let tag = document.getElementById("gd-right-dock-style");
+    if (w > 0) {
+      if (!tag) {
+        tag = document.createElement("style");
+        tag.id = "gd-right-dock-style";
+        document.head.appendChild(tag);
+      }
+      tag.textContent = `.workspace-split.mod-right-split{width:${w}px !important;}`;
+    } else if (tag) {
+      tag.remove();
+    }
   }
 
   async saveSettings(): Promise<void> {

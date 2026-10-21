@@ -44,7 +44,7 @@
   z-index: 1;
   height: 100%;
   overflow-y: auto;
-  padding: 26px 30px 60px;
+  padding: 26px var(--gd-pad, 18px) 60px;
   box-sizing: border-box;
 }
 
@@ -79,7 +79,7 @@
   padding-top: 10px;
 }
 .grid-diary-view .gd-datemeta-line {
-  font-size: 15px;
+  font-size: var(--gd-font-size, 15px);
   letter-spacing: 1px;
   opacity: 0.85;
 }
@@ -99,7 +99,7 @@
 }
 .gd-cal-side .gd-cal-title {
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--gd-font-size, 15px);
 }
 .gd-cal-side .gd-cal-nav {
   width: 30px;
@@ -320,8 +320,20 @@
 .grid-diary-view .gd-btn:active {
   transform: scale(0.96);
 }
+/* 撤销 / 重做按钮：常驻可见，圆润箭头 */
+.grid-diary-view .gd-hist-btn {
+  min-width: 38px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-muted);
+}
+.grid-diary-view .gd-hist-btn:hover {
+  color: var(--text-normal);
+  background: rgba(255, 255, 255, 0.45);
+}
 .grid-diary-view .gd-btn-primary {
-  font-size: 15px;
+  font-size: var(--gd-font-size, 15px);
   background: var(--interactive-accent);
   color: var(--text-on-accent);
   border-color: transparent;
@@ -356,7 +368,7 @@
 }
 @media (max-width: 700px) {
   .grid-diary-view .gd-scroll {
-    padding: 18px 16px 60px;
+    padding: 18px var(--gd-pad, 16px) 60px;
   }
   .grid-diary-view .gd-grid {
     grid-template-columns: 1fr;
@@ -488,7 +500,7 @@
 }
 .grid-diary-view .gd-empty p {
   margin-bottom: 16px;
-  font-size: 15px;
+  font-size: var(--gd-font-size, 15px);
 }
 
 /* 模板选择弹窗 */
@@ -585,7 +597,7 @@
   padding: 14px 16px;
   border-radius: 10px;
   line-height: 1.85;
-  font-size: 15px;
+  font-size: var(--gd-font-size, 15px);
   font-family: "LXGW WenKai", "Kaiti SC", "STKaiti", "楷体", var(--font-text);
   background: var(--background-primary);
   color: var(--text-normal);
@@ -645,7 +657,7 @@
   resize: none;
   color: var(--text-normal);
   font-family: var(--gd-font);
-  font-size: 15px;
+  font-size: var(--gd-font-size, 15px);
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
@@ -907,6 +919,57 @@
 .gd-cal-side .gd-cal-item.active {
   background: var(--background-modifier-active-hover, var(--background-modifier-hover));
 }
+
+/* ===== 折线星图模式（Polyline） ===== */
+.gd-cal-side .gd-cal-list.is-polyline .gd-cal-item {
+  position: relative;
+  min-height: 36px;
+  padding: 6px 10px 6px 50px;
+  transition: background 0.16s ease;
+}
+.gd-node-svg {
+  position: absolute;
+  left: 2px;
+  top: 0;
+  width: 44px;
+  height: 36px;
+  overflow: visible;
+  pointer-events: none;
+}
+.gd-node-line {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.6;
+  transition: stroke 0.18s ease, opacity 0.18s ease;
+}
+.gd-node-dot {
+  fill: var(--text-faint);
+  opacity: 0.65;
+  transition: fill 0.18s ease, opacity 0.18s ease, filter 0.18s ease;
+}
+.gd-cal-side .gd-cal-list.is-polyline .gd-cal-item:hover .gd-node-line {
+  stroke: var(--interactive-accent);
+  opacity: 1;
+}
+.gd-cal-side .gd-cal-list.is-polyline .gd-cal-item:hover .gd-node-dot {
+  fill: var(--interactive-accent);
+  opacity: 1;
+  filter: drop-shadow(0 0 5px var(--interactive-accent));
+}
+.gd-cal-side .gd-cal-list.is-polyline .gd-cal-item:hover .gd-cal-item-head {
+  font-weight: 600;
+}
+.gd-cal-side .gd-cal-list.is-polyline .gd-cal-item.active .gd-node-line {
+  stroke: var(--interactive-accent);
+  opacity: 0.95;
+}
+.gd-cal-side .gd-cal-list.is-polyline .gd-cal-item.active .gd-node-dot {
+  fill: var(--interactive-accent);
+  opacity: 1;
+}
 .gd-cal-side .gd-cal-item-head {
   display: flex;
   align-items: center;
@@ -1088,7 +1151,7 @@ body.gd-split-resizing { cursor: row-resize !important; user-select: none; }
 .grid-diary-view .gd-cell-text,
 .grid-diary-view .gd-cell-text.markdown-rendered {
   font-family: var(--gd-font) !important;
-  font-size: 15px !important;
+  font-size: var(--gd-font-size, 15px) !important;
   line-height: 1.8 !important;
   color: var(--text-normal) !important;
   font-weight: var(--gd-weight, 300);
@@ -1223,7 +1286,7 @@ body.gd-split-resizing { cursor: row-resize !important; user-select: none; }
   margin-bottom: 10px;
 }
 .grid-diary-view .gd-tl-title {
-  font-size: 14px;
+  font-size: calc(var(--gd-font-size, 15px) - 1px);
   font-weight: 500;
   color: var(--text-muted);
   letter-spacing: 0.08em;
@@ -1342,7 +1405,7 @@ body.gd-split-resizing { cursor: row-resize !important; user-select: none; }
   margin-bottom: 0;
 }
 .grid-diary-view .gd-tl-bubble h3 {
-  font-size: 14px;
+  font-size: calc(var(--gd-font-size, 15px) - 1px);
   font-weight: 500;
   margin: 10px 0 4px;
   color: var(--text-muted);
@@ -1744,4 +1807,237 @@ body.gd-split-resizing { cursor: row-resize !important; user-select: none; }
   font-size: 13px;
   color: var(--text-muted);
   cursor: pointer;
+}
+
+/* ===================== 左侧目录面板（上文件 / 下文件夹树） ===================== */
+.grid-diary-view .gd-shell {
+  position: relative;
+  z-index: 1;
+  font-size: var(--gd-font-size, 15px);
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.grid-diary-view .gd-shell > .gd-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.grid-diary-view .gd-left-panel {
+  flex: 0 0 auto;
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  font-size: calc(var(--gd-font-size, 15px) - 1px);
+  padding: 10px 6px 24px;
+  border-right: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary, rgba(0, 0, 0, 0.12));
+  backdrop-filter: blur(6px);
+}
+.grid-diary-view .gd-resizer {
+  flex: 0 0 5px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+.grid-diary-view .gd-resizer:hover {
+  background: var(--interactive-accent);
+  opacity: 0.45;
+}
+.grid-diary-view .gd-left-section + .gd-left-section {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+.grid-diary-view .gd-left-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 6px;
+}
+.grid-diary-view .gd-left-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.grid-diary-view .gd-left-empty {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.grid-diary-view .gd-left-row,
+.grid-diary-view .gd-tree-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-normal);
+  overflow: hidden;
+  transition: background 0.14s ease;
+}
+.grid-diary-view .gd-left-row:hover,
+.grid-diary-view .gd-tree-row:hover {
+  background: var(--background-modifier-hover);
+}
+.grid-diary-view .gd-left-row.active,
+.grid-diary-view .gd-tree-row.active {
+  background: var(--background-modifier-active-hover, var(--background-modifier-hover));
+  color: var(--text-accent);
+}
+.grid-diary-view .gd-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 图标：CSS 变量暴露，可被自定义 CSS 覆盖 */
+.grid-diary-view .gd-row-icon::before {
+  display: inline-block;
+  width: 1.1em;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.85;
+}
+.grid-diary-view .gd-icon-file::before {
+  content: var(--gd-icon-file, "📄");
+}
+.grid-diary-view .gd-icon-folder::before {
+  content: var(--gd-icon-folder, "📁");
+}
+.grid-diary-view .gd-tree-row.is-open .gd-icon-folder::before {
+  content: var(--gd-icon-folder-open, "📂");
+}
+.grid-diary-view .gd-tree-caret {
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.grid-diary-view .gd-tree-kids.is-collapsed {
+  display: none;
+}
+/* 文件夹树的折线连接：竖线 + 横线，缩进用 --indent 控制 */
+.grid-diary-view .gd-with-lines .gd-tree-row {
+  padding-left: calc(var(--indent, 0px) + 18px);
+}
+.grid-diary-view .gd-with-lines .gd-tree-row::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--indent, 0px) + 4px);
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--background-modifier-border);
+  opacity: 0.8;
+}
+.grid-diary-view .gd-with-lines .gd-tree-row::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--indent, 0px) + 4px);
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  background: var(--background-modifier-border);
+  opacity: 0.8;
+}
+/* 流星滑过效果 */
+.grid-diary-view .gd-hover-glow .gd-meteor {
+  position: absolute;
+  top: 0;
+  left: -110%;
+  width: 55%;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.16), transparent);
+  transform: skewX(-25deg);
+  transition: left 0.5s ease;
+}
+.grid-diary-view .gd-hover-glow .gd-left-row:hover .gd-meteor,
+.grid-diary-view .gd-hover-glow .gd-tree-row:hover .gd-meteor {
+  left: 110%;
+}
+body.theme-light .grid-diary-view .gd-hover-glow .gd-meteor {
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.07), transparent);
+}
+/* 兜底：flex 子项允许收缩，避免左栏把右侧挤出视口 */
+.grid-diary-view .gd-shell { min-height: 0; }
+.grid-diary-view .gd-shell > .gd-scroll { min-height: 0; min-width: 0; }
+.grid-diary-view .gd-left-panel { min-height: 0; min-width: 150px; }
+
+/* ---- 文件树：文件计数 / vault 根行 / 文件行折线（仿 file-tree-alternative） ---- */
+.grid-diary-view .gd-tree-count {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  padding-right: 2px;
+}
+.grid-diary-view .gd-vault-row {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.grid-diary-view .gd-vault-row .gd-row-name {
+  color: var(--text-normal);
+}
+/* 文件行左侧折线：圆点 + 横线 + 向下拐 */
+.grid-diary-view .gd-row-line {
+  position: absolute;
+  left: calc(var(--indent, 0px) + 5px);
+  top: 0;
+  height: 100%;
+  width: 22px;
+  pointer-events: none;
+}
+.grid-diary-view .gd-row-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 6px;
+  height: 1px;
+  background: var(--background-modifier-border);
+}
+.grid-diary-view .gd-row-line::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: calc(50% - 4px);
+  width: 14px;
+  height: 8px;
+  border-right: 1px solid var(--background-modifier-border);
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-bottom-right-radius: 4px;
+  opacity: 0.8;
+}
+/* 有折线的行：图标前再让位 */
+.grid-diary-view .gd-left-row,
+.grid-diary-view .gd-tree-file {
+  padding-left: calc(var(--indent, 0px) + 30px);
+}
+.grid-diary-view .gd-left-row:hover .gd-row-line::before,
+.grid-diary-view .gd-left-row:hover .gd-row-line::after,
+.grid-diary-view .gd-tree-file:hover .gd-row-line::before,
+.grid-diary-view .gd-tree-file:hover .gd-row-line::after {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+}
+.grid-diary-view .gd-tree-file.active .gd-row-line::before,
+.grid-diary-view .gd-tree-file.active .gd-row-line::after {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+}
+/* 无折线模式时，文件行恢复普通缩进 */
+.grid-diary-view:not(.gd-with-lines) .gd-left-row,
+.grid-diary-view:not(.gd-with-lines) .gd-tree-file {
+  padding-left: calc(var(--indent, 0px) + 18px);
+}
+.grid-diary-view:not(.gd-with-lines) .gd-row-line {
+  display: none;
 }

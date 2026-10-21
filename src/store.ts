@@ -1,6 +1,6 @@
 import { App, Notice, TFile, normalizePath } from "obsidian";
 import { ParsedDay, isTimelineTitle, parseDay, paragraphsFromSoftBreaks, plainText, reorderSection, replaceSectionBody, retitleDay } from "./sections";
-import { hasSections } from "./template";
+import { applyBodyAttrs } from "./attrs";
 
 export function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -50,6 +50,11 @@ export interface DaySnapshot {
 export class DayStore {
   constructor(private app: App, private getRoot: () => string) {}
 
+  /** 由插件注入：取当前模板的格子标题，用于新建当天文件 */
+  getDefaultTitles: (() => string[]) | null = null;
+  /** 由插件注入：统一的新建当天文件流程（模板 → 空白） */
+  ensureDayFile: ((date: string) => Promise<void>) | null = null;
+
   root(): string {
     return normalizePath(this.getRoot().trim() || "日记");
   }
@@ -75,33 +80,32 @@ export class DayStore {
     }
   }
 
+  /** 正文里写了 `标签：x` 这类行时，回填到 YAML；没写就不动原值 */
+  async syncAttrs(file: TFile): Promise<void> {
+    try {
+      const text = await this.app.vault.cachedRead(file);
+      const next = applyBodyAttrs(text);
+      if (next !== text) {
+        await this.app.vault.process(file, () => next);
+      }
+    } catch (e) {
+      console.error("[grid-diary] 回填属性失败", e);
+    }
+  }
+
   async createDayFile(date: string, templates: string[], templateText?: string): Promise<TFile> {
     await this.ensureFolder();
     const tpl = (templateText ?? "").trim();
+    let file: TFile;
     if (tpl) {
-      // 有模板文件：优先用模板内容，日期变量已由调用方渲染
-      let body = tpl;
-      if (!hasSections(body)) {
-        // 模板里没有 ## 小节：补上默认格子，保证能显示成格子
-        const extra: string[] = [];
-        for (const t of templates) extra.push(`## ${t}`, "", "");
-        body = body.replace(/\s*$/, "") + "\n\n" + extra.join("\n");
-      }
-      return await this.app.vault.create(this.pathFor(date), body.replace(/\s*$/, "") + "\n");
+      // 有模板：原样写入（不再自动补 ## 小节，决定权在用户）
+      file = await this.app.vault.create(this.pathFor(date), tpl.replace(/\s*$/, "") + "\n");
+    } else {
+      // 空模板：完全空白，不写任何属性与标题
+      file = await this.app.vault.create(this.pathFor(date), "");
     }
-    const parts: string[] = [
-      "---",
-      `date: ${date}`,
-      "source: 格间日记",
-      "---",
-      "",
-      `# ${date}`,
-      "",
-    ];
-    for (const t of templates) {
-      parts.push(`## ${t}`, "", "");
-    }
-    return await this.app.vault.create(this.pathFor(date), parts.join("\n"));
+    await this.syncAttrs(file);
+    return file;
   }
 
   async readDay(date: string): Promise<DaySnapshot> {
@@ -140,8 +144,8 @@ export class DayStore {
   async appendTimelineNote(date: string, body: string, label = "分笔记"): Promise<boolean> {
     let file = this.fileFor(date);
     if (!file) {
-      const titles = this.getDefaultTitles ? this.getDefaultTitles() : [];
-      file = await this.createDayFile(date, titles);
+      if (this.ensureDayFile) await this.ensureDayFile(date);
+      file = this.fileFor(date) ?? (await this.createDayFile(date, []));
     }
     const now = new Date();
     const hh = pad2(now.getHours());
@@ -151,6 +155,7 @@ export class DayStore {
       const base = data.replace(/\s*$/, "");
       return `${base}\n\n## ${title}\n\n${body.replace(/\s*$/, "")}\n`;
     });
+    await this.syncAttrs(file);
     return true;
   }
 
@@ -171,9 +176,6 @@ export class DayStore {
     });
     return changed;
   }
-
-  /** 由插件注入：取当前模板的格子标题，用于新建当天文件 */
-  getDefaultTitles: (() => string[]) | null = null;
 
   /** 用模板补齐缺失的小节，返回新增标题 */
   async fillWithTemplate(date: string, titles: string[]): Promise<string[]> {
@@ -203,6 +205,7 @@ export class DayStore {
     }
     const body2 = paragraphsFromSoftBreaks(body);
     await this.app.vault.process(file, (data) => replaceSectionBody(data, title, body2));
+    await this.syncAttrs(file);
     return true;
   }
 
@@ -227,10 +230,8 @@ export class DayStore {
     let file = this.fileFor(date);
     if (!file) {
       await this.ensureFolder();
-      file = await this.app.vault.create(
-        this.pathFor(date),
-        `---\ndate: ${date}\nsource: 格间日记\n---\n\n# ${date}\n`
-      );
+      // 空白文件：不再硬编码 YAML 属性与标题
+      file = await this.app.vault.create(this.pathFor(date), "");
     }
     const text = await this.app.vault.cachedRead(file);
     if (parseDay(text, 2).sections.some((s) => s.title === title)) {

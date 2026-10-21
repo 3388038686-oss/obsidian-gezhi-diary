@@ -4,7 +4,7 @@ import { PromptModal, TemplatePickModal, ConfirmModal } from "./modals";
 import { DayCell, DaySnapshot, shiftDate, todayStr, weekdayCn } from "./store";
 import { appendColoredMonth } from "./datecolor";
 import { mirrorSections, paragraphsFromSoftBreaks, parseDay, stripEmptyHeadings } from "./sections";
-import { renderTemplate } from "./template";
+import { renderLeftPanel } from "./leftpanel";
 
 export const VIEW_TYPE_GRID_DIARY = "grid-diary-view";
 
@@ -30,6 +30,18 @@ export class GridDiaryView extends ItemView {
   private imgRos: Array<{ ro: ResizeObserver; box: HTMLElement }> = [];
   /** 当天文件最后修改时间（HH:mm），给没有时间戳的卡片兜底显示 */
   private fileMtime = "";
+  /** 正在由原生历史回放切日期（避免 setState 又压一条历史） */
+  private pushingHistory = false;
+  /** 每格撤销栈：title → { stack, idx } */
+  private cellHist = new Map<string, { stack: string[]; idx: number }>();
+  /** 最近点进的格子（撤销/重做的作用对象） */
+  private lastCellTitle: string | null = null;
+  /** 每格实时值 + 应用函数（供 stepHist 直接改 DOM） */
+  private cellValues = new Map<string, string>();
+  private cellAppliers = new Map<string, (v: string) => void>();
+  private histTimer: number | null = null;
+  /** 每格上一次已记录进时间流的内容（增量判断基线） */
+  private lastRecorded = new Map<string, string>();
 
   constructor(leaf: WorkspaceLeaf, plugin: GridDiaryPlugin) {
     super(leaf);
@@ -47,6 +59,30 @@ export class GridDiaryView extends ItemView {
 
   getIcon(): string {
     return "layout-grid";
+  }
+
+  /** 供原生「后退/前进」读取的状态 */
+  getState(): Record<string, unknown> {
+    return { date: this.currentDate };
+  }
+
+  /** 原生导航历史回放到本视图时切日期 */
+  async setState(state: unknown, result: unknown): Promise<void> {
+    const d = (state as { date?: string } | null)?.date;
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d !== this.currentDate) {
+      this.currentDate = d;
+      this.plugin.setActiveDate(d, this);
+      await this.render();
+    }
+    void result;
+  }
+
+  /** 切日期时往原生导航历史压一条（左上角 ← → 就能用） */
+  private pushHistory(date: string): void {
+    if (this.pushingHistory) return;
+    this.pushingHistory = true;
+    void this.leaf.setViewState({ type: this.getViewType(), state: { date }, active: true }).catch(() => {});
+    window.setTimeout(() => (this.pushingHistory = false), 80);
   }
 
   async onOpen(): Promise<void> {
@@ -131,7 +167,11 @@ export class GridDiaryView extends ItemView {
     const file = this.plugin.store.fileFor(this.currentDate);
     if (!file) return;
     const text = await this.app.vault.cachedRead(file);
-    for (const s of parseDay(text, 2).sections) this.rawCache.set(s.title, s.body);
+    for (const s of parseDay(text, 2).sections) {
+      this.rawCache.set(s.title, s.body);
+      const k = `${this.currentDate}|${s.title}`;
+      if (!this.lastRecorded.has(k)) this.lastRecorded.set(k, s.body);
+    }
   }
 
   async render(): Promise<void> {
@@ -145,9 +185,42 @@ export class GridDiaryView extends ItemView {
     root.style.setProperty("--gd-font", this.plugin.fontStack());
     root.style.setProperty("--gd-weight", String(this.plugin.settings.fontWeight));
     root.style.setProperty("--gd-cell-h", `${this.plugin.settings.cellHeight}px`);
+    root.style.setProperty("--gd-pad", `${this.plugin.settings.contentPad}px`);
+    root.style.setProperty("--gd-gap", `${this.plugin.settings.gridGap}px`);
 
+    const shell = root.createDiv({ cls: "gd-shell" });
+    if (this.plugin.settings.showLeftPanel) {
+      const left = shell.createDiv({ cls: "gd-left-panel" });
+      renderLeftPanel(left, this.plugin);
+      const resizer = shell.createDiv({ cls: "gd-resizer" });
+      let dragging = false;
+      resizer.addEventListener("pointerdown", (e) => {
+        dragging = true;
+        resizer.setPointerCapture(e.pointerId);
+        shell.classList.add("is-resizing");
+      });
+      resizer.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const w = Math.max(150, Math.min(480, e.clientX - shell.getBoundingClientRect().left));
+        left.style.width = `${w}px`;
+      });
+      resizer.addEventListener("pointerup", (e) => {
+        dragging = false;
+        try { resizer.releasePointerCapture(e.pointerId); } catch { /* 忽略 */ }
+        shell.classList.remove("is-resizing");
+        const w = parseInt(left.style.width, 10);
+        if (w > 0) {
+          this.plugin.settings.leftWidth = w;
+          void this.plugin.saveSettings();
+        }
+      });
+      resizer.addEventListener("pointercancel", () => {
+        dragging = false;
+        shell.classList.remove("is-resizing");
+      });
+    }
     const bg = this.backgroundUrl();
-    if (bg) root.createDiv({ cls: "gd-bg", attr: { style: `background-image:url("${bg}")` } });
+    if (bg) shell.createDiv({ cls: "gd-bg", attr: { style: `background-image:url("${bg}")` } });
 
     const snap = await this.plugin.store.readDay(this.currentDate);
     this.snapshot = snap;
@@ -162,8 +235,9 @@ export class GridDiaryView extends ItemView {
       }
     }
     await this.refreshRawCache();
+    this.cellAppliers.clear();
 
-    const scroll = root.createDiv({ cls: "gd-scroll" });
+    const scroll = shell.createDiv({ cls: "gd-scroll" });
     // 关键：内容全部插入后再恢复滚动，否则 scrollTop 会被重置为 0（页面"嗖"地跳回顶部）
     const restoreScroll = () => {
       requestAnimationFrame(() => {
@@ -210,7 +284,20 @@ export class GridDiaryView extends ItemView {
       });
       return b;
     };
-    mkBtn("+", () => this.addCell());    const more = actions.createEl("button", { text: "···", cls: "gd-btn" });
+    mkBtn("+", () => this.addCell());
+    const undo = actions.createEl("button", { text: "↶", cls: "gd-btn gd-undo-btn" });
+    undo.setAttribute("aria-label", "撤销");
+    undo.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.stepHist(-1);
+    });
+    const redo = actions.createEl("button", { text: "↷", cls: "gd-btn gd-undo-btn" });
+    redo.setAttribute("aria-label", "重做");
+    redo.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.stepHist(1);
+    });
+    const more = actions.createEl("button", { text: "···", cls: "gd-btn" });
     more.addEventListener("click", (e) => {
       e.stopPropagation();
       this.openHeaderMenu(e);
@@ -250,6 +337,28 @@ export class GridDiaryView extends ItemView {
     restoreScroll();
   }
 
+  /** 手动保存后：只把新增段落作为一条带时间戳的笔记写进文件（增量记录） */
+  private async recordDelta(title: string, value?: string): Promise<void> {
+    const key = `${this.currentDate}|${title}`;
+    const now = (value ?? "").replace(/\s*$/, "");
+    const prev = this.lastRecorded.get(key);
+    if (prev === undefined || prev === now) return;
+    const splitParas = (s: string) => s.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    const norm = (s: string) => s.replace(/\s+/g, "");
+    const prevSet = new Set(splitParas(prev).map(norm));
+    const addedParas = splitParas(now).filter((p) => !prevSet.has(norm(p)));
+    this.lastRecorded.set(key, now);
+    if (!addedParas.length) return;
+    this.suppressRenderUntil = Date.now() + 2000;
+    this.selfWriteUntil = Date.now() + 1500;
+    try {
+      await this.plugin.store.appendTimelineNote(this.currentDate, addedParas.join("\n\n"), title);
+      window.setTimeout(() => this.refreshTimeline(), 200);
+    } catch (err) {
+      console.error("[grid-diary] 增量记录失败", err);
+    }
+  }
+
   /** 把正在输入的内容同步进快照（供时间流镜像使用） */
   private syncCellToSnapshot(title: string, value: string): void {
     const cell = this.snapshot?.cells.find((c) => c.title === title);
@@ -269,10 +378,6 @@ export class GridDiaryView extends ItemView {
     const cellMap: Record<string, string> = {};
     for (const c of snap.cells) cellMap[c.title] = c.body ?? "";
     const cards: Array<{ title: string; body: string; raw: string; time: string; kind: "cell" | "note" }> = [];
-    for (const c of snap.cells) {
-      if (!(c.body ?? "").trim()) continue;
-      cards.push({ title: c.title, body: c.body ?? "", raw: c.body ?? "", time: "", kind: "cell" });
-    }
     for (const it of snap.timeline) {
       const body = stripEmptyHeadings(mirrorSections(it.body || "", cellMap));
       if (!body.trim()) continue;
@@ -594,7 +699,24 @@ export class GridDiaryView extends ItemView {
       ta.focus();
       const end = ta.value.length;
       ta.setSelectionRange(end, end);
+      this.lastCellTitle = cell.title;
+      this.cellValues.set(cell.title, ta.value);
+      if (!this.cellHist.has(cell.title)) {
+        this.cellHist.set(cell.title, { stack: [ta.value], idx: 0 });
+      }
     };
+    this.cellAppliers.set(cell.title, (value) => {
+      if (ta.classList.contains("is-hidden")) {
+        editing = false;
+        enterEdit();
+      }
+      ta.value = value;
+      this.autoGrow(ta);
+      this.cellValues.set(cell.title, value);
+      this.syncCellToSnapshot(cell.title, value);
+      this.pendingSaves.set(cell.title, commit);
+      void commit();
+    });
     preview.addEventListener("click", (e) => {
       e.stopPropagation();
       enterEdit();
@@ -906,11 +1028,16 @@ export class GridDiaryView extends ItemView {
       ta.addClass("is-hidden");
       preview.removeClass("is-hidden");
       await renderPreview();
+      await this.recordDelta(cell.title, this.rawCache.get(cell.title) ?? ta.value);
     };
     ta.addEventListener("input", () => {
       this.autoGrow(ta);
       status.setText("编辑中");
       this.pendingSaves.set(cell.title, commit);
+      this.lastCellTitle = cell.title;
+      this.cellValues.set(cell.title, ta.value);
+      if (this.histTimer) window.clearTimeout(this.histTimer);
+      this.histTimer = window.setTimeout(() => this.recordHist(cell.title, ta.value), 400);
       // 实时把改动喂给快照，并刷新下方时间流（不重建格子，光标不丢）
       this.syncCellToSnapshot(cell.title, ta.value);
       if (timer) window.clearTimeout(timer);
@@ -1002,6 +1129,7 @@ export class GridDiaryView extends ItemView {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
     this.currentDate = date;
     this.plugin.setActiveDate(date, this);
+    this.pushHistory(date);
     void (async () => {
       try {
         await this.ensureDayFile(date, true);
@@ -1034,7 +1162,52 @@ export class GridDiaryView extends ItemView {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
     if (date === this.currentDate) return;
     this.currentDate = date;
+    this.pushHistory(date);
     void this.render().catch((e) => console.error("[grid-diary] 渲染失败", e));
+  }
+
+  /** 记录一步撤销历史（400ms 防抖后由 input 调用） */
+  private recordHist(title: string, value: string): void {
+    const h = this.cellHist.get(title);
+    if (!h) return;
+    if (h.idx < h.stack.length - 1) h.stack = h.stack.slice(0, h.idx + 1);
+    if (h.stack[h.stack.length - 1] === value) return;
+    h.stack.push(value);
+    if (h.stack.length > 100) h.stack.shift();
+    h.idx = h.stack.length - 1;
+  }
+
+  /** 撤销(-1)/重做(+1)：直接改当前格子内容并写回 */
+  private stepHist(dir: -1 | 1): void {
+    const title = this.lastCellTitle;
+    if (!title) {
+      new Notice("先点进一个格子");
+      return;
+    }
+    const h = this.cellHist.get(title);
+    if (!h) {
+      new Notice("这个格子还没有可撤销的改动");
+      return;
+    }
+    const next = h.idx + dir;
+    if (next < 0 || next >= h.stack.length) {
+      new Notice(dir === -1 ? "已经到最早的一步" : "已经到最新的一步");
+      return;
+    }
+    h.idx = next;
+    const value = h.stack[next];
+    this.cellValues.set(title, value);
+    const apply = this.cellAppliers.get(title);
+    if (apply) {
+      apply(value);
+    } else {
+      void (async () => {
+        this.selfWriteUntil = Date.now() + 1500;
+        await this.plugin.store.writeSection(this.currentDate, title, value);
+        await this.render();
+      })();
+    }
+    new Notice(dir === -1 ? `已撤销：${title}` : `已重做：${title}`);
   }
 
 

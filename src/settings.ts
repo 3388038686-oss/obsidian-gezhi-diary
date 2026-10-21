@@ -1,6 +1,6 @@
 import { App, DropdownComponent, Modal, Notice, PluginSettingTab, Setting } from "obsidian";
 import type GridDiaryPlugin from "./main";
-import { DiaryTemplate, GridDiarySettings } from "./types";
+import { DiaryTemplate, GridDiarySettings, LayoutPreset } from "./types";
 
 export const DEFAULT_SETTINGS: GridDiarySettings = {
   rootFolder: "日记",
@@ -13,12 +13,33 @@ export const DEFAULT_SETTINGS: GridDiarySettings = {
   columns: 2,
   cellHeight: 200,
   splitRatio: 0.6,
+  listLineStyle: "vertical",
   skipPermanentConfirm: false,
   fontDataUrl: "",
   fontFileName: "",
   fontDirFile: "",
   autoCreateToday: true,
   dailyTemplatePath: "",
+  // —— 左侧目录面板 ——
+  leftWidth: 190,
+  showRecentFiles: false,
+  showTreeLines: true,
+  iconFile: "📄",
+  iconFolder: "📁",
+  iconFolderOpen: "📂",
+  treeDefaultOpen: true,
+  hoverGlow: true,
+  showLeftPanel: true,
+  // —— 布局与字号（不与 Obsidian 官方全局设置冲突）——
+  pluginFontSize: 15,
+  contentPad: 18,
+  gridGap: 14,
+  rightDockWidth: 0,
+  activePreset: "紧凑",
+  layoutPresets: [
+    { name: "紧凑", leftWidth: 190, contentPad: 18, gridGap: 14, columns: 2, cellHeight: 200, rightDockWidth: 0, pluginFontSize: 15 },
+    { name: "宽松", leftWidth: 280, contentPad: 44, gridGap: 26, columns: 2, cellHeight: 240, rightDockWidth: 380, pluginFontSize: 17 },
+  ],
   defaultTemplate: "格间六格",
   templates: [
     {
@@ -148,8 +169,10 @@ export class GridDiarySettingTab extends PluginSettingTab {
       .map((f) => f.path)
       .sort();
     const tplFileSetting = new Setting(panel)
-      .setName("新建日记使用的模板文件")
-      .setDesc("留空 = 用内置格子模板。选一个 md 后，新建文件会注入其内容，并自动替换 <% tp.date.now(\"YYYY-MM-DD\") %>、{{date}} 等变量。")
+      .setName("新建日记时自动应用的模板")
+      .setDesc(
+        "留空 = 新建完全空白的文件（不写属性、标题、格子）。填路径就用你的模板，例如 05template模板/我的日记模板.md。新建时只做三类纯文本替换：{{date}} / {{date:YYYY-MM-DD}} → 当天日期，{{time}} / {{time:HH:mm}} → 当前时间，{{title}} → 文件名（YYYY-MM-DD）。其余内容原样写入，不做任何解析。"
+      )
       .addText((t) =>
         t
           .setPlaceholder("05template模板/日记模板.md")
@@ -160,7 +183,7 @@ export class GridDiarySettingTab extends PluginSettingTab {
           })
       );
     tplFileSetting.addDropdown((d) => {
-      d.addOption("", "（用内置模板）");
+      d.addOption("", "（空白文件）");
       for (const p of tplFiles) d.addOption(p, p);
       const cur = this.plugin.settings.dailyTemplatePath;
       d.setValue(tplFiles.includes(cur) ? cur : "");
@@ -200,6 +223,263 @@ export class GridDiarySettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             this.plugin.refreshViews();
           })
+      );
+
+    new Setting(panel).setName("布局").setHeading();
+    new Setting(panel)
+      .setName("插件正文字号")
+      .setDesc("只影响格间日记界面（格子、时间流、目录、日历），不改 Obsidian 官方字号。")
+      .addSlider((s) =>
+        s
+          .setLimits(10, 24, 1)
+          .setValue(this.plugin.settings.pluginFontSize ?? 15)
+          .setDynamicTooltip()
+          .onChange(async (v) => {
+            this.plugin.settings.pluginFontSize = v;
+            await this.plugin.saveSettings();
+            this.plugin.applyLayout();
+            this.plugin.refreshViews();
+          })
+      );
+
+    new Setting(panel)
+      .setName("内容区左右边距")
+      .setDesc("九宫格区域的留白（px），像阅读工具那样调。")
+      .addSlider((s) =>
+        s
+          .setLimits(0, 60, 2)
+          .setValue(this.plugin.settings.contentPad ?? 18)
+          .setDynamicTooltip()
+          .onChange(async (v) => {
+            this.plugin.settings.contentPad = v;
+            await this.plugin.saveSettings();
+            this.plugin.applyLayout();
+          })
+      );
+
+    new Setting(panel)
+      .setName("格子间距")
+      .setDesc("格子之间的空隙（px）。")
+      .addSlider((s) =>
+        s
+          .setLimits(4, 40, 2)
+          .setValue(this.plugin.settings.gridGap ?? 14)
+          .setDynamicTooltip()
+          .onChange(async (v) => {
+            this.plugin.settings.gridGap = v;
+            await this.plugin.saveSettings();
+            this.plugin.applyLayout();
+          })
+      );
+
+    new Setting(panel)
+      .setName("右侧栏宽度")
+      .setDesc("接管 Obsidian 右侧 dock 的宽度；0 = 不接管（自己拖）。设为非 0 后写入布局模板可一键恢复，但主题升级可能让它失效。")
+      .addSlider((s) =>
+        s
+          .setLimits(0, 640, 20)
+          .setValue(this.plugin.settings.rightDockWidth ?? 0)
+          .setDynamicTooltip()
+          .onChange(async (v) => {
+            this.plugin.settings.rightDockWidth = v;
+            await this.plugin.saveSettings();
+            this.plugin.applyLayout();
+          })
+      );
+
+    new Setting(panel).setName("布局模板").setHeading();
+    let presetNameInput: HTMLInputElement | null = null;
+    new Setting(panel)
+      .setName("保存当前布局")
+      .setDesc("把左栏宽、边距、间距、列数、格子高、字号、右栏宽存成一个模板。")
+      .addText((t) => {
+        t.setPlaceholder("模板名，如：阅读模式");
+        presetNameInput = t.inputEl;
+      })
+      .addButton((b) =>
+        b.setButtonText("保存").onClick(async () => {
+          const name = (presetNameInput?.value || "").trim();
+          if (!name) {
+            new Notice("先给模板起个名字");
+            return;
+          }
+          const s = this.plugin.settings;
+          const idx = s.layoutPresets.findIndex((p) => p.name === name);
+          const preset: LayoutPreset = {
+            name,
+            leftWidth: s.leftWidth,
+            contentPad: s.contentPad ?? 18,
+            gridGap: s.gridGap ?? 14,
+            columns: s.columns,
+            cellHeight: s.cellHeight,
+            rightDockWidth: s.rightDockWidth ?? 0,
+            pluginFontSize: s.pluginFontSize ?? 15,
+          };
+          if (idx >= 0) s.layoutPresets[idx] = preset;
+          else s.layoutPresets.push(preset);
+          s.activePreset = name;
+          await this.plugin.saveSettings();
+          new Notice(`布局模板「${name}」已保存`);
+          this.display();
+        })
+      );
+
+    for (const preset of [...(this.plugin.settings.layoutPresets ?? [])]) {
+      new Setting(panel)
+        .setName(preset.name)
+        .setDesc(
+          `左栏 ${preset.leftWidth}px · 边距 ${preset.contentPad} · 间距 ${preset.gridGap} · ${preset.columns} 列 · 格高 ${preset.cellHeight}${
+            preset.rightDockWidth ? ` · 右栏 ${preset.rightDockWidth}px` : ""
+          } · 字号 ${preset.pluginFontSize}`
+        )
+        .addButton((b) =>
+          b.setButtonText("应用").onClick(async () => {
+            const s = this.plugin.settings;
+            s.leftWidth = preset.leftWidth;
+            s.contentPad = preset.contentPad;
+            s.gridGap = preset.gridGap;
+            s.columns = preset.columns;
+            s.cellHeight = preset.cellHeight;
+            s.rightDockWidth = preset.rightDockWidth;
+            s.pluginFontSize = preset.pluginFontSize;
+            s.activePreset = preset.name;
+            await this.plugin.saveSettings();
+            this.plugin.applyLayout();
+            this.plugin.refreshViews();
+            new Notice(`已应用布局模板「${preset.name}」`);
+          })
+        )
+        .addButton((b) =>
+          b.setButtonText("改名").onClick(() => {
+            const input = document.createElement("input");
+            input.type = "text";
+            input.value = preset.name;
+            const modal = new Modal(this.app);
+            modal.titleEl.setText("改名");
+            modal.contentEl.appendChild(input);
+            input.focus();
+            modal.contentEl.createEl("div", { cls: "setting-item-description", text: "回车确认" });
+            input.addEventListener("keydown", async (e) => {
+              if (e.key === "Enter") {
+                const newName = input.value.trim();
+                if (newName) {
+                  preset.name = newName;
+                  await this.plugin.saveSettings();
+                  modal.close();
+                  this.display();
+                }
+              }
+            });
+            modal.open();
+          })
+        )
+        .addButton((b) =>
+          b.setButtonText("删除").setWarning().onClick(async () => {
+            const s = this.plugin.settings;
+            s.layoutPresets = (s.layoutPresets ?? []).filter((p) => p.name !== preset.name);
+            if (s.activePreset === preset.name) s.activePreset = undefined;
+            await this.plugin.saveSettings();
+            this.display();
+          })
+        );
+    }
+
+    new Setting(panel)
+      .setName("目录连线样式")
+      .setDesc("右侧日记列表的连线风格。折线星图 = 节点 + 横向折线连接到右侧日期，鼠标悬停时该行连线变亮。")
+      .addDropdown((d) => {
+        d.addOption("vertical", "标准垂直（普通模式）");
+        d.addOption("polyline", "折线星图（Polyline）");
+        d.setValue(this.plugin.settings.listLineStyle ?? "vertical");
+        d.onChange(async (v) => {
+          this.plugin.settings.listLineStyle = v === "polyline" ? "polyline" : "vertical";
+          await this.plugin.saveSettings();
+          this.plugin.refreshViews();
+        });
+      });
+
+    new Setting(panel)
+      .setName("显示左侧目录面板")
+      .setDesc("左侧＝「最近文件 + 文件夹树」，右侧＝九宫格与时间流；中间分隔条可拖动改宽度。")
+      .addToggle((t) =>
+        t.setValue(this.plugin.settings.showLeftPanel).onChange(async (v) => {
+          this.plugin.settings.showLeftPanel = v;
+          await this.plugin.saveSettings();
+          this.plugin.refreshViews();
+        })
+      );
+
+    new Setting(panel)
+      .setName("显示「最近文件」")
+      .setDesc("左侧上半区：按修改时间排序列出最近 12 篇 md。")
+      .addToggle((t) =>
+        t.setValue(this.plugin.settings.showRecentFiles).onChange(async (v) => {
+          this.plugin.settings.showRecentFiles = v;
+          await this.plugin.saveSettings();
+          this.plugin.refreshViews();
+        })
+      );
+
+    new Setting(panel)
+      .setName("文件夹树显示折线连接线")
+      .setDesc("下半区文件夹层级左侧的竖线 + 横线，用来标示层级。")
+      .addToggle((t) =>
+        t.setValue(this.plugin.settings.showTreeLines).onChange(async (v) => {
+          this.plugin.settings.showTreeLines = v;
+          await this.plugin.saveSettings();
+          this.plugin.refreshViews();
+        })
+      );
+
+    new Setting(panel)
+      .setName("文件夹默认展开")
+      .setDesc("打开时文件夹树是否默认全部展开（你手动折叠过的会记住）。")
+      .addToggle((t) =>
+        t.setValue(this.plugin.settings.treeDefaultOpen).onChange(async (v) => {
+          this.plugin.settings.treeDefaultOpen = v;
+          await this.plugin.saveSettings();
+          this.plugin.refreshViews();
+        })
+      );
+
+    new Setting(panel)
+      .setName("悬停高亮 / 流星滑过")
+      .setDesc("鼠标划过左侧条目时的高亮与斜向流光动效。")
+      .addToggle((t) =>
+        t.setValue(this.plugin.settings.hoverGlow).onChange(async (v) => {
+          this.plugin.settings.hoverGlow = v;
+          await this.plugin.saveSettings();
+          this.plugin.refreshViews();
+        })
+      );
+
+    new Setting(panel)
+      .setName("文件图标")
+      .setDesc("可填 emoji 或留空用 CSS 变量 --gd-icon-file 控制。")
+      .addText((x) =>
+        x.setValue(this.plugin.settings.iconFile).onChange(async (v) => {
+          this.plugin.settings.iconFile = v;
+          await this.plugin.saveSettings();
+          this.plugin.refreshViews();
+        })
+      );
+
+    new Setting(panel)
+      .setName("文件夹图标（收起 / 展开）")
+      .setDesc("两个输入框：收起时、展开时。想用自定义 SVG 就留空，改 CSS 变量 --gd-icon-folder / --gd-icon-folder-open。")
+      .addText((x) =>
+        x.setPlaceholder("📁").setValue(this.plugin.settings.iconFolder).onChange(async (v) => {
+          this.plugin.settings.iconFolder = v;
+          await this.plugin.saveSettings();
+          this.plugin.refreshViews();
+        })
+      )
+      .addText((x) =>
+        x.setPlaceholder("📂").setValue(this.plugin.settings.iconFolderOpen).onChange(async (v) => {
+          this.plugin.settings.iconFolderOpen = v;
+          await this.plugin.saveSettings();
+          this.plugin.refreshViews();
+        })
       );
 
     new Setting(panel)

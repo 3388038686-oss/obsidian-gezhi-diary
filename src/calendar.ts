@@ -334,6 +334,9 @@ export class CalendarSidebarView extends ItemView {
 
   private async renderList(el: HTMLElement): Promise<void> {
     const wrap = el.createDiv({ cls: "gd-cal-list" });
+    if ((this.plugin.settings.listLineStyle ?? "vertical") === "polyline") {
+      wrap.addClass("is-polyline");
+    }
 
     // 按日：全量日记，时间顺序（最新在前），卡片标题「10月20日 周二」
     if (this.calMode === "day") {
@@ -394,13 +397,37 @@ export class CalendarSidebarView extends ItemView {
     return d;
   }
 
+  /** 折线星图：左侧节点 + 横向折线，纯 SVG 绘制，随行高自适应 */
+  private addPolylineNode(item: HTMLElement): void {
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "gd-node-svg");
+    svg.setAttribute("viewBox", "0 0 44 36");
+    svg.setAttribute("width", "44");
+    svg.setAttribute("height", "36");
+    svg.setAttribute("aria-hidden", "true");
+    const line = document.createElementNS(NS, "polyline");
+    line.setAttribute("points", "5,12 15,12 26,24 42,24");
+    line.setAttribute("class", "gd-node-line");
+    const dot = document.createElementNS(NS, "circle");
+    dot.setAttribute("cx", "5");
+    dot.setAttribute("cy", "12");
+    dot.setAttribute("r", "2.6");
+    dot.setAttribute("class", "gd-node-dot");
+    svg.appendChild(line);
+    svg.appendChild(dot);
+    item.appendChild(svg);
+  }
+
   /** 逐条：彩色日期标题 + 两行摘要 */
   private async fillEntries(box: HTMLElement, dates: string[], showYear = false): Promise<void> {
     const active = this.plugin.activeDate;
+    const polyline = (this.plugin.settings.listLineStyle ?? "vertical") === "polyline";
     for (const ds of dates) {
       const file = this.plugin.store.fileFor(ds);
       const item = box.createDiv({ cls: "gd-cal-item" });
       if (ds === active) item.addClass("active");
+      if (polyline) this.addPolylineNode(item);
 
       const headEl = item.createDiv({ cls: "gd-cal-item-head" });
       appendColoredDate(headEl, ds, {
