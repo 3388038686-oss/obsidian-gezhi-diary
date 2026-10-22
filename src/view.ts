@@ -221,6 +221,8 @@ export class GridDiaryView extends ItemView {
     });
     const mCal = mobileBar.createEl("button", { cls: "gd-mobile-btn", text: "日历" });
     mCal.addEventListener("click", () => void this.plugin.toggleCalendarSidebar());
+    const mTl = mobileBar.createEl("button", { cls: "gd-mobile-btn", text: "流图" });
+    mTl.addEventListener("click", () => void this.plugin.openTimelinePanel());
 
     const scroll = shell.createDiv({ cls: "gd-scroll" });
     // 关键：内容全部插入后再恢复滚动，否则 scrollTop 会被重置为 0（页面"嗖"地跳回顶部）

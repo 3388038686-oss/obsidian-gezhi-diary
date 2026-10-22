@@ -2120,6 +2120,8 @@ var GridDiaryView = class extends import_obsidian5.ItemView {
     });
     const mCal = mobileBar.createEl("button", { cls: "gd-mobile-btn", text: "\u65E5\u5386" });
     mCal.addEventListener("click", () => void this.plugin.toggleCalendarSidebar());
+    const mTl = mobileBar.createEl("button", { cls: "gd-mobile-btn", text: "\u6D41\u56FE" });
+    mTl.addEventListener("click", () => void this.plugin.openTimelinePanel());
     const scroll = shell.createDiv({ cls: "gd-scroll" });
     const restoreScroll = () => {
       requestAnimationFrame(() => {
