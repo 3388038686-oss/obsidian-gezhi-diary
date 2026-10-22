@@ -2097,39 +2097,6 @@ var GridDiaryView = class extends import_obsidian5.ItemView {
     root.style.setProperty("--gd-gap", `${this.plugin.settings.gridGap}px`);
     const shell = root.createDiv({ cls: "gd-shell" });
     this.renderFloatFab(shell);
-    if (this.plugin.settings.showLeftPanel && !import_obsidian5.Platform.isMobile) {
-      const left = shell.createDiv({ cls: "gd-left-panel" });
-      renderLeftPanel(left, this.plugin);
-      const resizer = shell.createDiv({ cls: "gd-resizer" });
-      let dragging = false;
-      resizer.addEventListener("pointerdown", (e) => {
-        dragging = true;
-        resizer.setPointerCapture(e.pointerId);
-        shell.classList.add("is-resizing");
-      });
-      resizer.addEventListener("pointermove", (e) => {
-        if (!dragging) return;
-        const w = Math.max(150, Math.min(480, e.clientX - shell.getBoundingClientRect().left));
-        left.style.width = `${w}px`;
-      });
-      resizer.addEventListener("pointerup", (e) => {
-        dragging = false;
-        try {
-          resizer.releasePointerCapture(e.pointerId);
-        } catch (e2) {
-        }
-        shell.classList.remove("is-resizing");
-        const w = parseInt(left.style.width, 10);
-        if (w > 0) {
-          this.plugin.settings.leftWidth = w;
-          void this.plugin.saveSettings();
-        }
-      });
-      resizer.addEventListener("pointercancel", () => {
-        dragging = false;
-        shell.classList.remove("is-resizing");
-      });
-    }
     const bg = this.backgroundUrl();
     if (bg) shell.createDiv({ cls: "gd-bg", attr: { style: `background-image:url("${bg}")` } });
     const snap = await this.plugin.store.readDay(this.currentDate);
@@ -3791,7 +3758,8 @@ var CalendarSidebarView = class extends import_obsidian6.ItemView {
       item.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        void this.plugin.activateView(ds);
+        this.plugin.setActiveDate(ds, this);
+        void this.renderBody();
       });
       if (file) {
         const del = headEl.createEl("button", { cls: "gd-cal-del" });

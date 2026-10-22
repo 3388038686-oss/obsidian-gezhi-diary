@@ -449,7 +449,9 @@ export class CalendarSidebarView extends ItemView {
       item.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        void this.plugin.activateView(ds);
+        // 静默切换：日历焦点不丢，不用来回重开
+        this.plugin.setActiveDate(ds, this);
+        void this.renderBody();
       });
       if (file) {
         const del = headEl.createEl("button", { cls: "gd-cal-del" });

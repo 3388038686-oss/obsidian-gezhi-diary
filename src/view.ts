@@ -193,37 +193,7 @@ export class GridDiaryView extends ItemView {
 
     const shell = root.createDiv({ cls: "gd-shell" });
     this.renderFloatFab(shell);
-    // 手机端不建内嵌目录（目录走 Obsidian 原生侧栏 dock），避免占位挤扁格子
-    if (this.plugin.settings.showLeftPanel && !Platform.isMobile) {
-      const left = shell.createDiv({ cls: "gd-left-panel" });
-      renderLeftPanel(left, this.plugin);
-      const resizer = shell.createDiv({ cls: "gd-resizer" });
-      let dragging = false;
-      resizer.addEventListener("pointerdown", (e) => {
-        dragging = true;
-        resizer.setPointerCapture(e.pointerId);
-        shell.classList.add("is-resizing");
-      });
-      resizer.addEventListener("pointermove", (e) => {
-        if (!dragging) return;
-        const w = Math.max(150, Math.min(480, e.clientX - shell.getBoundingClientRect().left));
-        left.style.width = `${w}px`;
-      });
-      resizer.addEventListener("pointerup", (e) => {
-        dragging = false;
-        try { resizer.releasePointerCapture(e.pointerId); } catch { /* 忽略 */ }
-        shell.classList.remove("is-resizing");
-        const w = parseInt(left.style.width, 10);
-        if (w > 0) {
-          this.plugin.settings.leftWidth = w;
-          void this.plugin.saveSettings();
-        }
-      });
-      resizer.addEventListener("pointercancel", () => {
-        dragging = false;
-        shell.classList.remove("is-resizing");
-      });
-    }
+    // 目录一律走 Obsidian 官方侧栏 dock，正页永不嵌入（用户裁定）
     const bg = this.backgroundUrl();
     if (bg) shell.createDiv({ cls: "gd-bg", attr: { style: `background-image:url("${bg}")` } });
 

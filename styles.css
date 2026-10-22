@@ -2076,8 +2076,8 @@ body.theme-light .grid-diary-view .gd-hover-glow .gd-meteor {
   .gd-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
   .gd-cell { min-height: 88px; border-radius: 12px; }
   .gd-cell-title { font-size: 12.5px; }
-  .gd-cell-text { max-height: 110px; font-size: 13px; line-height: 1.65; padding: 6px 10px; }
-  .gd-cell textarea { max-height: 110px; font-size: 13px; line-height: 1.65; padding: 6px 10px; }
+  .gd-cell-text { max-height: 160px; font-size: 13px; line-height: 1.65; padding: 6px 10px; }
+  .gd-cell textarea { max-height: 160px; font-size: 13px; line-height: 1.65; padding: 6px 10px; }
   .gd-cell textarea:focus { max-height: 36vh; }
   .gd-header { flex-wrap: wrap; row-gap: 6px; position: static !important; }
   .gd-date { font-size: 36px; }
