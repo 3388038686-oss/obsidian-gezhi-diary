@@ -2041,3 +2041,244 @@ body.theme-light .grid-diary-view .gd-hover-glow .gd-meteor {
 .grid-diary-view:not(.gd-with-lines) .gd-row-line {
   display: none;
 }
+
+/* =====目录工具栏 / 关闭按钮 / 过滤高亮（2026-10-21 ①②）===== */
+.gd-left-panel .gd-left-toolbar { display:flex; align-items:center; gap:4px; padding:6px 8px 2px; }
+.gd-left-panel .gd-left-toolbar-2 { flex-wrap:wrap; padding-top:2px; padding-bottom:6px; gap:4px; border-bottom:1px solid var(--background-modifier-border); }
+.gd-left-panel .gd-left-toolbar-title { flex:1; font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:.04em; }
+.gd-left-panel .gd-left-mini { width:18px; height:18px; display:flex; align-items:center; justify-content:center; padding:0; font-size:11px; line-height:1; background:none; border:none; color:var(--text-muted); cursor:pointer; border-radius:5px; }
+.gd-left-panel .gd-left-mini:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
+.gd-left-panel .gd-left-search { flex:1 1 100%; min-width:0; box-sizing:border-box; font-size:11px; padding:3px 7px; border:1px solid var(--background-modifier-border); border-radius:7px; background:var(--background-primary); color:var(--text-normal); outline:none; }
+.gd-left-panel .gd-left-search:focus { border-color:var(--interactive-accent); }
+.gd-left-panel .gd-left-sort { flex:1 1 auto; min-width:0; font-size:11px; padding:1px 2px; background:var(--background-primary); color:var(--text-normal); border:1px solid var(--background-modifier-border); border-radius:7px; }
+.gd-left-panel .gd-tree-file.is-open-file,
+.gd-left-panel .gd-left-row.is-open-file {
+  background: color-mix(in srgb, var(--interactive-accent) 26%, transparent);
+}
+.gd-left-panel .gd-tree-file.is-open-file .gd-row-name,
+.gd-left-panel .gd-left-row.is-open-file .gd-row-name { font-weight:600; color:var(--text-normal); }
+
+/* 日历关闭按钮（贴 bar 右上） */
+.gd-cal-side .gd-cal-bar { position:relative; padding-right:24px; }
+.gd-cal-side .gd-cal-close {
+  position:absolute; right:4px; top:4px; width:18px; height:18px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; line-height:1; padding:0; border:none; border-radius:5px;
+  background:none; color:var(--text-muted); cursor:pointer;
+}
+.gd-cal-side .gd-cal-close:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
+
+/* =====手机端（窄屏 ≤760px）：2 列紧凑九宫格 + 浮动按钮 + 编辑态让位（2026-10-21）===== */
+.gd-mobile-dock { display: none; }
+@media (max-width: 760px) {
+  .gd-left-panel { display: none !important; }
+  .gd-resizer { display: none !important; }
+  .gd-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  .gd-cell { min-height: 88px; border-radius: 12px; }
+  .gd-cell-title { font-size: 12.5px; }
+  .gd-cell-text { max-height: 110px; font-size: 13px; line-height: 1.65; padding: 6px 10px; }
+  .gd-cell textarea { max-height: 110px; font-size: 13px; line-height: 1.65; padding: 6px 10px; }
+  .gd-cell textarea:focus { max-height: 36vh; }
+  .gd-header { flex-wrap: wrap; row-gap: 6px; position: static !important; }
+  .gd-date { font-size: 36px; }
+  .gd-scroll { padding-left: 10px !important; padding-right: 10px !important; }
+  .gd-mobile-dock {
+    display: flex; gap: 8px; padding: 8px 12px 0;
+    justify-content: flex-end; position: sticky; top: 0; z-index: 30;
+  }
+  .gd-mobile-btn {
+    padding: 7px 16px; font-size: 13px; line-height: 1;
+    border-radius: 18px; border: none; cursor: pointer;
+    background: var(--interactive-accent); color: var(--background-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  }
+  /* 编辑时：浮动按钮和头部全部让位，不再遮挡输入区 */
+  .gd-shell.is-editing .gd-mobile-dock { display: none; }
+  .gd-shell.is-editing .gd-date, .gd-shell.is-editing .gd-datemeta { display: none; }
+}
+
+/* =====手机端底部目录抽屉（2026-10-21）===== */
+.gd-dir-sheet { position: absolute; inset: 0; z-index: 80; display: flex; flex-direction: column; justify-content: flex-end; }
+.gd-dir-sheet-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); }
+.gd-dir-sheet-body {
+  position: relative; max-height: 62vh; overflow: auto; width: 100%;
+  background: var(--background-primary);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.28);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.gd-dir-sheet-body .gd-left-toolbar:first-child { padding-top: 12px; }
+
+/* ===== 手机：底部抽屉编辑器 + 再紧凑（2026-10-22）===== */
+@media (max-width: 760px) {
+  .gd-edit-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 140;
+    max-height: 52vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--background-primary);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.25);
+    padding: 8px 12px 14px;
+  }
+  .gd-edit-sheet-bar { display: flex; align-items: center; gap: 8px; padding: 2px 2px 8px; }
+  .gd-edit-sheet-title { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-muted); }
+  .gd-edit-sheet-done { padding: 2px 14px; font-size: 12px; border-radius: 8px; }
+  .gd-edit-sheet textarea.gd-cell-editor {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 130px;
+    max-height: 42vh;
+    border: none;
+    background: transparent;
+    resize: none;
+    font-size: 14px;
+    line-height: 1.6;
+    outline: none;
+    color: var(--text-normal);
+  }
+  .gd-cell-fmt { display: none; }
+  .gd-header { padding: 8px 12px 4px; }
+  .gd-date { font-size: 12px; }
+  .gd-nav { font-size: 12px; padding: 3px 8px; }
+}
+
+/* ===== 规格书模块五：右侧时间流面板（2026-10-22）===== */
+.gd-tl-side { display:flex; flex-direction:column; height:100%; font-family:inherit; }
+.gd-tl-side-bar { display:flex; align-items:center; gap:6px; padding:8px 10px 6px; border-bottom:1px solid var(--background-modifier-border); flex-wrap:wrap; }
+.gd-tl-side-title { font-size:12px; font-weight:600; color:var(--text-muted); letter-spacing:.05em; flex:1; }
+.gd-tl-side-date { font-size:11px; color:var(--text-faint); width:100%; }
+.gd-tl-side-btn { width:22px; height:22px; display:flex; align-items:center; justify-content:center; padding:0; font-size:13px; line-height:1; background:none; border:none; border-radius:6px; color:var(--text-muted); cursor:pointer; }
+.gd-tl-side-btn:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
+.gd-tl-side-body { flex:1 1 auto; overflow-y:auto; padding:8px 8px 16px; }
+.gd-tl-side-empty { font-size:11px; color:var(--text-faint); padding:14px 6px; }
+.gd-tl-side-row { display:flex; gap:6px; margin-bottom:8px; }
+.gd-tl-side-axis { position:relative; width:44px; flex:0 0 44px; padding-top:2px; }
+.gd-tl-side-dot { position:absolute; left:9px; top:7px; width:6px; height:6px; border-radius:50%; background:var(--interactive-accent); z-index:1; }
+.gd-tl-side-line { position:absolute; left:11.5px; top:13px; bottom:-8px; width:1px; background:var(--background-modifier-border); }
+.gd-tl-side-meta { position:absolute; left:0; top:16px; width:42px; font-size:9.5px; line-height:1.35; color:var(--text-faint); text-align:right; white-space:pre-line; }
+.gd-tl-side-card { flex:1 1 auto; min-width:0; background:var(--background-secondary); border:1px solid var(--background-modifier-border); border-radius:10px; padding:6px 9px 8px; }
+.gd-tl-side-card-bar { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+.gd-tl-side-card-title { flex:1; font-size:11px; font-weight:600; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gd-tl-side-mini { padding:0 6px; font-size:10px; line-height:1.6; background:none; border:none; border-radius:5px; color:var(--text-faint); cursor:pointer; }
+.gd-tl-side-mini:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
+.gd-tl-side-preview { font-size:12px; line-height:1.6; max-height:180px; overflow-y:auto; }
+.gd-tl-side-preview p { margin:0 0 4px; }
+.gd-tl-side-preview img { max-width:100%; border-radius:6px; }
+.gd-tl-side-deleted { margin-top:10px; font-size:11px; color:var(--text-faint); }
+.gd-tl-side-deleted summary { cursor:pointer; padding:4px 2px; }
+.gd-tl-side-drow { display:flex; align-items:center; gap:8px; padding:3px 4px 3px 12px; }
+.gd-tl-side-dtitle { flex:1; opacity:.55; text-decoration:line-through; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* =====黑红主色 + 线条化（2026-10-22）===== */
+.gd-shell, .gd-cal-side, .gd-left-panel, .gd-tl-side {
+  --interactive-accent: #d63031;
+  --interactive-accent-hover: #b71c1c;
+  --text-accent: #d63031;
+  --text-accent-hover: #b71c1c;
+}
+.gd-del-btn:hover, .gd-cal-del:hover, .gd-left-del:hover { color: #e05555 !important; }
+
+/* 日期行排版：数字大而粗，星期/摘要小而灰（极简手账） */
+.gd-cal-date-row { display:flex; align-items:baseline; gap:6px; }
+.gd-cal-date-row .gd-cal-num { font-size:16px; font-weight:700; color:var(--text-normal); }
+.gd-cal-date-row .gd-cal-wd { font-size:11px; color:var(--text-faint); font-weight:400; }
+.gd-cal-date-row .gd-cal-count { margin-left:auto; font-size:10px; color:var(--text-faint); }
+
+/* 日期排版层级：数字大而粗，周几/分隔小而灰（列表行） */
+.gd-cal-item-date .gd-cd { font-size:18px; font-weight:700; }
+.gd-cal-item-date .gd-cm { font-size:15px; font-weight:600; }
+.gd-cal-item-date .gd-cy, .gd-cal-item-date .gd-csep { font-size:11px; }
+.gd-cal-item-date .gd-cweek { font-size:11px; font-weight:400; color:var(--text-faint); margin-left:2px; }
+.gd-tl-side-meta { font-size:10px; color:var(--text-faint); }
+.gd-cal-day.has { font-weight:700; }
+
+/* =====图片自由度：悬停工具条 / 纵向手柄 ===== */
+.gd-imgbox { position: relative; }
+.gd-img-tools {
+  position: absolute; top: -24px; right: 4px; display: flex; gap: 2px;
+  opacity: 0; transition: opacity .15s; z-index: 6; pointer-events: none;
+}
+.gd-imgbox:hover .gd-img-tools { opacity: 1; pointer-events: auto; }
+.gd-img-tools button {
+  width: 18px; height: 18px; font-size: 10px; line-height: 1; padding: 0;
+  border: none; border-radius: 5px;
+  background: var(--background-primary); color: var(--text-muted);
+  cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+.gd-img-tools button:hover { color: var(--interactive-accent); background: var(--background-modifier-hover); }
+.gd-img-handle { width: 14px; height: 14px; }
+
+/* ===== 2026-10-22 · 目录图标 SVG / 树呼吸感 / 卡片拖拽 ===== */
+.gd-row-icon.gd-icon-svg { display:inline-block; width:13px; height:13px; flex:none; margin-right:5px; background:currentColor; color:var(--text-muted); opacity:.78; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center; -webkit-mask-size:contain; mask-repeat:no-repeat; mask-position:center; mask-size:contain; }
+.gd-row-icon.gd-icon-svg::before { content:none !important; }
+.gd-row-icon.gd-icon-svg:hover { color:var(--text-normal); opacity:1; }
+.gd-ico-file { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><path d='M14 2v6h6'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><path d='M14 2v6h6'/></svg>"); }
+.gd-ico-folder { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/></svg>"); }
+.gd-tree-folder.is-open .gd-ico-folder { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M6 14l1.45-2.9A2 2 0 0 1 9.24 10H22a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M6 14l1.45-2.9A2 2 0 0 1 9.24 10H22a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2'/></svg>"); }
+
+/* 树呼吸感 */
+.gd-tree-row { line-height:1.7; }
+.gd-tree-folder > .gd-tree-kids > .gd-tree-row:first-child { margin-top:3px; }
+.gd-tree-folder > .gd-tree-kids > .gd-tree-file:first-child { margin-top:2px; }
+
+/* 卡片：CSS 原生双向拖拽（不触发任何渲染）+ 右下角三角提示 */
+.workspace-leaf-content[data-type="grid-diary"] .gd-cell { resize:both; overflow:hidden; min-width:200px; min-height:200px; max-width:100%; }
+.workspace-leaf-content[data-type="grid-diary"] .gd-cell::after { content:""; position:absolute; right:2px; bottom:2px; width:9px; height:9px; border-right:2px solid var(--text-faint); border-bottom:2px solid var(--text-faint); opacity:.45; pointer-events:none; z-index:3; }
+.workspace-leaf-content[data-type="grid-diary"] .gd-cell:hover::after { opacity:.95; border-color:var(--interactive-accent); }
+.gd-cell-resized .gd-cell-body { max-height:none !important; }
+
+/* ===== 2026-08-22 批 ·黑红主题深化 + 时间轴细线 + 图标线条化 ===== */
+/* 时间轴：1px 发丝细黑线 + 红色节点（参考手账排版） */
+.gd-tl-side-dot { background: var(--gd-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gd-accent) 18%, transparent); }
+.gd-tl-side-line { width: 1px !important; background: color-mix(in srgb, var(--text-normal) 78%, transparent); }
+.gd-tl-side-axis { width: 10px !important; }
+.gd-tl-side-meta { font-weight: 500; letter-spacing: .02em; }
+
+/* 视图里残留的旧时间轴（列表版）同步细线化 */
+.gd-tl-rail::after { width: 1px !important; opacity: .55 !important; }
+.gd-tl-dot { background: var(--gd-accent); }
+.gd-tl-rail-row:hover .gd-tl-dot { box-shadow: 0 0 0 3px color-mix(in srgb, var(--gd-accent) 22%, transparent); }
+
+/* 图标按钮统一（SVG 后保持可点尺寸与线性手感） */
+.gd-fmt-btn svg, .gd-tl-side-btn svg, .gd-tl-side-mini svg { display: block; width: 14px; height: 14px; }
+.gd-fmt-btn { display: inline-flex; align-items: center; justify-content: center; }
+.gd-fmt-mic.is-recording { color: var(--gd-accent) !important; }
+
+/* 手机：目录走 Obsidian 原生侧栏，字号跟系统字体自由缩放 */
+@media (max-width: 760px) {
+  .workspace-leaf-content[data-type="grid-diary-explorer"] .gd-left-panel {
+    font-size: var(--font-text-size);
+  }
+  .workspace-leaf-content[data-type="grid-diary-explorer"] .gd-left-row,
+  .workspace-leaf-content[data-type="grid-diary-explorer"] .gd-tree-row {
+    font-size: var(--font-text-size);
+    line-height: 1.7;
+  }
+}
+
+/* ===== 2026-10-22 · 手机端紧凑（不依赖宽度的视口兜底，class 由 JS 打） ===== */
+.gd-mobile .gd-left-panel,
+.gd-mobile .gd-resizer { display: none !important; }
+.gd-mobile .gd-cell-title { font-size: 13px !important; line-height: 1.4 !important; white-space: normal !important; word-break: break-word; letter-spacing: 0 !important; display: block !important; width: auto !important; }
+.gd-mobile .gd-cell-fmt, .gd-mobile .gd-fmt-row { display: none !important; }
+.gd-mobile .gd-cell { min-height: 96px !important; max-width: 100%; }
+.gd-mobile .gd-cell-body, .gd-mobile .gd-preview { max-height: 78px !important; font-size: 13px !important; line-height: 1.6 !important; }
+.gd-mobile .gd-cell-status, .gd-mobile .gd-btn-grip { font-size: 9px !important; }
+.gd-mobile .gd-grid { gap: 8px !important; grid-template-columns: repeat(var(--gd-cols, 2), minmax(0, 1fr)) !important; }
+.gd-mobile .gd-header-date { font-size: 34px !important; }
+.gd-mobile .gd-nav-row { font-size: 12px !important; gap: 6px !important; }
+/* 右栏日历 / 时间流同紧凑 */
+.gd-mobile .gd-cal-title, .gd-mobile .gd-tl-side-title { font-size: 14px !important; }
+.gd-mobile .gd-cal-month-title { font-size: 13px !important; }
+.gd-mobile .gd-cal-grid-num { font-size: 14px !important; padding: 4px 0 !important; }
+.gd-mobile .gd-cal-list-row { padding: 5px 6px !important; font-size: 12px !important; gap: 6px !important; }
+.gd-mobile .gd-cal-day-huge { font-size: 40px !important; }
+.gd-mobile .gd-mode-bar button { padding: 4px 8px !important; font-size: 11px !important; }
+/* dock 目录在手机跟随 Ob 系统字体（可自由缩放） */
+body.is-mobile [data-type="grid-diary-explorer"] .gd-left-panel { font-size: var(--font-text-size) !important; }
+body.is-mobile [data-type="grid-diary-explorer"] .gd-left-row { min-height: 22px; }

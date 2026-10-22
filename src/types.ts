@@ -47,6 +47,8 @@ export interface GridDiarySettings {
   iconFolder: string;
   /** 文件夹图标（展开） */
   iconFolderOpen: string;
+  /** 目录树排序：folders=文件夹优先按名 / name=纯名称 / mtime=修改时间 */
+  treeSort: "folders" | "name" | "mtime";
   /** 文件夹默认展开 */
   treeDefaultOpen: boolean;
   /** 悬停高亮 + 流星滑过效果 */

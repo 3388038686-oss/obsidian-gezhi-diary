@@ -1,10 +1,12 @@
-﻿import { ItemView, MarkdownRenderer, Menu, Notice, TFile, WorkspaceLeaf, normalizePath } from "obsidian";
+﻿import { ItemView, MarkdownRenderer, Menu, Notice, Platform, TFile, WorkspaceLeaf, normalizePath } from "obsidian";
 import type GridDiaryPlugin from "./main";
 import { PromptModal, TemplatePickModal, ConfirmModal } from "./modals";
 import { DayCell, DaySnapshot, shiftDate, todayStr, weekdayCn } from "./store";
 import { appendColoredMonth } from "./datecolor";
 import { mirrorSections, paragraphsFromSoftBreaks, parseDay, stripEmptyHeadings } from "./sections";
 import { renderLeftPanel } from "./leftpanel";
+import { buildImgTag, ImgAttrs } from "./imgtools";
+import { elIcon } from "./icons";
 
 export const VIEW_TYPE_GRID_DIARY = "grid-diary-view";
 
@@ -87,6 +89,7 @@ export class GridDiaryView extends ItemView {
 
   async onOpen(): Promise<void> {
     this.contentEl.addClass("grid-diary-view");
+    this.contentEl.toggleClass("gd-mobile", Platform.isMobile);
     // 外部（侧栏日历）改了日期 → 本视图跟着跳
     this.register(this.plugin.onDateChange((date) => this.jumpTo(date)));
     this.currentDate = this.plugin.activeDate || this.currentDate;
@@ -189,7 +192,8 @@ export class GridDiaryView extends ItemView {
     root.style.setProperty("--gd-gap", `${this.plugin.settings.gridGap}px`);
 
     const shell = root.createDiv({ cls: "gd-shell" });
-    if (this.plugin.settings.showLeftPanel) {
+    // 手机端不建内嵌目录（目录走 Obsidian 原生侧栏 dock），避免占位挤扁格子
+    if (this.plugin.settings.showLeftPanel && !Platform.isMobile) {
       const left = shell.createDiv({ cls: "gd-left-panel" });
       renderLeftPanel(left, this.plugin);
       const resizer = shell.createDiv({ cls: "gd-resizer" });
@@ -236,6 +240,16 @@ export class GridDiaryView extends ItemView {
     }
     await this.refreshRawCache();
     this.cellAppliers.clear();
+
+    // 手机端浮动「目录 / 日历」按钮（桌面用媒体查询隐藏）
+    const mobileBar = shell.createDiv({ cls: "gd-mobile-dock" });
+    const mDir = mobileBar.createEl("button", { cls: "gd-mobile-btn", text: "目录" });
+    mDir.addEventListener("click", () => {
+      // 手机端目录直接进 Obsidian 原生侧栏（随系统拖拽缩放、字体跟 Ob 走）
+      void this.plugin.openExplorerDock();
+    });
+    const mCal = mobileBar.createEl("button", { cls: "gd-mobile-btn", text: "日历" });
+    mCal.addEventListener("click", () => void this.plugin.toggleCalendarSidebar());
 
     const scroll = shell.createDiv({ cls: "gd-scroll" });
     // 关键：内容全部插入后再恢复滚动，否则 scrollTop 会被重置为 0（页面"嗖"地跳回顶部）
@@ -297,6 +311,26 @@ export class GridDiaryView extends ItemView {
       e.stopPropagation();
       this.stepHist(1);
     });
+    // 开关左栏目录（再点恢复）
+    const toggleDir = actions.createEl("button", { text: "⇤", cls: "gd-btn" });
+    toggleDir.setAttribute("aria-label", "显示 / 隐藏左侧目录面板");
+    toggleDir.setAttribute("title", "显示 / 隐藏左侧目录面板");
+    toggleDir.addEventListener("click", (e) => {
+      e.stopPropagation();
+      void (async () => {
+        this.plugin.settings.showLeftPanel = !this.plugin.settings.showLeftPanel;
+        await this.plugin.saveSettings();
+        this.plugin.refreshViews();
+      })();
+    });
+    // 开关右栏日历
+    const toggleCal = actions.createEl("button", { text: "⇥", cls: "gd-btn" });
+    toggleCal.setAttribute("aria-label", "打开 / 关闭日记日历侧栏");
+    toggleCal.setAttribute("title", "打开 / 关闭日记日历侧栏");
+    toggleCal.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.plugin.toggleCalendarSidebar();
+    });
     const more = actions.createEl("button", { text: "···", cls: "gd-btn" });
     more.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -326,14 +360,10 @@ export class GridDiaryView extends ItemView {
     }
     if (!snap.cells.length) {
       this.renderEmpty(grid, "文件里还没有 ## 小节。", "用模板生成");
-      this.timelineSlot = scroll.createDiv({ cls: "gd-timeline-slot" });
-      this.renderTimeline(this.timelineSlot, snap);
       restoreScroll();
       return;
     }
     for (const cell of snap.cells) grid.appendChild(this.renderCell(cell));
-    this.timelineSlot = scroll.createDiv({ cls: "gd-timeline-slot" });
-    this.renderTimeline(this.timelineSlot, snap);
     restoreScroll();
   }
 
@@ -543,24 +573,99 @@ export class GridDiaryView extends ItemView {
       img.replaceWith(box);
       box.appendChild(img);
 
-      const attrW = Number.parseInt(img.getAttribute("width") || "", 10);
-      if (Number.isFinite(attrW) && attrW > 0) {
-        box.style.width = `${attrW}px`;
-      } else {
-        // 文件里没写宽度：默认 400px，避免一张图铺满整条气泡
-        box.style.width = "400px";
-      }
-      img.style.width = "100%";
+      // 源文件里的引用名（DOM src 会变，按文件名回找原文）
+      const nameOf = (): string => {
+        const src = img.getAttribute("src") || "";
+        let n = "";
+        if (src && !/^(https?:|data:|app:)/i.test(src)) {
+          n = decodeURIComponent(src.split("?")[0].split("#")[0]).split(/[\\/]/).pop() || "";
+        }
+        if (!n) n = (img.getAttribute("alt") || "").split(/[\\/]/).pop() || "";
+        return n;
+      };
 
-      // 右下角拖拽手柄（CSS resize 在 Obsidian 里不可靠，改手动实现）
+      const attrW = Number.parseInt(img.getAttribute("width") || "", 10);
+      const attrH = Number.parseInt(img.getAttribute("height") || "", 10);
+      box.style.width = `${Number.isFinite(attrW) && attrW > 0 ? attrW : 400}px`;
+      if (Number.isFinite(attrH) && attrH > 0) box.style.height = `${attrH}px`;
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "contain";
+      // 加载前锁定高度，防止排版跳动
+      if (!img.complete) {
+        box.style.minHeight = `${Number.isFinite(attrH) && attrH > 0 ? attrH : 80}px`;
+        img.addEventListener("load", () => (box.style.minHeight = ""), { once: true });
+      }
+      const fl = /float:\s*(left|right)/.exec(img.getAttribute("style") || "")?.[1];
+      if (fl === "left" || fl === "right") box.style.float = fl;
+
+      // —— 悬停工具条：左/右/居中/边框 ——
+      const tools = doc.createElement("div");
+      tools.className = "gd-img-tools";
+      box.appendChild(tools);
+      const persist = (attrs: Partial<ImgAttrs>) => {
+        const name = nameOf();
+        if (!name || !/\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(name)) return;
+        const w = Math.round(box.getBoundingClientRect().width);
+        const h = Math.round(box.getBoundingClientRect().height);
+        void this.plugin.store
+          .setImageAttrs(this.currentDate, name, { width: w, height: h, ...attrs })
+          .then(() => new Notice("图片样式已保存", 1200));
+      };
+      const mkBtn = (label: string, tip: string, cb: () => void) => {
+        const b = doc.createElement("button");
+        b.type = "button";
+        b.textContent = label;
+        b.title = tip;
+        b.addEventListener("mousedown", (e) => e.preventDefault());
+        b.addEventListener("click", (e) => {
+          e.stopPropagation();
+          cb();
+        });
+        tools.appendChild(b);
+      };
+      mkBtn("◀", "靠左浮动", () => {
+        const on = box.style.float !== "left";
+        box.style.float = on ? "left" : "";
+        box.style.display = "";
+        box.style.marginInline = "";
+        persist({ float: on ? "left" : "none" });
+      });
+      mkBtn("▶", "靠右浮动", () => {
+        const on = box.style.float !== "right";
+        box.style.float = on ? "right" : "";
+        box.style.display = "";
+        box.style.marginInline = "";
+        persist({ float: on ? "right" : "none" });
+      });
+      mkBtn("▤", "独立居中", () => {
+        const on = box.style.display !== "block";
+        box.style.display = on ? "block" : "";
+        box.style.float = "";
+        box.style.marginInline = on ? "auto" : "";
+        persist({ float: "none" });
+      });
+      const cycle = ["", "1px solid var(--background-modifier-border)", "2px solid #7B68EE"];
+      let bi = Number(box.dataset.bi || 0);
+      mkBtn("⬚", "边框（循环：无 → 灰框 → 紫框）", () => {
+        bi = (bi + 1) % cycle.length;
+        box.dataset.bi = String(bi);
+        box.style.border = cycle[bi];
+        box.style.borderRadius = bi === 2 ? "8px" : "";
+        box.style.boxShadow = bi === 2 ? "0 2px 10px rgba(0,0,0,.18)" : "";
+        persist({ border: cycle[bi] || "none", radius: bi === 2 ? 8 : 0, shadow: bi === 2 });
+      });
+
+      // 右下角拖拽手柄：横向 + 纵向
       const handle = doc.createElement("span");
       handle.className = "gd-img-handle";
       handle.setAttribute("aria-label", "拖动调整图片大小");
       box.appendChild(handle);
-
       let dragging = false;
       let startX = 0;
+      let startY = 0;
       let startW = 0;
+      let startH = 0;
       let moved = false;
       handle.addEventListener("pointerdown", (ev) => {
         ev.preventDefault();
@@ -568,16 +673,21 @@ export class GridDiaryView extends ItemView {
         dragging = true;
         moved = false;
         startX = ev.clientX;
-        startW = box.getBoundingClientRect().width;
+        startY = ev.clientY;
+        const r = box.getBoundingClientRect();
+        startW = r.width;
+        startH = r.height;
         handle.setPointerCapture(ev.pointerId);
       });
       handle.addEventListener("pointermove", (ev) => {
         if (!dragging) return;
         ev.preventDefault();
         const parentW = (box.parentElement?.clientWidth ?? 800) || 800;
-        const next = Math.max(60, Math.min(parentW, Math.round(startW + (ev.clientX - startX))));
-        if (Math.abs(next - startW) > 2) moved = true;
-        box.style.width = `${next}px`;
+        const nextW = Math.max(60, Math.min(parentW, Math.round(startW + (ev.clientX - startX))));
+        const nextH = Math.max(40, Math.round(startH + (ev.clientY - startY)));
+        if (Math.abs(nextW - startW) > 2 || Math.abs(nextH - startH) > 2) moved = true;
+        box.style.width = `${nextW}px`;
+        box.style.height = `${nextH}px`;
       });
       handle.addEventListener("pointerup", (ev) => {
         if (!dragging) return;
@@ -588,41 +698,15 @@ export class GridDiaryView extends ItemView {
           /* ignore */
         }
         if (!moved) return;
-        const w = Math.round(box.getBoundingClientRect().width);
-        if (w >= 60) void this.persistImageWidth(img, w);
+        persist({});
       });
-      handle.addEventListener("pointercancel", () => {
-        dragging = false;
-      });
+      handle.addEventListener("pointercancel", () => (dragging = false));
 
-      // 兼容：拖框边缘（非手柄）不触发任何写盘
       const ro = new ResizeObserver(() => {
-        /* 仅用于占位，保持 imgRos 结构，实际写盘由手柄控制 */
+        /* 结构占位，写盘由手柄与工具条控制 */
       });
       ro.observe(box);
       this.imgRos.push({ ro, box });
-    }
-  }
-
-  /** 把图片宽度写回 Markdown：![[图片名|宽度]] */
-  private async persistImageWidth(img: HTMLImageElement, width: number): Promise<void> {
-    let name = "";
-    const src = img.getAttribute("src") || "";
-    if (src) {
-      try {
-        const clean = decodeURIComponent(src.split("?")[0].split("#")[0]);
-        name = clean.split(/[\\/]/).pop() || "";
-      } catch {
-        name = "";
-      }
-    }
-    if (!name) name = img.getAttribute("alt") || "";
-    if (!name || !/\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(name)) return;
-    try {
-      this.selfWriteUntil = Date.now() + 1500;
-      await this.plugin.store.setImageWidth(this.currentDate, name, width);
-    } catch (e) {
-      console.error("[grid-diary] 保存图片宽度失败", e);
     }
   }
 
@@ -636,6 +720,14 @@ export class GridDiaryView extends ItemView {
   private renderCell(cell: DayCell): HTMLElement {
     const el = document.createElement("div");
     el.className = "gd-cell";
+
+    // 拖大后放开正文高度，拖回默认自动收起（CSS resize，零渲染）
+    const sizeRo = new ResizeObserver(() => {
+      if (el.offsetHeight > 275) el.addClass("gd-cell-resized");
+      else el.removeClass("gd-cell-resized");
+    });
+    sizeRo.observe(el);
+    this.imgRos.push({ ro: sizeRo, box: el });
 
     const head = el.createDiv({ cls: "gd-cell-head" });
     head.createEl("div", { text: cell.title, cls: "gd-cell-title" });
@@ -697,6 +789,18 @@ export class GridDiaryView extends ItemView {
       ta.value = this.rawCache.get(cell.title) ?? "";
       this.autoGrow(ta);
       ta.focus();
+      // 编辑态：给壳加标记（头部/浮动钮让位）
+      this.contentEl.querySelector(".gd-shell")?.addClass("is-editing");
+      if (Platform.isMobile) {
+        // 手机：编辑框搬进底部抽屉（物理隔层），格子仍在上方可见
+        this.contentEl.querySelectorAll(".gd-edit-sheet").forEach((n) => n.remove());
+        const sheet = this.contentEl.createDiv({ cls: "gd-edit-sheet" });
+        const bar = sheet.createDiv({ cls: "gd-edit-sheet-bar" });
+        bar.createSpan({ text: cell.title, cls: "gd-edit-sheet-title" });
+        const done = bar.createEl("button", { cls: "gd-edit-sheet-done mod-cta", text: "完成" });
+        done.addEventListener("click", () => void exitEdit());
+        sheet.appendChild(ta);
+      }
       const end = ta.value.length;
       ta.setSelectionRange(end, end);
       this.lastCellTitle = cell.title;
@@ -816,7 +920,8 @@ export class GridDiaryView extends ItemView {
       ["#8a8f98", "石灰"],
       ["#5a5f66", "墨灰"],
     ];
-    const paletteBtn = fmt.createEl("button", { text: "🎨", cls: "gd-fmt-btn gd-fmt-color" });
+    const paletteBtn = fmt.createEl("button", { cls: "gd-fmt-btn gd-fmt-color" });
+    elIcon(paletteBtn, "palette");
     paletteBtn.type = "button";
     paletteBtn.setAttribute("aria-label", "文字颜色");
     paletteBtn.addEventListener("mousedown", (e) => {
@@ -905,7 +1010,13 @@ export class GridDiaryView extends ItemView {
           try {
             const ext = (f.name.split(".").pop() || "bin").toLowerCase();
             const name = await this.plugin.saveAttachment(this.currentDate, f, ext);
-            insertAt(asImage ? `![[${name}|400]]` : `![[${name}]]`);
+            if (asImage) {
+              const notePath = this.plugin.store.fileFor(this.currentDate)?.parent?.path ?? "";
+              const rel = notePath && name.startsWith(notePath + "/") ? name.slice(notePath.length + 1) : name;
+              insertAt(buildImgTag({ src: rel, width: 400 }));
+            } else {
+              insertAt(`![[${name}]]`);
+            }
             new Notice(`已插入 ${f.name}`);
           } catch (err) {
             console.error("[grid-diary] 插入附件失败", err);
@@ -942,7 +1053,8 @@ export class GridDiaryView extends ItemView {
     // 录音：MediaRecorder，存成 webm，插入 ![[name]]
     let recorder: MediaRecorder | null = null;
     let chunks: Blob[] = [];
-    const mic = fmt.createEl("button", { text: "🎙", cls: "gd-fmt-btn gd-fmt-media" });
+    const mic = fmt.createEl("button", { cls: "gd-fmt-btn gd-fmt-media" });
+    elIcon(mic, "mic");
     mic.type = "button";
     mic.setAttribute("aria-label", "录音");
     mic.addEventListener("mousedown", (e) => {
@@ -957,7 +1069,7 @@ export class GridDiaryView extends ItemView {
         if (recorder && recorder.state === "recording") {
           recorder.stop();
           mic.removeClass("is-recording");
-          mic.setText("🎙");
+          elIcon(mic, "mic");
           return;
         }
         try {
@@ -1023,10 +1135,12 @@ export class GridDiaryView extends ItemView {
     };
 
     const exitEdit = async () => {
+      this.contentEl.querySelector(".gd-edit-sheet")?.remove();
       await commit();
       editing = false;
       ta.addClass("is-hidden");
       preview.removeClass("is-hidden");
+      this.contentEl.querySelector(".gd-shell")?.removeClass("is-editing");
       await renderPreview();
       await this.recordDelta(cell.title, this.rawCache.get(cell.title) ?? ta.value);
     };
@@ -1158,6 +1272,23 @@ export class GridDiaryView extends ItemView {
   }
 
   /** 侧栏日历点了日期：主视图跟着跳 */
+  /** 手机端：底部抽屉式目录（盖在格子上层，不占页面；点外/X 关闭） */
+  toggleDirSheet(): void {
+    const existing = this.contentEl.querySelector(".gd-dir-sheet");
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    const sheet = this.contentEl.createDiv({ cls: "gd-dir-sheet" });
+    sheet.createDiv({ cls: "gd-dir-sheet-backdrop" }).addEventListener("click", () => sheet.remove());
+    const body = sheet.createDiv({ cls: "gd-dir-sheet-body" });
+    renderLeftPanel(body, this.plugin);
+    body.style.width = "100%";
+    // 抽屉语境下 ✕ = 收起抽屉（而非改嵌入左栏设置）
+    const close = body.querySelector(".gd-left-close") as HTMLElement | null;
+    if (close) close.onclick = () => sheet.remove();
+  }
+
   jumpTo(date: string): void {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
     if (date === this.currentDate) return;

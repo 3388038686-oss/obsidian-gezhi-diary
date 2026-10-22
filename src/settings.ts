@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: GridDiarySettings = {
   iconFile: "📄",
   iconFolder: "📁",
   iconFolderOpen: "📂",
+  treeSort: "folders",
   treeDefaultOpen: true,
   hoverGlow: true,
   showLeftPanel: true,
@@ -440,6 +441,23 @@ export class GridDiarySettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
           this.plugin.refreshViews();
         })
+      );
+
+    new Setting(panel)
+      .setName("目录排序方式")
+      .setDesc("文件夹树里同级条目的排列顺序。")
+      .addDropdown((d) =>
+        d
+          .addOption("folders", "文件夹优先（按名称）")
+          .addOption("name", "纯名称")
+          .addOption("mtime", "修改时间（新在上）")
+          .setValue(this.plugin.settings.treeSort)
+          .onChange(async (raw) => {
+            const v = raw as "folders" | "name" | "mtime";
+            this.plugin.settings.treeSort = v;
+            await this.plugin.saveSettings();
+            this.plugin.refreshViews();
+          })
       );
 
     new Setting(panel)

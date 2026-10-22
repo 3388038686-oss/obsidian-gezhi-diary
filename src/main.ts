@@ -4,13 +4,18 @@ import { DayStore, todayStr } from "./store";
 import { DiaryTemplate, GridDiarySettings } from "./types";
 import { GridDiaryView, VIEW_TYPE_GRID_DIARY } from "./view";
 import { CalendarSidebarView, VIEW_TYPE_CAL } from "./calendar";
+import { ExplorerView, VIEW_TYPE_EXPLORER } from "./explorer";
+import { TimelineView, VIEW_TYPE_TIMELINE } from "./timeline";
 import { QuickNoteModal } from "./modals";
+import { highlightOpenFile } from "./leftpanel";
 
 export default class GridDiaryPlugin extends Plugin {
   settings!: GridDiarySettings;
   store!: DayStore;
   /** 当前选中的日期，主视图与右侧日历共用 */
   activeDate: string = todayStr();
+  /** 当前打开的文件路径（左栏树高亮用） */
+  openFilePath: string | null = null;
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -20,8 +25,35 @@ export default class GridDiaryPlugin extends Plugin {
     this.store.getDefaultTitles = () => this.getDefaultTemplate()?.titles ?? [];
     this.store.ensureDayFile = (date: string) => this.createDayFileFor(date);
 
+    // 打开文件时，左栏树里高亮该文件（不重渲染）
+    this.registerEvent(
+      this.app.workspace.on("file-open", (f) => {
+        this.openFilePath = f?.path ?? null;
+        highlightOpenFile(this.openFilePath);
+      })
+    );
+
     this.registerView(VIEW_TYPE_GRID_DIARY, (leaf: WorkspaceLeaf) => new GridDiaryView(leaf, this));
     this.registerView(VIEW_TYPE_CAL, (leaf: WorkspaceLeaf) => new CalendarSidebarView(leaf, this));
+    this.registerView(VIEW_TYPE_EXPLORER, (leaf: WorkspaceLeaf) => new ExplorerView(leaf, this));
+    this.registerView(VIEW_TYPE_TIMELINE, (leaf: WorkspaceLeaf) => new TimelineView(leaf, this));
+
+    this.addCommand({
+      id: "open-explorer-dock",
+      name: "在左侧栏打开目录面板",
+      callback: () => void this.openExplorerDock(),
+    });
+
+    this.addCommand({
+      id: "open-timeline-panel",
+      name: "打开时间流面板",
+      callback: () => void this.openTimelinePanel(),
+    });
+    this.addCommand({
+      id: "toggle-timeline-panel",
+      name: "打开 / 关闭时间流面板",
+      callback: () => void this.toggleTimelineSidebar(),
+    });
 
     this.addCommand({
       id: "open-calendar-sidebar",
@@ -32,16 +64,7 @@ export default class GridDiaryPlugin extends Plugin {
     this.addCommand({
       id: "toggle-calendar-sidebar",
       name: "打开 / 关闭日记日历侧栏",
-      callback: async () => {
-        const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_CAL);
-        if (leaves.length) {
-          for (const leaf of leaves) leaf.detach();
-          new Notice("已关闭日记日历侧栏");
-        } else {
-          await this.activateCalendar();
-          new Notice("已打开日记日历侧栏");
-        }
-      },
+      callback: () => void this.toggleCalendarSidebar(),
     });
 
     this.addCommand({
@@ -262,6 +285,10 @@ export default class GridDiaryPlugin extends Plugin {
       const view = leaf.view;
       if (view instanceof CalendarSidebarView) view.refreshCal();
     }
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_TIMELINE)) {
+      const view = leaf.view;
+      if (view instanceof TimelineView) view.refresh();
+    }
   }
 
   onunload(): void {
@@ -305,6 +332,55 @@ export default class GridDiaryPlugin extends Plugin {
       leaf = workspace.getRightLeaf(false) ?? workspace.getLeaf("tab");
       await leaf.setViewState({ type: VIEW_TYPE_CAL, active: true });
     }
+    await workspace.revealLeaf(leaf);
+  }
+
+  /** 开/关日历侧栏（视图头部按钮与命令共用） */
+  async toggleCalendarSidebar(): Promise<void> {
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_CAL);
+    if (leaves.length) {
+      for (const leaf of leaves) leaf.detach();
+      new Notice("已关闭日记日历侧栏");
+    } else {
+      await this.activateCalendar();
+      new Notice("已打开日记日历侧栏");
+    }
+  }
+
+  /** 在右侧边栏打开时间流（规格书模块五） */
+  async openTimelinePanel(): Promise<void> {
+    const { workspace } = this.app;
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_TIMELINE)[0];
+    if (existing) {
+      await workspace.revealLeaf(existing);
+      return;
+    }
+    const leaf = await workspace.ensureSideLeaf(VIEW_TYPE_TIMELINE, "right", { active: true });
+    await workspace.revealLeaf(leaf);
+  }
+
+  async toggleTimelineSidebar(): Promise<void> {
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_TIMELINE);
+    if (leaves.length) {
+      for (const leaf of leaves) leaf.detach();
+      new Notice("已关闭时间流面板");
+    } else {
+      await this.openTimelinePanel();
+      new Notice("已打开时间流面板");
+    }
+  }
+
+  /** 在左侧 dock 打开目录标签页（与官方文件列表同侧并排，不覆盖它） */
+  async openExplorerDock(): Promise<void> {
+    const { workspace } = this.app;
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_EXPLORER)[0];
+    if (existing) {
+      await workspace.revealLeaf(existing);
+      return;
+    }
+    const parent = workspace.leftSplit as unknown as { children: unknown[] };
+    const leaf = workspace.createLeafInParent(parent as never, parent.children.length);
+    await leaf.setViewState({ type: VIEW_TYPE_EXPLORER, active: true });
     await workspace.revealLeaf(leaf);
   }
 

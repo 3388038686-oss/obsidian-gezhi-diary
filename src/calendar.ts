@@ -179,6 +179,15 @@ export class CalendarSidebarView extends ItemView {
       new Notice("已恢复默认比例 60/40");
     });
 
+    // 关闭日历侧栏（把本标签页移除）
+    const closeCal = bar.createEl("button", { text: "✕", cls: "gd-cal-close" });
+    closeCal.setAttribute("aria-label", "关闭日历侧栏");
+    closeCal.setAttribute("title", "关闭日历侧栏");
+    closeCal.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.leaf.detach();
+    });
+
     // —— 上下分屏：上=文件列表，下=日历 —— 
     this.splitRatio = this.plugin.settings.splitRatio ?? 0.6;
     const split = el.createDiv({ cls: "gd-split" });

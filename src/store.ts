@@ -1,6 +1,7 @@
 import { App, Notice, TFile, normalizePath } from "obsidian";
 import { ParsedDay, isTimelineTitle, parseDay, paragraphsFromSoftBreaks, plainText, reorderSection, replaceSectionBody, retitleDay } from "./sections";
 import { applyBodyAttrs } from "./attrs";
+import { ImgAttrs, updateTagBySrc } from "./imgtools";
 
 export function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -173,6 +174,23 @@ export class DayStore {
       if (!re.test(data)) return data;
       changed = true;
       return data.replace(re, (_m, dir: string, hit: string) => `![[${dir}${hit}|${Math.round(width)}]]`);
+    });
+    return changed;
+  }
+
+  /** 更新图片属性（宽高/浮动/边框）：按文件名匹配，自动把旧内链升级为 <img> */
+  async setImageAttrs(
+    date: string,
+    name: string,
+    attrs: Omit<ImgAttrs, "src">
+  ): Promise<boolean> {
+    const file = this.fileFor(date);
+    if (!file) return false;
+    let changed = false;
+    await this.app.vault.process(file, (data) => {
+      const next = updateTagBySrc(data, name, { ...attrs, src: name });
+      if (next !== data) changed = true;
+      return next;
     });
     return changed;
   }
