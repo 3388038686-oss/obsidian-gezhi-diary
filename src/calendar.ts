@@ -3,6 +3,7 @@ import type GridDiaryPlugin from "./main";
 import { appendColoredDate, appendColoredMonth } from "./datecolor";
 import { todayStr, weekdayCn } from "./store";
 import { ConfirmModal } from "./modals";
+import { elIcon } from "./icons";
 
 export const VIEW_TYPE_CAL = "grid-diary-calendar";
 
@@ -180,7 +181,8 @@ export class CalendarSidebarView extends ItemView {
     });
 
     // 关闭日历侧栏（把本标签页移除）
-    const closeCal = bar.createEl("button", { text: "✕", cls: "gd-cal-close" });
+    const closeCal = bar.createEl("button", { cls: "gd-cal-close" });
+    elIcon(closeCal, "x");
     closeCal.setAttribute("aria-label", "关闭日历侧栏");
     closeCal.setAttribute("title", "关闭日历侧栏");
     closeCal.addEventListener("click", (e) => {
@@ -456,7 +458,7 @@ export class CalendarSidebarView extends ItemView {
       if (file) {
         const del = headEl.createEl("button", { cls: "gd-cal-del" });
         del.type = "button";
-        del.setText("🗑");
+        elIcon(del, "x");
         del.setAttribute("aria-label", "删除这篇日记");
         del.addEventListener("click", (e) => {
           e.preventDefault();

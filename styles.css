@@ -1,4 +1,4 @@
-﻿/* ============ 格间日记 · 样式 ============ */
+/* ============ 格间日记 · 样式 ============ */
 
 .grid-diary-view {
   padding: 0 !important;
@@ -2084,7 +2084,7 @@ body.theme-light .grid-diary-view .gd-hover-glow .gd-meteor {
   .gd-scroll { padding-left: 10px !important; padding-right: 10px !important; }
   .gd-mobile-dock {
     display: flex; gap: 8px; padding: 8px 12px 0;
-    justify-content: flex-end; position: sticky; top: 0; z-index: 30;
+    position: absolute; top: 6px; left: 6px; right: auto; z-index: 30; padding: 0 0 0 6px;
   }
   .gd-mobile-btn {
     padding: 7px 16px; font-size: 13px; line-height: 1;
@@ -2299,3 +2299,248 @@ body.is-mobile [data-type="grid-diary-explorer"] .gd-left-row { min-height: 22px
 .gd-float-cell.is-empty { visibility:hidden; }
 .gd-float-cell.is-cur { background:var(--gd-accent,#e03131); color:#fff; font-weight:700; }
 .gd-float-cell.has::after { content:""; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:var(--gd-accent,#e03131); }
+
+/* ==================================================================
+   格间日记 · 复古纸主题 v1 · 2026-10-23
+   追加段：只覆盖，不改原文
+   ================================================================== */
+
+/* ---------- 1 色彩令牌 ---------- */
+.grid-diary-view,
+.gd-cal-side,
+.gd-cal-float,
+.gd-left-panel,
+.gd-tl-side {
+  --gd-paper: #FBF6EA;
+  --gd-paper-edge: #E9DECA;
+  --gd-paper-inner: #F0E7D5;
+  --gd-ink: #4E4639;
+  --gd-ink-strong: #3B332A;
+  --gd-accent: #A6392E;
+  --gd-year: #9A7B4F;
+  --gd-month: #46606E;
+  --gd-sep: #A99C86;
+  --gd-done: #F6EEDC;
+  --gd-grain-hi: 0.13;
+  --gd-grain-lo: 0.07;
+  --gd-paper-alpha: 0.86;
+}
+.theme-dark .grid-diary-view,
+.theme-dark .gd-cal-side,
+.theme-dark .gd-cal-float,
+.theme-dark .gd-left-panel,
+.theme-dark .gd-tl-side {
+  --gd-paper: #1E1B16;
+  --gd-paper-edge: #2E2E2C;
+  --gd-paper-inner: #2A2723;
+  --gd-ink: #D8CFC0;
+  --gd-ink-strong: #EDE6D8;
+  --gd-accent: #B4453A;
+  --gd-year: #B09065;
+  --gd-month: #7C98A6;
+  --gd-sep: #7A7166;
+  --gd-done: #262219;
+  --gd-grain-hi: 0.16;
+  --gd-grain-lo: 0.09;
+  --gd-paper-alpha: 0.82;
+}
+
+/* ---------- 2 磨砂纸材质 ---------- */
+.grid-diary-view .gd-cell,
+.grid-diary-view .gd-float-cell,
+.grid-diary-view .gd-tl-side-card,
+.gd-cal-float {
+  background-color: rgba(251, 246, 234, var(--gd-paper-alpha));
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g1'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g1)' opacity='0.13'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g2'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g2)' opacity='0.07'/%3E%3C/svg%3E");
+  background-repeat: repeat, repeat;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  border: 1px solid var(--gd-paper-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px var(--gd-paper-inner);
+}
+.theme-dark .grid-diary-view .gd-cell,
+.theme-dark .grid-diary-view .gd-float-cell,
+.theme-dark .grid-diary-view .gd-tl-side-card,
+.theme-dark .gd-cal-float {
+  background-color: rgba(30, 27, 22, var(--gd-paper-alpha));
+}
+
+/* ---------- 3 文字与标题 ---------- */
+.grid-diary-view {
+  color: var(--gd-ink);
+}
+.grid-diary-view .gd-cell-title {
+  color: var(--gd-ink-strong);
+  font-weight: 600;
+}
+.grid-diary-view .gd-cell-text {
+  color: var(--gd-ink);
+  font-weight: 400;
+  line-height: 1.75;
+}
+.grid-diary-view .gd-header {
+  color: var(--gd-ink-strong);
+}
+
+/* ---------- 4 三色印刷日期 ---------- */
+.gd-cy { color: var(--gd-year); }
+.gd-cm { color: var(--gd-month); }
+.gd-cd { color: var(--gd-accent); }
+.gd-csep { color: var(--gd-sep); }
+.gd-cweek { color: var(--gd-sep); }
+.theme-dark .gd-cy { color: #B09065; }
+.theme-dark .gd-cm { color: #7C98A6; }
+.theme-dark .gd-cd { color: var(--gd-accent); }
+.grid-diary-view .gd-daynum .gd-cd { color: var(--gd-accent); }
+.theme-dark .grid-diary-view .gd-daynum .gd-cd { color: var(--gd-accent); }
+
+/* ---------- 5 完成态：茶纸 + 朱砂竖线 ---------- */
+.grid-diary-view .gd-cell.is-done {
+  background-color: var(--gd-done);
+  border-left: 2px solid var(--gd-accent);
+  opacity: 1;
+}
+.theme-dark .grid-diary-view .gd-cell.is-done {
+  background-color: var(--gd-done);
+  border-left: 2px solid var(--gd-accent);
+  opacity: 1;
+}
+.grid-diary-view .gd-cell.is-done .gd-cell-title {
+  color: var(--gd-sep);
+}
+
+/* ---------- 6 工具栏按钮 ---------- */
+.grid-diary-view .gd-fmt-btn,
+.grid-diary-view .gd-undo-btn,
+.grid-diary-view .gd-tl-side-btn {
+  background: transparent;
+  border: 1px solid var(--gd-paper-edge);
+  border-radius: 4px;
+  color: var(--gd-ink);
+  box-shadow: none;
+}
+.grid-diary-view .gd-fmt-btn:hover,
+.grid-diary-view .gd-undo-btn:hover,
+.grid-diary-view .gd-tl-side-btn:hover {
+  background: var(--gd-done);
+  border-color: var(--gd-accent);
+  color: var(--gd-accent);
+}
+.grid-diary-view .gd-fmt-btn svg,
+.grid-diary-view .gd-tl-side-btn svg,
+.grid-diary-view .gd-tl-side-mini svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.6;
+}
+
+/* ---------- 7 左侧目录图标 ---------- */
+.grid-diary-view .gd-row-icon.gd-icon-svg {
+  width: 13px;
+  height: 13px;
+  color: var(--gd-sep);
+  opacity: 0.9;
+}
+.grid-diary-view .gd-row-icon.gd-icon-svg:hover {
+  color: var(--gd-accent);
+  opacity: 1;
+}
+
+/* ---------- 8 悬浮球：朱砂底 + 白线日历 ---------- */
+.grid-diary-view .gd-fab {
+  background: var(--gd-accent);
+  border: 1px solid var(--gd-accent);
+  border-radius: 50%;
+  color: #fff;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.grid-diary-view .gd-fab:hover {
+  filter: brightness(1.08);
+}
+.grid-diary-view .gd-fab svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.6;
+}
+
+/* ---------- 9 右侧日历压成目录 ---------- */
+.gd-cal-side summary.gd-cal-summary {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--gd-ink);
+  border-radius: 4px;
+}
+.gd-cal-side summary.gd-cal-summary:hover {
+  background: var(--gd-done);
+}
+.gd-cal-side .gd-cal-item {
+  min-height: 26px;
+  border-radius: 4px;
+}
+.gd-cal-side .gd-cal-item:hover,
+.gd-cal-side .gd-cal-item.active {
+  background: var(--gd-done);
+}
+.gd-cal-side .gd-cal-item-date {
+  font-size: 12px;
+}
+.gd-cal-side .gd-cal-item-sum {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gd-cal-side .gd-node-line {
+  background: var(--gd-paper-edge);
+}
+.gd-cal-side .gd-node-dot {
+  width: 3px;
+  height: 3px;
+  background: var(--gd-sep);
+  box-shadow: none;
+}
+
+/* ---------- 10 时间流 ---------- */
+.gd-tl-dot {
+  background: var(--gd-ink-strong);
+  box-shadow: none;
+}
+.gd-tl-rail-row:hover .gd-tl-dot {
+  box-shadow: none;
+}
+.gd-tl-rail {
+  background: var(--gd-paper-edge);
+}
+.gd-tl-side-row:hover {
+  background: var(--gd-done);
+}
+
+/* ---------- 11 删除按钮：线条 × ---------- */
+.grid-diary-view .gd-del-btn {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--gd-sep);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.grid-diary-view .gd-cal-item:hover .gd-del-btn,
+.grid-diary-view .gd-tl-side-row:hover .gd-del-btn,
+.grid-diary-view .gd-del-btn:focus-visible {
+  opacity: 1;
+  color: var(--gd-accent);
+}
+
+/* ---------- 12 虚线改实线 ---------- */
+.grid-diary-view .gd-cell,
+.gd-cal-side .gd-cal-item,
+.gd-tl-side-card {
+  border-style: solid;
+}

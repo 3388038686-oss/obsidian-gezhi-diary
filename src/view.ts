@@ -618,9 +618,9 @@ export class GridDiaryView extends ItemView {
         box.style.marginInline = on ? "auto" : "";
         persist({ float: "none" });
       });
-      const cycle = ["", "1px solid var(--background-modifier-border)", "2px solid #7B68EE"];
+      const cycle = ["", "1px solid var(--background-modifier-border)", "2px solid #A6392E"];
       let bi = Number(box.dataset.bi || 0);
-      mkBtn("⬚", "边框（循环：无 → 灰框 → 紫框）", () => {
+      mkBtn("⬚", "边框（循环：无 → 灰框 → 朱砂框）", () => {
         bi = (bi + 1) % cycle.length;
         box.dataset.bi = String(bi);
         box.style.border = cycle[bi];
@@ -1000,8 +1000,9 @@ export class GridDiaryView extends ItemView {
       input.click();
     };
 
-    const addMedia = (label: string, tip: string, cb: () => void) => {
-      const b = fmt.createEl("button", { text: label, cls: "gd-fmt-btn gd-fmt-media" });
+    const addMedia = (icon: string, tip: string, cb: () => void) => {
+      const b = fmt.createEl("button", { cls: "gd-fmt-btn gd-fmt-media" });
+      elIcon(b, icon);
       b.type = "button";
       b.setAttribute("aria-label", tip);
       b.addEventListener("mousedown", (e) => {
@@ -1020,8 +1021,8 @@ export class GridDiaryView extends ItemView {
         cb();
       });
     };
-    addMedia("🖼", "插入图片", () => pickAndInsert("image/*", true));
-    addMedia("📎", "插入附件（PDF / 音频 / 任意文件）", () => pickAndInsert("", false));
+    addMedia("image", "插入图片", () => pickAndInsert("image/*", true));
+    addMedia("paperclip", "插入附件（PDF / 音频 / 任意文件）", () => pickAndInsert("", false));
 
     // 录音：MediaRecorder，存成 webm，插入 ![[name]]
     let recorder: MediaRecorder | null = null;
@@ -1320,7 +1321,8 @@ export class GridDiaryView extends ItemView {
   private floatOpen = false;
 
   private renderFloatFab(shell: HTMLElement): void {
-    const fab = shell.createEl("button", { cls: "gd-fab", text: "📅" });
+    const fab = shell.createEl("button", { cls: "gd-fab" });
+    elIcon(fab, "calendar");
     fab.setAttribute("aria-label", "悬浮日历");
     fab.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -1342,7 +1344,8 @@ export class GridDiaryView extends ItemView {
     const title = head.createSpan({ cls: "gd-float-title" });
     const prev = head.createEl("button", { cls: "gd-float-btn", text: "‹" });
     const next = head.createEl("button", { cls: "gd-float-btn", text: "›" });
-    const close = head.createEl("button", { cls: "gd-float-btn gd-float-close", text: "✕" });
+    const close = head.createEl("button", { cls: "gd-float-btn gd-float-close" });
+    elIcon(close, "x");
     const grid = panel.createDiv({ cls: "gd-float-grid" });
     const refresh = () => {
       title.setText(this.floatMonth.replace("-", "年") + "月");

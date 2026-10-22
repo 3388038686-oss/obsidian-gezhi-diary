@@ -24,9 +24,9 @@ export const DEFAULT_SETTINGS: GridDiarySettings = {
   leftWidth: 190,
   showRecentFiles: false,
   showTreeLines: true,
-  iconFile: "📄",
-  iconFolder: "📁",
-  iconFolderOpen: "📂",
+  iconFile: "",
+  iconFolder: "",
+  iconFolderOpen: "",
   treeSort: "folders",
   treeDefaultOpen: true,
   hoverGlow: true,
@@ -486,14 +486,14 @@ export class GridDiarySettingTab extends PluginSettingTab {
       .setName("文件夹图标（收起 / 展开）")
       .setDesc("两个输入框：收起时、展开时。想用自定义 SVG 就留空，改 CSS 变量 --gd-icon-folder / --gd-icon-folder-open。")
       .addText((x) =>
-        x.setPlaceholder("📁").setValue(this.plugin.settings.iconFolder).onChange(async (v) => {
+        x.setPlaceholder("留空 = 内置线条图标").setValue(this.plugin.settings.iconFolder).onChange(async (v) => {
           this.plugin.settings.iconFolder = v;
           await this.plugin.saveSettings();
           this.plugin.refreshViews();
         })
       )
       .addText((x) =>
-        x.setPlaceholder("📂").setValue(this.plugin.settings.iconFolderOpen).onChange(async (v) => {
+        x.setPlaceholder("留空 = 内置线条图标").setValue(this.plugin.settings.iconFolderOpen).onChange(async (v) => {
           this.plugin.settings.iconFolderOpen = v;
           await this.plugin.saveSettings();
           this.plugin.refreshViews();

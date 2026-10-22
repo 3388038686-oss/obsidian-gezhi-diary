@@ -1,5 +1,6 @@
 import { Menu, Notice, TAbstractFile, TFile, TFolder } from "obsidian";
 import type GridDiaryPlugin from "./main";
+import { elIcon } from "./icons";
 
 /** 不展示的目录 */
 const SKIP = new Set([".obsidian", ".trash", ".git", ".github", "node_modules"]);
@@ -9,12 +10,16 @@ const openState = new Map<string, boolean>();
 
 const DATE_RE = /^(\d{4}-\d{2}-\d{2})\.md$/;
 
+/* ===== 上下双面板状态（上=文件夹树，下=文件列表）===== */
+let selectedFolderPath = "";
+let paneRatio = 0.5;
+
 /** 搜索词（跨重渲染保留） */
 let filterText = "";
 
 /** 默认图标判定（与设置默认值一致时改用内联 SVG；用户自定义字符照旧） */
-const isDefIcon = (kind: "file" | "folder", v: string): boolean =>
-  !v || v === (kind === "file" ? "📄" : "📁");
+const isDefIcon = (_kind: "file" | "folder", v: string): boolean =>
+  !v || v === "📄" || v === "📁" || v === "📂";
 
 /** 行装饰：缩进变量 + 流星层 */
 function decorate(row: HTMLElement, depth: number, hoverGlow: boolean): void {
@@ -44,8 +49,8 @@ export function renderLeftPanel(el: HTMLElement, plugin: GridDiaryPlugin): void 
   el.empty();
   el.style.width = `${Math.max(150, Math.min(480, s.leftWidth || 240))}px`;
   /** 默认图标（与设置默认值一致时改用内联 SVG，用户自定义的照旧用字符） */
-  const isDefIcon = (kind: "file" | "folder", v: string): boolean =>
-    !v || v === (kind === "file" ? "📄" : "📁");
+  const isDefIcon = (_kind: "file" | "folder", v: string): boolean =>
+    !v || v === "📄" || v === "📁" || v === "📂";
   el.style.setProperty("--gd-icon-file", `"${s.iconFile || ""}"`);
   el.style.setProperty("--gd-icon-folder", `"${s.iconFolder || ""}"`);
   el.style.setProperty("--gd-icon-folder-open", `"${s.iconFolderOpen || ""}"`);
@@ -64,7 +69,8 @@ function renderToolbar(el: HTMLElement, plugin: GridDiaryPlugin): void {
   const s = plugin.settings;
   const bar = el.createDiv({ cls: "gd-left-toolbar" });
   bar.createSpan({ cls: "gd-left-toolbar-title", text: "目录" });
-  const close = bar.createEl("button", { cls: "gd-left-mini gd-left-close", text: "✕" });
+  const close = bar.createEl("button", { cls: "gd-left-mini gd-left-close" });
+  elIcon(close, "x");
   close.setAttribute("aria-label", "关闭目录面板");
   close.setAttribute("title", "关闭目录面板");
   close.addEventListener("click", async () => {
@@ -398,6 +404,113 @@ function renderTree(el: HTMLElement, plugin: GridDiaryPlugin): void {
   }
 }
 
+/** 双面板：文件夹面板点击时重绘下面的文件面板 */
+let rerenderFiles: (() => void) | null = null;
+
+function resolveSelectedFolder(plugin: GridDiaryPlugin): TFolder | null {
+  if (selectedFolderPath) {
+    const af = plugin.app.vault.getAbstractFileByPath(selectedFolderPath);
+    if (af instanceof TFolder) return af;
+  }
+  const d = plugin.settings.rootFolder;
+  if (d) {
+    const af = plugin.app.vault.getAbstractFileByPath(d);
+    if (af instanceof TFolder) return af;
+  }
+  return plugin.app.vault.getRoot();
+}
+
+/** 下方文件面板：当前选中文件夹的文件列表 */
+function renderFiles(el: HTMLElement, plugin: GridDiaryPlugin): void {
+  el.empty();
+  const title = el.createDiv({ cls: "gd-pane-title" });
+  const folder = resolveSelectedFolder(plugin);
+  title.setText("文件 · " + (folder?.path || "/"));
+  if (!folder) {
+    el.createDiv({ cls: "gd-empty", text: "未选择文件夹" });
+    return;
+  }
+  const files = folder.children.filter((c): c is TFile => c instanceof TFile);
+  const mode = plugin.settings.treeSort;
+  if (mode === "time") files.sort((a, b) => b.stat.mtime - a.stat.mtime);
+  else if (mode === "name") files.sort((a, b) => a.name.localeCompare(b.name));
+  else {
+    files.sort((a, b) => {
+      const am = a.name.toLowerCase().endsWith(".md") ? 1 : 0;
+      const bm = b.name.toLowerCase().endsWith(".md") ? 1 : 0;
+      if (am !== bm) return am - bm;
+      return a.name.localeCompare(b.name);
+    });
+  }
+  if (!files.length) {
+    el.createDiv({ cls: "gd-empty", text: "这个文件夹是空的" });
+    return;
+  }
+  for (const f of files) {
+    const row = el.createDiv({ cls: "gd-left-row" });
+    row.dataset.path = f.path;
+    row.dataset.search = f.name.toLowerCase();
+    polyline(row);
+    if (f.path === plugin.app.workspace.getActiveFile()?.path) row.addClass("is-open-file");
+    const ic = row.createSpan({ cls: "gd-row-icon" });
+    elIcon(ic, "file");
+    const nm = row.createSpan({ cls: "gd-row-name" });
+    nm.setText(f.name.replace(/\.md$/i, ""));
+    if (!f.name.toLowerCase().endsWith(".md")) {
+      const meta = row.createSpan({ cls: "gd-row-meta" });
+      meta.setText(f.extension || "");
+    }
+    row.addEventListener("click", () => openSmart(plugin, f));
+    row.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      try {
+        const m = new Menu();
+        fileMenu(m, plugin, f);
+        m.showAtMouseEvent(e);
+      } catch (err) {
+        new Notice("菜单打开失败：" + String(err));
+      }
+    });
+  }
+}
+
+/** 中间拖拽线：拖动调整上下两个面板的高度比例 */
+function bindPaneDivider(div: HTMLElement, panes: HTMLElement): void {
+  const foldersEl = () => div.previousElementSibling as HTMLElement | null;
+  let dragging = false;
+  let sy = 0;
+  let fh = 0;
+  div.addEventListener("pointerdown", (e) => {
+    const f = foldersEl();
+    if (!f) return;
+    dragging = true;
+    sy = e.clientY;
+    fh = f.getBoundingClientRect().height;
+    div.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  div.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const f = foldersEl();
+    if (!f) return;
+    const pr = panes.getBoundingClientRect();
+    let h = fh + (e.clientY - sy);
+    h = Math.max(80, Math.min(h, pr.height - 60));
+    f.style.height = h + "px";
+    f.style.flex = "0 0 auto";
+  });
+  div.addEventListener("pointerup", () => {
+    dragging = false;
+  });
+  div.addEventListener("dblclick", () => {
+    const f = foldersEl();
+    if (f) {
+      f.style.height = "";
+      f.style.flex = "";
+    }
+  });
+}
+
 function renderFolderChildren(
   box: HTMLElement,
   plugin: GridDiaryPlugin,
@@ -444,6 +557,12 @@ function renderFolderChildren(
       row.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
+        // 选中：下方面板切换到该文件夹的文件
+        selectedFolderPath = child.path;
+        const top = row.closest(".gd-folders-pane");
+        if (top) top.querySelectorAll(".gd-tree-row.is-sel").forEach((n) => n.removeClass("is-sel"));
+        row.addClass("is-sel");
+        rerenderFiles?.();
         const next = !(openState.has(key) ? openState.get(key) : s.treeDefaultOpen);
         openState.set(key, next);
         row.toggleClass("is-open", next);
