@@ -1011,13 +1011,13 @@
   font-variant-numeric: tabular-nums;
 }
 .gd-cy {
-  color: #8ec5e8;
+  color: var(--gd-year, #9A7B4F);
 }
 .gd-cm {
-  color: #c3a9e8;
+  color: var(--gd-month, #46606E);
 }
 .gd-cd {
-  color: #f2b47c;
+  color: var(--gd-accent, #A6392E);
 }
 .gd-csep {
   color: var(--text-faint);
@@ -1025,16 +1025,16 @@
 .gd-cweek {
   color: var(--text-muted);
 }
-.theme-dark .gd-cy { color: #7fb6dd; }
-.theme-dark .gd-cm { color: #b79fe0; }
-.theme-dark .gd-cd { color: #e8a86f; }
+.theme-dark .gd-cy { color: #B09065; }
+.theme-dark .gd-cm { color: #7C98A6; }
+.theme-dark .gd-cd { color: var(--gd-accent, #B4453A); }
 
 /* 主视图顶部大日期 */
 .grid-diary-view .gd-daynum .gd-cd {
-  color: #f2b47c;
+  color: var(--gd-accent, #A6392E);
 }
 .theme-dark .grid-diary-view .gd-daynum .gd-cd {
-  color: #e8a86f;
+  color: var(--gd-accent, #B4453A);
 }
 
 /* ============ 侧栏列表：细字与彩色日期 ============ */
