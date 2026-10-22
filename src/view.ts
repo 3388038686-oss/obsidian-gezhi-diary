@@ -192,6 +192,7 @@ export class GridDiaryView extends ItemView {
     root.style.setProperty("--gd-gap", `${this.plugin.settings.gridGap}px`);
 
     const shell = root.createDiv({ cls: "gd-shell" });
+    this.renderFloatFab(shell);
     // 手机端不建内嵌目录（目录走 Obsidian 原生侧栏 dock），避免占位挤扁格子
     if (this.plugin.settings.showLeftPanel && !Platform.isMobile) {
       const left = shell.createDiv({ cls: "gd-left-panel" });
@@ -299,13 +300,13 @@ export class GridDiaryView extends ItemView {
       return b;
     };
     mkBtn("+", () => this.addCell());
-    const undo = actions.createEl("button", { text: "↶", cls: "gd-btn gd-undo-btn" });
+    const undo = actions.createEl("button", { text: "<", cls: "gd-btn gd-undo-btn" });
     undo.setAttribute("aria-label", "撤销");
     undo.addEventListener("click", (e) => {
       e.stopPropagation();
       this.stepHist(-1);
     });
-    const redo = actions.createEl("button", { text: "↷", cls: "gd-btn gd-undo-btn" });
+    const redo = actions.createEl("button", { text: ">", cls: "gd-btn gd-undo-btn" });
     redo.setAttribute("aria-label", "重做");
     redo.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -1341,6 +1342,118 @@ export class GridDiaryView extends ItemView {
     new Notice(dir === -1 ? `已撤销：${title}` : `已重做：${title}`);
   }
 
+
+  /** 悬浮日历：右下角浮钮 + 可拖动小窗 */
+  floatMonth = "";
+  private floatOpen = false;
+
+  private renderFloatFab(shell: HTMLElement): void {
+    const fab = shell.createEl("button", { cls: "gd-fab", text: "📅" });
+    fab.setAttribute("aria-label", "悬浮日历");
+    fab.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.toggleFloatCal(shell);
+    });
+  }
+
+  private toggleFloatCal(shell: HTMLElement): void {
+    const exist = shell.querySelector(".gd-cal-float") as HTMLElement | null;
+    if (exist) {
+      exist.remove();
+      this.floatOpen = false;
+      return;
+    }
+    this.floatOpen = true;
+    if (!this.floatMonth) this.floatMonth = this.currentDate.slice(0, 7);
+    const panel = shell.createDiv({ cls: "gd-cal-float" });
+    const head = panel.createDiv({ cls: "gd-float-head" });
+    const title = head.createSpan({ cls: "gd-float-title" });
+    const prev = head.createEl("button", { cls: "gd-float-btn", text: "‹" });
+    const next = head.createEl("button", { cls: "gd-float-btn", text: "›" });
+    const close = head.createEl("button", { cls: "gd-float-btn gd-float-close", text: "✕" });
+    const grid = panel.createDiv({ cls: "gd-float-grid" });
+    const refresh = () => {
+      title.setText(this.floatMonth.replace("-", "年") + "月");
+      grid.empty();
+      for (const w of ["一", "二", "三", "四", "五", "六", "日"]) grid.createDiv({ cls: "gd-float-wd", text: w });
+      const [y, m] = this.floatMonth.split("-").map(Number);
+      const first = new Date(y, m - 1, 1);
+      let lead = first.getDay() - 1;
+      if (lead < 0) lead = 6;
+      const days = new Date(y, m, 0).getDate();
+      for (let i = 0; i < lead; i++) grid.createDiv({ cls: "gd-float-cell is-empty" });
+      for (let d = 1; d <= days; d++) {
+        const ds = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        const c = grid.createDiv({ cls: "gd-float-cell" });
+        c.setText(String(d));
+        if (ds === this.currentDate) c.addClass("is-cur");
+        if (this.plugin.store.fileFor(ds)) c.addClass("has");
+        c.addEventListener("click", () => {
+          this.goDate(ds);
+          panel.remove();
+          this.floatOpen = false;
+        });
+      }
+    };
+    refresh();
+    const shift = (delta: number) => {
+      const [y, m] = this.floatMonth.split("-").map(Number);
+      const dt = new Date(y, m - 1 + delta, 1);
+      this.floatMonth = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+      refresh();
+    };
+    prev.addEventListener("click", (e) => {
+      e.stopPropagation();
+      shift(-1);
+    });
+    next.addEventListener("click", (e) => {
+      e.stopPropagation();
+      shift(1);
+    });
+    close.addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.remove();
+      this.floatOpen = false;
+    });
+    // 拖动小窗
+    let dragging = false;
+    let sx = 0;
+    let sy = 0;
+    let ox = 0;
+    let oy = 0;
+    head.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      sx = e.clientX;
+      sy = e.clientY;
+      const r = panel.getBoundingClientRect();
+      ox = r.left;
+      oy = r.top;
+      panel.style.left = `${ox}px`;
+      panel.style.top = `${oy}px`;
+      panel.style.right = "auto";
+      panel.style.bottom = "auto";
+      head.setPointerCapture(e.pointerId);
+    });
+    head.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      panel.style.left = `${ox + (e.clientX - sx)}px`;
+      panel.style.top = `${oy + (e.clientY - sy)}px`;
+    });
+    head.addEventListener("pointerup", () => {
+      dragging = false;
+    });
+    // 点外面关闭
+    setTimeout(() => {
+      const off = (ev: MouseEvent) => {
+        if (!panel.contains(ev.target as Node)) {
+          panel.remove();
+          this.floatOpen = false;
+          document.removeEventListener("mousedown", off, true);
+        }
+      };
+      document.addEventListener("mousedown", off, true);
+    }, 0);
+  }
 
   private addCell(): void {
     new PromptModal(this.app, {

@@ -1969,6 +1969,9 @@ var GridDiaryView = class extends import_obsidian5.ItemView {
     this.pendingSaves = /* @__PURE__ */ new Map();
     /** 时间流数据：格子镜像 + 时间戳笔记，签名未变就不重绘（避免打字时闪烁） */
     this.tlSig = "";
+    /** 悬浮日历：右下角浮钮 + 可拖动小窗 */
+    this.floatMonth = "";
+    this.floatOpen = false;
     this.plugin = plugin;
     this.currentDate = this.plugin.activeDate || todayStr();
   }
@@ -2093,6 +2096,7 @@ var GridDiaryView = class extends import_obsidian5.ItemView {
     root.style.setProperty("--gd-pad", `${this.plugin.settings.contentPad}px`);
     root.style.setProperty("--gd-gap", `${this.plugin.settings.gridGap}px`);
     const shell = root.createDiv({ cls: "gd-shell" });
+    this.renderFloatFab(shell);
     if (this.plugin.settings.showLeftPanel && !import_obsidian5.Platform.isMobile) {
       const left = shell.createDiv({ cls: "gd-left-panel" });
       renderLeftPanel(left, this.plugin);
@@ -2193,13 +2197,13 @@ var GridDiaryView = class extends import_obsidian5.ItemView {
       return b;
     };
     mkBtn("+", () => this.addCell());
-    const undo = actions.createEl("button", { text: "\u21B6", cls: "gd-btn gd-undo-btn" });
+    const undo = actions.createEl("button", { text: "<", cls: "gd-btn gd-undo-btn" });
     undo.setAttribute("aria-label", "\u64A4\u9500");
     undo.addEventListener("click", (e) => {
       e.stopPropagation();
       this.stepHist(-1);
     });
-    const redo = actions.createEl("button", { text: "\u21B7", cls: "gd-btn gd-undo-btn" });
+    const redo = actions.createEl("button", { text: ">", cls: "gd-btn gd-undo-btn" });
     redo.setAttribute("aria-label", "\u91CD\u505A");
     redo.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -3143,6 +3147,110 @@ var GridDiaryView = class extends import_obsidian5.ItemView {
       })();
     }
     new import_obsidian5.Notice(dir === -1 ? `\u5DF2\u64A4\u9500\uFF1A${title}` : `\u5DF2\u91CD\u505A\uFF1A${title}`);
+  }
+  renderFloatFab(shell) {
+    const fab = shell.createEl("button", { cls: "gd-fab", text: "\u{1F4C5}" });
+    fab.setAttribute("aria-label", "\u60AC\u6D6E\u65E5\u5386");
+    fab.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.toggleFloatCal(shell);
+    });
+  }
+  toggleFloatCal(shell) {
+    const exist = shell.querySelector(".gd-cal-float");
+    if (exist) {
+      exist.remove();
+      this.floatOpen = false;
+      return;
+    }
+    this.floatOpen = true;
+    if (!this.floatMonth) this.floatMonth = this.currentDate.slice(0, 7);
+    const panel = shell.createDiv({ cls: "gd-cal-float" });
+    const head = panel.createDiv({ cls: "gd-float-head" });
+    const title = head.createSpan({ cls: "gd-float-title" });
+    const prev = head.createEl("button", { cls: "gd-float-btn", text: "\u2039" });
+    const next = head.createEl("button", { cls: "gd-float-btn", text: "\u203A" });
+    const close = head.createEl("button", { cls: "gd-float-btn gd-float-close", text: "\u2715" });
+    const grid = panel.createDiv({ cls: "gd-float-grid" });
+    const refresh = () => {
+      title.setText(this.floatMonth.replace("-", "\u5E74") + "\u6708");
+      grid.empty();
+      for (const w of ["\u4E00", "\u4E8C", "\u4E09", "\u56DB", "\u4E94", "\u516D", "\u65E5"]) grid.createDiv({ cls: "gd-float-wd", text: w });
+      const [y, m] = this.floatMonth.split("-").map(Number);
+      const first = new Date(y, m - 1, 1);
+      let lead = first.getDay() - 1;
+      if (lead < 0) lead = 6;
+      const days = new Date(y, m, 0).getDate();
+      for (let i = 0; i < lead; i++) grid.createDiv({ cls: "gd-float-cell is-empty" });
+      for (let d = 1; d <= days; d++) {
+        const ds = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        const c = grid.createDiv({ cls: "gd-float-cell" });
+        c.setText(String(d));
+        if (ds === this.currentDate) c.addClass("is-cur");
+        if (this.plugin.store.fileFor(ds)) c.addClass("has");
+        c.addEventListener("click", () => {
+          this.goDate(ds);
+          panel.remove();
+          this.floatOpen = false;
+        });
+      }
+    };
+    refresh();
+    const shift = (delta) => {
+      const [y, m] = this.floatMonth.split("-").map(Number);
+      const dt = new Date(y, m - 1 + delta, 1);
+      this.floatMonth = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+      refresh();
+    };
+    prev.addEventListener("click", (e) => {
+      e.stopPropagation();
+      shift(-1);
+    });
+    next.addEventListener("click", (e) => {
+      e.stopPropagation();
+      shift(1);
+    });
+    close.addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.remove();
+      this.floatOpen = false;
+    });
+    let dragging = false;
+    let sx = 0;
+    let sy = 0;
+    let ox = 0;
+    let oy = 0;
+    head.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      sx = e.clientX;
+      sy = e.clientY;
+      const r = panel.getBoundingClientRect();
+      ox = r.left;
+      oy = r.top;
+      panel.style.left = `${ox}px`;
+      panel.style.top = `${oy}px`;
+      panel.style.right = "auto";
+      panel.style.bottom = "auto";
+      head.setPointerCapture(e.pointerId);
+    });
+    head.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      panel.style.left = `${ox + (e.clientX - sx)}px`;
+      panel.style.top = `${oy + (e.clientY - sy)}px`;
+    });
+    head.addEventListener("pointerup", () => {
+      dragging = false;
+    });
+    setTimeout(() => {
+      const off = (ev) => {
+        if (!panel.contains(ev.target)) {
+          panel.remove();
+          this.floatOpen = false;
+          document.removeEventListener("mousedown", off, true);
+        }
+      };
+      document.addEventListener("mousedown", off, true);
+    }, 0);
   }
   addCell() {
     new PromptModal(this.app, {

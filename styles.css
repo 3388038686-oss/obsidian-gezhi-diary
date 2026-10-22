@@ -2282,3 +2282,20 @@ body.theme-light .grid-diary-view .gd-hover-glow .gd-meteor {
 /* dock 目录在手机跟随 Ob 系统字体（可自由缩放） */
 body.is-mobile [data-type="grid-diary-explorer"] .gd-left-panel { font-size: var(--font-text-size) !important; }
 body.is-mobile [data-type="grid-diary-explorer"] .gd-left-row { min-height: 22px; }
+
+/* ===== 悬浮日历浮钮 + 可拖小窗（2026-10-22 补做）===== */
+.gd-shell { position: relative; }
+.gd-fab { position:absolute; right:14px; bottom:14px; width:38px; height:38px; border-radius:50%; border:1px solid var(--background-modifier-border); background:var(--gd-accent,#e03131); color:#fff; font-size:16px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.28); z-index:30; display:flex; align-items:center; justify-content:center; padding:0; }
+.gd-fab:hover { filter:brightness(1.08); }
+.gd-cal-float { position:absolute; right:14px; bottom:60px; width:262px; background:var(--background-primary); border:1px solid var(--background-modifier-border); border-radius:14px; box-shadow:0 10px 34px rgba(0,0,0,.3); z-index:40; padding:8px 10px 10px; }
+.gd-float-head { display:flex; align-items:center; gap:2px; cursor:grab; user-select:none; padding-bottom:6px; }
+.gd-float-title { flex:1; font-weight:600; font-size:13px; }
+.gd-float-btn { width:22px; height:22px; border:none; background:none; border-radius:6px; color:var(--text-muted); cursor:pointer; padding:0; font-size:14px; line-height:1; }
+.gd-float-btn:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
+.gd-float-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+.gd-float-wd { font-size:10px; color:var(--text-faint); text-align:center; padding:2px 0; }
+.gd-float-cell { position:relative; height:30px; display:flex; align-items:center; justify-content:center; font-size:12px; border-radius:8px; cursor:pointer; color:var(--text-normal); }
+.gd-float-cell:hover { background:var(--background-modifier-hover); }
+.gd-float-cell.is-empty { visibility:hidden; }
+.gd-float-cell.is-cur { background:var(--gd-accent,#e03131); color:#fff; font-weight:700; }
+.gd-float-cell.has::after { content:""; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:var(--gd-accent,#e03131); }
