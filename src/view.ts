@@ -761,7 +761,6 @@ export class GridDiaryView extends ItemView {
       ta.removeClass("is-hidden");
       ta.value = this.rawCache.get(cell.title) ?? "";
       this.autoGrow(ta);
-      ta.focus();
       // 编辑态：给壳加标记（头部/浮动钮让位）
       this.contentEl.querySelector(".gd-shell")?.addClass("is-editing");
       if (Platform.isMobile) {
@@ -773,6 +772,17 @@ export class GridDiaryView extends ItemView {
         const done = bar.createEl("button", { cls: "gd-edit-sheet-done mod-cta", text: "完成" });
         done.addEventListener("click", () => void exitEdit());
         sheet.appendChild(ta);
+        // 手机上必须先搬进抽屉再聚焦：appendChild 会把刚拿到的焦点顶掉，键盘就弹不出来
+        window.setTimeout(() => {
+          if (ta.isConnected) ta.focus();
+        }, 60);
+        // 兜底：点在抽屉任意空白处都能回到编辑框
+        sheet.addEventListener("click", (ev) => {
+          if ((ev.target as HTMLElement)?.closest("button")) return;
+          ta.focus();
+        });
+      } else {
+        ta.focus();
       }
       const end = ta.value.length;
       ta.setSelectionRange(end, end);
