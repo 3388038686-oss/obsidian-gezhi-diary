@@ -2283,22 +2283,8 @@ body.theme-light .grid-diary-view .gd-hover-glow .gd-meteor {
 body.is-mobile [data-type="grid-diary-explorer"] .gd-left-panel { font-size: var(--font-text-size) !important; }
 body.is-mobile [data-type="grid-diary-explorer"] .gd-left-row { min-height: 22px; }
 
-/* ===== 悬浮日历浮钮 + 可拖小窗（2026-10-22 补做）===== */
+/* ===== 悬浮日历已按用户要求移除（2026-11-04）===== */
 .gd-shell { position: relative; }
-.gd-fab { position:absolute; right:14px; bottom:14px; width:38px; height:38px; border-radius:50%; border:1px solid var(--background-modifier-border); background:var(--gd-accent,#e03131); color:#fff; font-size:16px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.28); z-index:30; display:flex; align-items:center; justify-content:center; padding:0; }
-.gd-fab:hover { filter:brightness(1.08); }
-.gd-cal-float { position:absolute; right:14px; bottom:60px; width:262px; background:var(--background-primary); border:1px solid var(--background-modifier-border); border-radius:14px; box-shadow:0 10px 34px rgba(0,0,0,.3); z-index:40; padding:8px 10px 10px; }
-.gd-float-head { display:flex; align-items:center; gap:2px; cursor:grab; user-select:none; padding-bottom:6px; }
-.gd-float-title { flex:1; font-weight:600; font-size:13px; }
-.gd-float-btn { width:22px; height:22px; border:none; background:none; border-radius:6px; color:var(--text-muted); cursor:pointer; padding:0; font-size:14px; line-height:1; }
-.gd-float-btn:hover { background:var(--background-modifier-hover); color:var(--text-normal); }
-.gd-float-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
-.gd-float-wd { font-size:10px; color:var(--text-faint); text-align:center; padding:2px 0; }
-.gd-float-cell { position:relative; height:30px; display:flex; align-items:center; justify-content:center; font-size:12px; border-radius:8px; cursor:pointer; color:var(--text-normal); }
-.gd-float-cell:hover { background:var(--background-modifier-hover); }
-.gd-float-cell.is-empty { visibility:hidden; }
-.gd-float-cell.is-cur { background:var(--gd-accent,#e03131); color:#fff; font-weight:700; }
-.gd-float-cell.has::after { content:""; position:absolute; bottom:3px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:var(--gd-accent,#e03131); }
 
 /* ==================================================================
    格间日记 · 复古纸主题 v1 · 2026-10-23
@@ -2308,7 +2294,6 @@ body.is-mobile [data-type="grid-diary-explorer"] .gd-left-row { min-height: 22px
 /* ---------- 1 色彩令牌 ---------- */
 .grid-diary-view,
 .gd-cal-side,
-.gd-cal-float,
 .gd-left-panel,
 .gd-tl-side {
   --gd-paper: #FBF6EA;
@@ -2327,7 +2312,6 @@ body.is-mobile [data-type="grid-diary-explorer"] .gd-left-row { min-height: 22px
 }
 .theme-dark .grid-diary-view,
 .theme-dark .gd-cal-side,
-.theme-dark .gd-cal-float,
 .theme-dark .gd-left-panel,
 .theme-dark .gd-tl-side {
   --gd-paper: #1E1B16;
@@ -2347,9 +2331,7 @@ body.is-mobile [data-type="grid-diary-explorer"] .gd-left-row { min-height: 22px
 
 /* ---------- 2 磨砂纸材质 ---------- */
 .grid-diary-view .gd-cell,
-.grid-diary-view .gd-float-cell,
-.grid-diary-view .gd-tl-side-card,
-.gd-cal-float {
+.grid-diary-view .gd-tl-side-card {
   background-color: rgba(251, 246, 234, var(--gd-paper-alpha));
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g1'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g1)' opacity='0.13'/%3E%3C/svg%3E"),
@@ -2362,9 +2344,7 @@ body.is-mobile [data-type="grid-diary-explorer"] .gd-left-row { min-height: 22px
   box-shadow: inset 0 0 0 1px var(--gd-paper-inner);
 }
 .theme-dark .grid-diary-view .gd-cell,
-.theme-dark .grid-diary-view .gd-float-cell,
-.theme-dark .grid-diary-view .gd-tl-side-card,
-.theme-dark .gd-cal-float {
+.theme-dark .grid-diary-view .gd-tl-side-card {
   background-color: rgba(30, 27, 22, var(--gd-paper-alpha));
 }
 
@@ -2449,23 +2429,42 @@ body.is-mobile [data-type="grid-diary-explorer"] .gd-left-row { min-height: 22px
   opacity: 1;
 }
 
-/* ---------- 8 悬浮球：朱砂底 + 白线日历 ---------- */
-.grid-diary-view .gd-fab {
-  background: var(--gd-accent);
-  border: 1px solid var(--gd-accent);
-  border-radius: 50%;
+/* ---------- 8 同日多篇切换器（gd-nav 行内，不换行） ---------- */
+.grid-diary-view .gd-entry-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.grid-diary-view .gd-entry-btn {
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.grid-diary-view .gd-entry-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.grid-diary-view .gd-entry-btn.is-on {
+  background: var(--gd-accent, #e03131);
+  border-color: transparent;
   color: #fff;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
-.grid-diary-view .gd-fab:hover {
-  filter: brightness(1.08);
-}
-.grid-diary-view .gd-fab svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 1.6;
+
+/* ＋篇按钮比其他头部按钮窄，避免头部按钮排不下 */
+.grid-diary-view .gd-actions .gd-btn-entry {
+  min-width: 0;
+  padding: 0 8px;
+  font-size: 15px;
 }
 
 /* ---------- 9 右侧日历压成目录 ---------- */

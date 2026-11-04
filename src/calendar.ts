@@ -317,10 +317,16 @@ export class CalendarSidebarView extends ItemView {
   private allDiaryDates(): string[] {
     const root = this.plugin.store.root() + "/";
     const out: string[] = [];
+    const seen = new Set<string>();
     for (const f of this.app.vault.getFiles()) {
       if (!f.path.startsWith(root)) continue;
-      const m = /^(\d{4})-(\d{2})-(\d{2})\.md$/.exec(f.name);
-      if (m) out.push(`${m[1]}-${m[2]}-${m[3]}`);
+      // 认带后缀的多篇（YYYY-MM-DD壹.md），同一天只记一次
+      const m = /^(\d{4})-(\d{2})-(\d{2})(?:[壹贰叁肆伍陆柒捌玖拾]+)?\.md$/.exec(f.name);
+      if (!m) continue;
+      const ds = `${m[1]}-${m[2]}-${m[3]}`;
+      if (seen.has(ds)) continue;
+      seen.add(ds);
+      out.push(ds);
     }
     out.sort();
     return out;

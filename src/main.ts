@@ -485,12 +485,11 @@ export default class GridDiaryPlugin extends Plugin {
   }
 
   /**
-   * 新建当天文件：路径固定为 <日记目录>/YYYY-MM-DD.md
-   * 已存在就直接用，不新建；有模板就读纯文本做 {{ }} 替换后写入。
+   * 新建当天文件：路径固定为 <日记目录>/YYYY-MM-DD[后缀].md
+   * 已存在就直接用，不新建；有模板就读纯文本做 {{ }} 替换后写入（各篇同模板同格式）。
    */
-  async createDayFileFor(date: string): Promise<void> {
-    const dir = (this.settings.rootFolder || "").trim().replace(/^\/+|\/+$/g, "") || "日记";
-    const path = normalizePath(`${dir}/${date}.md`);
+  async createDayFileFor(date: string, suffix?: string): Promise<void> {
+    const path = this.store.pathFor(date, suffix);
     const existing = this.app.vault.getAbstractFileByPath(path);
     if (existing instanceof TFile) return;
     await this.store.ensureFolder();
@@ -513,7 +512,7 @@ export default class GridDiaryPlugin extends Plugin {
     await this.store.syncAttrs(file);
   }
 
-  async activateView(date?: string): Promise<void> {
+  async activateView(date?: string, suffix?: string): Promise<void> {
     const { workspace } = this.app;
     let leaf = workspace.getLeavesOfType(VIEW_TYPE_GRID_DIARY)[0];
     if (!leaf) {
@@ -524,7 +523,7 @@ export default class GridDiaryPlugin extends Plugin {
     const view = leaf.view;
     if (view instanceof GridDiaryView) {
       if (date) {
-        view.jumpTo(date);
+        view.jumpTo(date, suffix);
         this.setActiveDate(date, view);
       }
       await view.render();

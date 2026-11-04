@@ -7,7 +7,7 @@ const SKIP = new Set([".obsidian", ".trash", ".git", ".github", "node_modules"])
 /** 折叠状态（按路径记忆，跨重渲染保留） */
 const openState = new Map<string, boolean>();
 
-const DATE_RE = /^(\d{4}-\d{2}-\d{2})\.md$/;
+const DATE_RE = /^(\d{4}-\d{2}-\d{2})([壹贰叁肆伍陆柒捌玖拾]+)?\.md$/;
 
 /** 搜索词（跨重渲染保留） */
 let filterText = "";
@@ -146,8 +146,8 @@ function applyFilter(el: HTMLElement): void {
 /** 日期文件 → 切换到九宫格视图；其它文件 → 后台开标签，焦点留在原地不跳转 */
 export function openSmart(plugin: GridDiaryPlugin, file: TFile): void {
   const m = DATE_RE.exec(file.name);
-  if (m && plugin.store.fileFor(m[1])) {
-    void plugin.activateView(m[1]);
+  if (m && plugin.store.fileFor(m[1], m[2])) {
+    void plugin.activateView(m[1], m[2] ?? "");
     return;
   }
   // 记住当前视图，开完标签把焦点还回去——点了不跑
@@ -472,7 +472,8 @@ function renderFolderChildren(
     if ((m && m[1] === plugin.activeDate) || child.path === plugin.openFilePath) row.addClass("active");
     polyline(row);
     row.createSpan({ cls: "gd-row-icon gd-icon-file" + (isDefIcon("file", s.iconFile) ? " gd-icon-svg gd-ico-file" : "") });
-    row.createSpan({ cls: "gd-row-name", text: m ? m[1] : child.basename });
+    // 主篇显示日期，带后缀的篇显示完整 basename（保留 壹 等字）
+    row.createSpan({ cls: "gd-row-name", text: m && !m[2] ? m[1] : child.basename });
     row.setAttribute("title", child.path);
     row.addEventListener("click", (e) => {
       e.preventDefault();

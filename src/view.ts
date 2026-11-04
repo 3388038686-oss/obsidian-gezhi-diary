@@ -44,6 +44,8 @@ export class GridDiaryView extends ItemView {
   private histTimer: number | null = null;
   /** 每格上一次已记录进时间流的内容（增量判断基线） */
   private lastRecorded = new Map<string, string>();
+  /** 当前打开的篇："" = 主篇（YYYY-MM-DD.md），否则为 壹/贰/… 后缀 */
+  private entrySuffix = "";
 
   constructor(leaf: WorkspaceLeaf, plugin: GridDiaryPlugin) {
     super(leaf);
@@ -73,6 +75,7 @@ export class GridDiaryView extends ItemView {
     const d = (state as { date?: string } | null)?.date;
     if (d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d !== this.currentDate) {
       this.currentDate = d;
+      this.entrySuffix = "";
       this.plugin.setActiveDate(d, this);
       await this.render();
     }
@@ -95,18 +98,18 @@ export class GridDiaryView extends ItemView {
     this.currentDate = this.plugin.activeDate || this.currentDate;
     this.registerEvent(
       this.app.vault.on("modify", (f) => {
-        const file = this.plugin.store.fileFor(this.currentDate);
+        const file = this.plugin.store.fileFor(this.currentDate, this.entrySuffix);
         if (file && f.path === file.path) this.scheduleRender();
       })
     );
     this.registerEvent(
       this.app.vault.on("create", (f) => {
-        if (f.path === this.plugin.store.pathFor(this.currentDate)) this.scheduleRender();
+        if (f.path === this.plugin.store.pathFor(this.currentDate, this.entrySuffix)) this.scheduleRender();
       })
     );
     this.registerEvent(
       this.app.vault.on("delete", (f) => {
-        if (f.path === this.plugin.store.pathFor(this.currentDate)) this.scheduleRender();
+        if (f.path === this.plugin.store.pathFor(this.currentDate, this.entrySuffix)) this.scheduleRender();
       })
     );
     // 兜底：每 1.5 秒把所有未落盘内容静默写回，防止刷新丢字
@@ -167,12 +170,12 @@ export class GridDiaryView extends ItemView {
 
   async refreshRawCache(): Promise<void> {
     this.rawCache.clear();
-    const file = this.plugin.store.fileFor(this.currentDate);
+    const file = this.plugin.store.fileFor(this.currentDate, this.entrySuffix);
     if (!file) return;
     const text = await this.app.vault.cachedRead(file);
     for (const s of parseDay(text, 2).sections) {
       this.rawCache.set(s.title, s.body);
-      const k = `${this.currentDate}|${s.title}`;
+      const k = `${this.currentDate}|${this.entrySuffix}|${s.title}`;
       if (!this.lastRecorded.has(k)) this.lastRecorded.set(k, s.body);
     }
   }
@@ -192,15 +195,14 @@ export class GridDiaryView extends ItemView {
     root.style.setProperty("--gd-gap", `${this.plugin.settings.gridGap}px`);
 
     const shell = root.createDiv({ cls: "gd-shell" });
-    this.renderFloatFab(shell);
     // 目录一律走 Obsidian 官方侧栏 dock，正页永不嵌入（用户裁定）
     const bg = this.backgroundUrl();
     if (bg) shell.createDiv({ cls: "gd-bg", attr: { style: `background-image:url("${bg}")` } });
 
-    const snap = await this.plugin.store.readDay(this.currentDate);
+    const snap = await this.plugin.store.readDay(this.currentDate, this.entrySuffix);
     this.snapshot = snap;
     {
-      const f = this.plugin.store.fileFor(this.currentDate);
+      const f = this.plugin.store.fileFor(this.currentDate, this.entrySuffix);
       if (f) {
         const dt = new Date(f.stat.mtime);
         const p2 = (n: number) => String(n).padStart(2, "0");
@@ -272,6 +274,14 @@ export class GridDiaryView extends ItemView {
       return b;
     };
     mkBtn("+", () => this.addCell());
+    // 同一天再建一篇（主篇 → 壹 → 贰 …）
+    const addEntryBtn = actions.createEl("button", { text: "＋篇", cls: "gd-btn gd-btn-entry" });
+    addEntryBtn.setAttribute("aria-label", "在这一天新建一篇日记");
+    addEntryBtn.setAttribute("title", "在这一天新建一篇日记");
+    addEntryBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      void this.addEntry();
+    });
     const undo = actions.createEl("button", { text: "<", cls: "gd-btn gd-undo-btn" });
     undo.setAttribute("aria-label", "撤销");
     undo.addEventListener("click", (e) => {
@@ -318,6 +328,23 @@ export class GridDiaryView extends ItemView {
     today.addEventListener("click", () => this.goDate(todayStr()));
     const next = nav.createEl("button", { text: "后一天 ›", cls: "gd-nav-btn" });
     next.addEventListener("click", () => this.goDate(shiftDate(this.currentDate, 1)));
+    // 同日多篇：≥2 篇时在导航行渲染切换器
+    const entries = this.plugin.store.entriesFor(this.currentDate);
+    if (entries.length >= 2) {
+      const sw = nav.createDiv({ cls: "gd-entry-switch" });
+      for (const en of entries) {
+        const b = sw.createEl("button", {
+          text: en.suffix || "主篇",
+          cls: "gd-entry-btn" + (en.suffix === this.entrySuffix ? " is-on" : ""),
+        });
+        b.setAttribute("aria-label", en.suffix ? `第 ${en.suffix} 篇` : "主篇");
+        b.addEventListener("click", () => {
+          if (this.entrySuffix === en.suffix) return;
+          this.entrySuffix = en.suffix;
+          void this.render().catch((e) => console.error("[grid-diary] 渲染失败", e));
+        });
+      }
+    }
     if (snap.file) {
       const open = nav.createEl("button", { text: "打开整篇", cls: "gd-nav-btn gd-nav-right" });
       open.addEventListener("click", () => void this.openWholeFile());
@@ -342,7 +369,7 @@ export class GridDiaryView extends ItemView {
 
   /** 手动保存后：只把新增段落作为一条带时间戳的笔记写进文件（增量记录） */
   private async recordDelta(title: string, value?: string): Promise<void> {
-    const key = `${this.currentDate}|${title}`;
+    const key = `${this.currentDate}|${this.entrySuffix}|${title}`;
     const now = (value ?? "").replace(/\s*$/, "");
     const prev = this.lastRecorded.get(key);
     if (prev === undefined || prev === now) return;
@@ -355,7 +382,7 @@ export class GridDiaryView extends ItemView {
     this.suppressRenderUntil = Date.now() + 2000;
     this.selfWriteUntil = Date.now() + 1500;
     try {
-      await this.plugin.store.appendTimelineNote(this.currentDate, addedParas.join("\n\n"), title);
+      await this.plugin.store.appendTimelineNote(this.currentDate, addedParas.join("\n\n"), title, this.entrySuffix);
       window.setTimeout(() => this.refreshTimeline(), 200);
     } catch (err) {
       console.error("[grid-diary] 增量记录失败", err);
@@ -425,7 +452,7 @@ export class GridDiaryView extends ItemView {
     head.createEl("span", { text: "时间流", cls: "gd-tl-title" });
     head.createEl("span", { text: `${cards.length} 条`, cls: "gd-tl-count" });
 
-    const src = this.plugin.store.pathFor(this.currentDate);
+    const src = this.plugin.store.pathFor(this.currentDate, this.entrySuffix);
     for (const card of cards) {
       const row = wrap.createDiv({ cls: "gd-tl-item" });
       if (card.kind === "cell") row.addClass("is-cell");
@@ -469,7 +496,7 @@ export class GridDiaryView extends ItemView {
           saved = true;
           const next = ta.value;
           this.selfWriteUntil = Date.now() + 1200;
-          const ok = await this.plugin.store.writeSection(this.currentDate, card.title, next);
+          const ok = await this.plugin.store.writeSection(this.currentDate, card.title, next, this.entrySuffix);
           if (ok) {
             if (card.kind === "cell") this.rawCache.set(card.title, paragraphsFromSoftBreaks(next));
             const c = this.snapshot?.cells.find((x) => x.title === card.title);
@@ -582,7 +609,7 @@ export class GridDiaryView extends ItemView {
         const w = Math.round(box.getBoundingClientRect().width);
         const h = Math.round(box.getBoundingClientRect().height);
         void this.plugin.store
-          .setImageAttrs(this.currentDate, name, { width: w, height: h, ...attrs })
+          .setImageAttrs(this.currentDate, name, { width: w, height: h, ...attrs }, this.entrySuffix)
           .then(() => new Notice("图片样式已保存", 1200));
       };
       const mkBtn = (label: string, tip: string, cb: () => void) => {
@@ -744,7 +771,7 @@ export class GridDiaryView extends ItemView {
           this.app,
           text,
           preview,
-          this.plugin.store.pathFor(this.currentDate),
+          this.plugin.store.pathFor(this.currentDate, this.entrySuffix),
           this,
         );
       } catch {
@@ -994,7 +1021,7 @@ export class GridDiaryView extends ItemView {
             const ext = (f.name.split(".").pop() || "bin").toLowerCase();
             const name = await this.plugin.saveAttachment(this.currentDate, f, ext);
             if (asImage) {
-              const notePath = this.plugin.store.fileFor(this.currentDate)?.parent?.path ?? "";
+              const notePath = this.plugin.store.fileFor(this.currentDate, this.entrySuffix)?.parent?.path ?? "";
               const rel = notePath && name.startsWith(notePath + "/") ? name.slice(notePath.length + 1) : name;
               insertAt(buildImgTag({ src: rel, width: 400 }));
             } else {
@@ -1104,7 +1131,7 @@ export class GridDiaryView extends ItemView {
       status.setText("保存中");
       this.suppressRenderUntil = Date.now() + 2000;
       this.selfWriteUntil = Date.now() + 1500;
-      const ok = await this.plugin.store.writeSection(this.currentDate, cell.title, value);
+      const ok = await this.plugin.store.writeSection(this.currentDate, cell.title, value, this.entrySuffix);
       this.pendingSaves.delete(cell.title);
       if (ok) {
         // 文件里已是转换后的段落结构，缓存保持与文件一致
@@ -1191,7 +1218,7 @@ export class GridDiaryView extends ItemView {
       const rect = el.getBoundingClientRect();
       const before = e.clientY < rect.top + rect.height / 2;
       void (async () => {
-        const ok = await this.plugin.store.moveSection(this.currentDate, from, cell.title, before);
+        const ok = await this.plugin.store.moveSection(this.currentDate, from, cell.title, before, this.entrySuffix);
         if (ok) {
           new Notice(`已移动到「${cell.title}」${before ? "之前" : "之后"}`);
           await this.render();
@@ -1210,14 +1237,14 @@ export class GridDiaryView extends ItemView {
   }
 
   private async openAtSection(cell: DayCell): Promise<void> {
-    const file = this.plugin.store.fileFor(this.currentDate);
+    const file = this.plugin.store.fileFor(this.currentDate, this.entrySuffix);
     if (!file) return;
     const leaf = this.app.workspace.getLeaf("tab");
     await leaf.openFile(file, { eState: { line: cell.line } });
   }
 
   private async openWholeFile(): Promise<void> {
-    const file = this.plugin.store.fileFor(this.currentDate);
+    const file = this.plugin.store.fileFor(this.currentDate, this.entrySuffix);
     if (!file) return;
     const leaf = this.app.workspace.getLeaf("tab");
     await leaf.openFile(file, { active: true });
@@ -1226,6 +1253,7 @@ export class GridDiaryView extends ItemView {
   private goDate(date: string): void {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
     this.currentDate = date;
+    this.entrySuffix = "";
     this.plugin.setActiveDate(date, this);
     this.pushHistory(date);
     void (async () => {
@@ -1247,7 +1275,7 @@ export class GridDiaryView extends ItemView {
   private async ensureDayFile(date: string, onlyToday = false): Promise<void> {
     if (!this.plugin.settings.autoCreateToday) return;
     if (onlyToday && date !== todayStr()) return;
-    if (this.plugin.store.fileFor(date)) return;
+    if (this.plugin.store.fileFor(date, this.entrySuffix)) return;
     try {
       await this.plugin.createDayFileFor(date);
     } catch (e) {
@@ -1273,12 +1301,42 @@ export class GridDiaryView extends ItemView {
     if (close) close.onclick = () => sheet.remove();
   }
 
-  jumpTo(date: string): void {
+  /** 侧栏日历点了日期：主视图跟着跳（suffix 指定打开哪一篇，不传则回主篇） */
+  jumpTo(date: string, suffix?: string): void {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-    if (date === this.currentDate) return;
+    const dateChanged = date !== this.currentDate;
+    if (!dateChanged && (suffix === undefined || suffix === this.entrySuffix)) return;
     this.currentDate = date;
-    this.pushHistory(date);
+    this.entrySuffix = suffix ?? "";
+    if (dateChanged) this.pushHistory(date);
     void this.render().catch((e) => console.error("[grid-diary] 渲染失败", e));
+  }
+
+  /** ＋篇：主篇没有就先建主篇，否则建下一个可用后缀的新篇（同模板同流程） */
+  private async addEntry(): Promise<void> {
+    const date = this.currentDate;
+    const store = this.plugin.store;
+    try {
+      if (!store.fileFor(date)) {
+        await this.plugin.createDayFileFor(date);
+        this.entrySuffix = "";
+        new Notice("已新建这一天的日记");
+        await this.render();
+        return;
+      }
+      const suffix = store.nextSuffix(date);
+      if (!suffix) {
+        new Notice("这一天的篇数已经满了（99 篇）");
+        return;
+      }
+      await this.plugin.createDayFileFor(date, suffix);
+      this.entrySuffix = suffix;
+      new Notice(`已新建第 ${store.entriesFor(date).length} 篇`);
+      await this.render();
+    } catch (e) {
+      console.error("[grid-diary] 新建失败", e);
+      new Notice("新建失败，请看控制台");
+    }
   }
 
   /** 记录一步撤销历史（400ms 防抖后由 input 调用） */
@@ -1318,126 +1376,11 @@ export class GridDiaryView extends ItemView {
     } else {
       void (async () => {
         this.selfWriteUntil = Date.now() + 1500;
-        await this.plugin.store.writeSection(this.currentDate, title, value);
+        await this.plugin.store.writeSection(this.currentDate, title, value, this.entrySuffix);
         await this.render();
       })();
     }
     new Notice(dir === -1 ? `已撤销：${title}` : `已重做：${title}`);
-  }
-
-
-  /** 悬浮日历：右下角浮钮 + 可拖动小窗 */
-  floatMonth = "";
-  private floatOpen = false;
-
-  private renderFloatFab(shell: HTMLElement): void {
-    const fab = shell.createEl("button", { cls: "gd-fab" });
-    elIcon(fab, "calendar");
-    fab.setAttribute("aria-label", "悬浮日历");
-    fab.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.toggleFloatCal(shell);
-    });
-  }
-
-  private toggleFloatCal(shell: HTMLElement): void {
-    const exist = shell.querySelector(".gd-cal-float") as HTMLElement | null;
-    if (exist) {
-      exist.remove();
-      this.floatOpen = false;
-      return;
-    }
-    this.floatOpen = true;
-    if (!this.floatMonth) this.floatMonth = this.currentDate.slice(0, 7);
-    const panel = shell.createDiv({ cls: "gd-cal-float" });
-    const head = panel.createDiv({ cls: "gd-float-head" });
-    const title = head.createSpan({ cls: "gd-float-title" });
-    const prev = head.createEl("button", { cls: "gd-float-btn", text: "‹" });
-    const next = head.createEl("button", { cls: "gd-float-btn", text: "›" });
-    const close = head.createEl("button", { cls: "gd-float-btn gd-float-close" });
-    elIcon(close, "x");
-    const grid = panel.createDiv({ cls: "gd-float-grid" });
-    const refresh = () => {
-      title.setText(this.floatMonth.replace("-", "年") + "月");
-      grid.empty();
-      for (const w of ["一", "二", "三", "四", "五", "六", "日"]) grid.createDiv({ cls: "gd-float-wd", text: w });
-      const [y, m] = this.floatMonth.split("-").map(Number);
-      const first = new Date(y, m - 1, 1);
-      let lead = first.getDay() - 1;
-      if (lead < 0) lead = 6;
-      const days = new Date(y, m, 0).getDate();
-      for (let i = 0; i < lead; i++) grid.createDiv({ cls: "gd-float-cell is-empty" });
-      for (let d = 1; d <= days; d++) {
-        const ds = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-        const c = grid.createDiv({ cls: "gd-float-cell" });
-        c.setText(String(d));
-        if (ds === this.currentDate) c.addClass("is-cur");
-        if (this.plugin.store.fileFor(ds)) c.addClass("has");
-        c.addEventListener("click", () => {
-          this.goDate(ds);
-          panel.remove();
-          this.floatOpen = false;
-        });
-      }
-    };
-    refresh();
-    const shift = (delta: number) => {
-      const [y, m] = this.floatMonth.split("-").map(Number);
-      const dt = new Date(y, m - 1 + delta, 1);
-      this.floatMonth = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
-      refresh();
-    };
-    prev.addEventListener("click", (e) => {
-      e.stopPropagation();
-      shift(-1);
-    });
-    next.addEventListener("click", (e) => {
-      e.stopPropagation();
-      shift(1);
-    });
-    close.addEventListener("click", (e) => {
-      e.stopPropagation();
-      panel.remove();
-      this.floatOpen = false;
-    });
-    // 拖动小窗
-    let dragging = false;
-    let sx = 0;
-    let sy = 0;
-    let ox = 0;
-    let oy = 0;
-    head.addEventListener("pointerdown", (e) => {
-      dragging = true;
-      sx = e.clientX;
-      sy = e.clientY;
-      const r = panel.getBoundingClientRect();
-      ox = r.left;
-      oy = r.top;
-      panel.style.left = `${ox}px`;
-      panel.style.top = `${oy}px`;
-      panel.style.right = "auto";
-      panel.style.bottom = "auto";
-      head.setPointerCapture(e.pointerId);
-    });
-    head.addEventListener("pointermove", (e) => {
-      if (!dragging) return;
-      panel.style.left = `${ox + (e.clientX - sx)}px`;
-      panel.style.top = `${oy + (e.clientY - sy)}px`;
-    });
-    head.addEventListener("pointerup", () => {
-      dragging = false;
-    });
-    // 点外面关闭
-    setTimeout(() => {
-      const off = (ev: MouseEvent) => {
-        if (!panel.contains(ev.target as Node)) {
-          panel.remove();
-          this.floatOpen = false;
-          document.removeEventListener("mousedown", off, true);
-        }
-      };
-      document.addEventListener("mousedown", off, true);
-    }, 0);
   }
 
   private addCell(): void {
@@ -1446,7 +1389,7 @@ export class GridDiaryView extends ItemView {
       desc: "写在文件里的二级标题（## 后面的字）：",
       placeholder: "例如：今日饮食",
       onSubmit: async (title) => {
-        const ok = await this.plugin.store.addSection(this.currentDate, title);
+        const ok = await this.plugin.store.addSection(this.currentDate, title, this.entrySuffix);
         if (ok) new Notice(`已添加：${title}`);
         await this.render();
       },
@@ -1458,7 +1401,7 @@ export class GridDiaryView extends ItemView {
       this.app,
       this.plugin.settings.templates,
       async (tpl) => {
-        const added = await this.plugin.store.fillWithTemplate(this.currentDate, tpl.titles);
+        const added = await this.plugin.store.fillWithTemplate(this.currentDate, tpl.titles, this.entrySuffix);
         new Notice(added.length ? `已补齐 ${added.length} 个格子` : "这个模板的格子已经有了");
         await this.render();
       },
@@ -1476,7 +1419,7 @@ export class GridDiaryView extends ItemView {
       this.app,
       this.plugin.settings.templates,
       async (tpl) => {
-        const r = await this.plugin.store.retitleTemplate(this.currentDate, tpl.titles);
+        const r = await this.plugin.store.retitleTemplate(this.currentDate, tpl.titles, this.entrySuffix);
         if (!r) return;
         const parts = [`已按「${tpl.name}」重排，保留 ${r.kept} 节内容`];
         if (r.orphans.length) parts.push(`${r.orphans.length} 节归入「未分类内容」`);
@@ -1499,7 +1442,7 @@ export class GridDiaryView extends ItemView {
   ): Promise<void> {
     const doDelete = async () => {
       this.selfWriteUntil = Date.now() + 1200;
-      const removed = await this.plugin.store.deleteSection(this.currentDate, card.title);
+      const removed = await this.plugin.store.deleteSection(this.currentDate, card.title, this.entrySuffix);
       if (!removed) {
         new Notice("删除失败");
         return;
@@ -1511,7 +1454,13 @@ export class GridDiaryView extends ItemView {
         if (done) return;
         done = true;
         this.selfWriteUntil = Date.now() + 1200;
-        await this.plugin.store.restoreSection(this.currentDate, removed.title, removed.body, removed.index);
+        await this.plugin.store.restoreSection(
+          this.currentDate,
+          removed.title,
+          removed.body,
+          removed.index,
+          this.entrySuffix
+        );
         notice.hide();
         await this.render();
       });
@@ -1571,15 +1520,7 @@ export class GridDiaryView extends ItemView {
       i.setTitle("打开这一天的文件").setIcon("file-text").onClick(() => void this.openWholeFile())
     );
     menu.addItem((i) =>
-      i.setTitle("新建这一天的文件").setIcon("file-plus").onClick(async () => {
-        if (this.plugin.store.fileFor(this.currentDate)) {
-          new Notice("文件已存在");
-          return;
-        }
-        const tpl = this.plugin.getDefaultTemplate();
-        await this.plugin.store.createDayFile(this.currentDate, tpl ? tpl.titles : []);
-        await this.render();
-      })
+      i.setTitle("新建这一天的文件").setIcon("file-plus").onClick(() => void this.addEntry())
     );
     menu.showAtMouseEvent(evt);
   }
@@ -1596,7 +1537,7 @@ export class GridDiaryView extends ItemView {
         .setIcon("trash")
         .onClick(async () => {
           const date = this.currentDate;
-          const removed = await this.plugin.store.deleteSection(date, cell.title);
+          const removed = await this.plugin.store.deleteSection(date, cell.title, this.entrySuffix);
           await this.render();
           if (!removed) return;
           const notice = new Notice(`已删除「${cell.title}」`, 5000);
@@ -1609,7 +1550,8 @@ export class GridDiaryView extends ItemView {
               date,
               removed.title,
               removed.body,
-              removed.index
+              removed.index,
+              this.entrySuffix
             );
             notice.hide();
             await this.render();
