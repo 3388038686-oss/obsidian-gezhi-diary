@@ -1,10 +1,10 @@
 {
   "id": "grid-diary",
   "name": "Grid Diary",
-  "version": "1.3.0",
+  "version": "3.11.0",
   "minAppVersion": "1.5.0",
-  "description": "Write question-guided diary entries in a grid, with a calendar sidebar and a timeline. 闂寮曞寮忔棩璁帮細涔濆鏍艰褰曘€佸彸渚ф棩鍘嗐€佷笅鏂规椂闂存祦.",
+  "description": "九宫格日记 v3.11：选完图可以像微信头像那样框选裁剪（封面 / 头像 / 照片 / 日历底图都支持，只存坐标不剪原图）；目录与流线图单列，点一下直接看；主题系统、纸书排版、按周按月换底色、动图视频与轮播壁纸、日周月年日历。",
   "author": "ko",
-  "isDesktopOnly": false,
-  "authorUrl": "https://github.com/3388038686-oss"
+  "authorUrl": "https://github.com/3388038686-oss",
+  "isDesktopOnly": false
 }

@@ -1,67 +1,10438 @@
-"use strict";var Ot=Object.defineProperty;var fe=Object.getOwnPropertyDescriptor;var ve=Object.getOwnPropertyNames;var ye=Object.prototype.hasOwnProperty;var we=(c,o)=>{for(var t in o)Ot(c,t,{get:o[t],enumerable:!0})},be=(c,o,t,e)=>{if(o&&typeof o=="object"||typeof o=="function")for(let i of ve(o))!ye.call(c,i)&&i!==t&&Ot(c,i,{get:()=>o[i],enumerable:!(e=fe(o,i))||e.enumerable});return c};var Ee=c=>be(Ot({},"__esModule",{value:!0}),c);var Be={};we(Be,{default:()=>Vt});module.exports=Ee(Be);var C=require("obsidian");var E=require("obsidian"),it={rootFolder:"\u65E5\u8BB0",background:"",cardOpacity:.85,fontFamily:'"LXGW WenKai", "Kaiti SC", "STKaiti", "\u6977\u4F53", serif',fontWeight:300,customCss:"",showEmptyHint:!0,columns:2,cellHeight:200,splitRatio:.6,listLineStyle:"vertical",skipPermanentConfirm:!1,fontDataUrl:"",fontFileName:"",fontDirFile:"",autoCreateToday:!0,dailyTemplatePath:"",leftWidth:190,showRecentFiles:!1,showTreeLines:!0,iconFile:"",iconFolder:"",iconFolderOpen:"",treeSort:"folders",treeDefaultOpen:!0,hoverGlow:!0,showLeftPanel:!0,pluginFontSize:15,contentPad:18,gridGap:14,rightDockWidth:0,activePreset:"\u7D27\u51D1",layoutPresets:[{name:"\u7D27\u51D1",leftWidth:190,contentPad:18,gridGap:14,columns:2,cellHeight:200,rightDockWidth:0,pluginFontSize:15},{name:"\u5BBD\u677E",leftWidth:280,contentPad:44,gridGap:26,columns:2,cellHeight:240,rightDockWidth:380,pluginFontSize:17}],defaultTemplate:"\u683C\u95F4\u516D\u683C",templates:[{name:"\u683C\u95F4\u516D\u683C",titles:["\u4ECA\u65E5\u4E8B\u4EF6","\u4ECA\u65E5\u4E66\u8D26","\u4ECA\u65E5\u65B0\u77E5","\u4ECA\u65E5\u788E\u8BB0","\u4ECA\u65E5\u7F8E\u98DF","\u4ECA\u65E5\u53CD\u601D"]},{name:"\u4E5D\u5BAB\u683C\u6668\u95F4",titles:["\u4ECA\u5929\u7684\u5929\u6C14","\u6628\u5929\u6700\u96BE\u5FD8\u7684\u4E8B","\u4ECA\u5929\u6700\u91CD\u8981\u7684\u4E00\u4EF6\u4E8B","\u60F3\u611F\u8C22\u7684\u4EBA","\u4ECA\u5929\u7684\u60C5\u7EEA","\u8EAB\u4F53\u72B6\u6001","\u4ECA\u5929\u7684\u671F\u5F85","\u4ECA\u65E5\u53CD\u601D","\u660E\u65E5\u8BA1\u5212"]},{name:"\u590D\u76D8",titles:["\u505A\u6210\u4E86\u4EC0\u4E48","\u54EA\u91CC\u5361\u4F4F","\u5B66\u5230\u4E86\u4EC0\u4E48","\u4E0B\u6B21\u600E\u4E48\u505A"]}]},Dt=class extends E.PluginSettingTab{constructor(t,e){super(t,e);this.tab="general";this.panelEl=null;this.tabBtns=new Map;this.dirDropdown=null;this.plugin=e}async scanFontDir(){try{return((await this.app.vault.adapter.list(".obsidian/fonts")).files||[]).filter(e=>/\.(ttf|otf)$/i.test(e)).map(e=>e.split("/").pop()||"").filter(Boolean)}catch(t){return[]}}display(){let{containerEl:t}=this;t.empty(),t.addClass("gd-settings"),t.createEl("h2",{text:"\u683C\u95F4\u65E5\u8BB0\u8BBE\u7F6E"});let e=t.createDiv({cls:"gd-set-tabs"}),i=[["general","\u5E38\u89C4\u8BBE\u7F6E"],["style","\u6837\u5F0F\u8BBE\u7F6E"]];this.tabBtns.clear();for(let[s,a]of i){let r=e.createEl("button",{text:a,cls:"gd-set-tab"+(this.tab===s?" is-on":"")});r.addEventListener("click",()=>{this.tab=s;for(let[n,l]of this.tabBtns)l.toggleClass("is-on",n===s);this.renderPanel()}),this.tabBtns.set(s,r)}this.panelEl=t.createDiv({cls:"gd-set-panel"}),this.renderPanel()}renderPanel(){let t=this.panelEl;t&&(t.empty(),this.tab==="general"?this.renderGeneral(t):this.renderStyle(t))}renderGeneral(t){var r;new E.Setting(t).setName("\u65E5\u8BB0\u76EE\u5F55").setDesc("\u4E00\u5929\u4E00\u4E2A md \u6587\u4EF6\uFF0C\u6587\u4EF6\u540D\u6309 YYYY-MM-DD\u3002\u9ED8\u8BA4\u8BFB\u4F60\u73B0\u6709\u7684\u300C\u65E5\u8BB0\u300D\u76EE\u5F55\u3002").addText(n=>n.setPlaceholder("\u65E5\u8BB0").setValue(this.plugin.settings.rootFolder).onChange(async l=>{this.plugin.settings.rootFolder=l.trim()||"\u65E5\u8BB0",await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u4E00\u683C = \u4E00\u4E2A\u4E8C\u7EA7\u6807\u9898").setDesc("\u63D2\u4EF6\u6309 md \u91CC\u7684 \u300C## \u6807\u9898\u300D\u5207\u5206\u683C\u5B50\uFF0C\u5185\u5BB9\u548C\u539F\u672C\u7684\u6587\u4EF6\u5B8C\u5168\u5171\u7528\uFF0C\u4E0D\u6539\u683C\u5F0F\u3002").setDisabled(!0).addText(n=>n.setValue("## \u6807\u9898").setDisabled(!0)),new E.Setting(t).setName("\u6253\u5F00\u65F6\u81EA\u52A8\u8865\u5F53\u5929\u6587\u4EF6").setDesc("\u6253\u5F00\u89C6\u56FE\u6216\u70B9\u300C\u4ECA\u5929\u300D\u65F6\uFF0C\u5F53\u5929\u6587\u4EF6\u4E0D\u5B58\u5728\u5C31\u9759\u9ED8\u521B\u5EFA\u3002").addToggle(n=>n.setValue(this.plugin.settings.autoCreateToday).onChange(async l=>{this.plugin.settings.autoCreateToday=l,await this.plugin.saveSettings()}));let e=this.app.vault.getMarkdownFiles().map(n=>n.path).sort(),i=new E.Setting(t).setName("\u65B0\u5EFA\u65E5\u8BB0\u65F6\u81EA\u52A8\u5E94\u7528\u7684\u6A21\u677F").setDesc("\u7559\u7A7A = \u65B0\u5EFA\u5B8C\u5168\u7A7A\u767D\u7684\u6587\u4EF6\uFF08\u4E0D\u5199\u5C5E\u6027\u3001\u6807\u9898\u3001\u683C\u5B50\uFF09\u3002\u586B\u8DEF\u5F84\u5C31\u7528\u4F60\u7684\u6A21\u677F\uFF0C\u4F8B\u5982 05template\u6A21\u677F/\u6211\u7684\u65E5\u8BB0\u6A21\u677F.md\u3002\u65B0\u5EFA\u65F6\u53EA\u505A\u4E09\u7C7B\u7EAF\u6587\u672C\u66FF\u6362\uFF1A{{date}} / {{date:YYYY-MM-DD}} \u2192 \u5F53\u5929\u65E5\u671F\uFF0C{{time}} / {{time:HH:mm}} \u2192 \u5F53\u524D\u65F6\u95F4\uFF0C{{title}} \u2192 \u6587\u4EF6\u540D\uFF08YYYY-MM-DD\uFF09\u3002\u5176\u4F59\u5185\u5BB9\u539F\u6837\u5199\u5165\uFF0C\u4E0D\u505A\u4EFB\u4F55\u89E3\u6790\u3002").addText(n=>n.setPlaceholder("05template\u6A21\u677F/\u65E5\u8BB0\u6A21\u677F.md").setValue(this.plugin.settings.dailyTemplatePath).onChange(async l=>{this.plugin.settings.dailyTemplatePath=l.trim(),await this.plugin.saveSettings()}));i.addDropdown(n=>{n.addOption("","\uFF08\u7A7A\u767D\u6587\u4EF6\uFF09");for(let d of e)n.addOption(d,d);let l=this.plugin.settings.dailyTemplatePath;n.setValue(e.includes(l)?l:""),n.onChange(async d=>{this.plugin.settings.dailyTemplatePath=d,await this.plugin.saveSettings();let h=i.controlEl.querySelector("input");h&&(h.value=d)})}),new E.Setting(t).setName("\u5217\u6570").setDesc("\u683C\u5B50\u5899\u6BCF\u884C\u663E\u793A\u51E0\u4E2A\u683C\u5B50\u3002").addSlider(n=>n.setLimits(1,4,1).setValue(this.plugin.settings.columns).setDynamicTooltip().onChange(async l=>{this.plugin.settings.columns=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u683C\u5B50\u5185\u5BB9\u9AD8\u5EA6").setDesc("\u6BCF\u4E2A\u683C\u5B50\u6B63\u6587\u533A\u56FA\u5B9A\u9AD8\u5EA6\uFF08px\uFF09\uFF0C\u8D85\u51FA\u5C31\u5728\u683C\u5B50\u5185\u6EDA\u52A8\u3002").addSlider(n=>n.setLimits(80,400,10).setValue(this.plugin.settings.cellHeight).setDynamicTooltip().onChange(async l=>{this.plugin.settings.cellHeight=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u5E03\u5C40").setHeading(),new E.Setting(t).setName("\u63D2\u4EF6\u6B63\u6587\u5B57\u53F7").setDesc("\u53EA\u5F71\u54CD\u683C\u95F4\u65E5\u8BB0\u754C\u9762\uFF08\u683C\u5B50\u3001\u65F6\u95F4\u6D41\u3001\u76EE\u5F55\u3001\u65E5\u5386\uFF09\uFF0C\u4E0D\u6539 Obsidian \u5B98\u65B9\u5B57\u53F7\u3002").addSlider(n=>{var l;return n.setLimits(10,24,1).setValue((l=this.plugin.settings.pluginFontSize)!=null?l:15).setDynamicTooltip().onChange(async d=>{this.plugin.settings.pluginFontSize=d,await this.plugin.saveSettings(),this.plugin.applyLayout(),this.plugin.refreshViews()})}),new E.Setting(t).setName("\u5185\u5BB9\u533A\u5DE6\u53F3\u8FB9\u8DDD").setDesc("\u4E5D\u5BAB\u683C\u533A\u57DF\u7684\u7559\u767D\uFF08px\uFF09\uFF0C\u50CF\u9605\u8BFB\u5DE5\u5177\u90A3\u6837\u8C03\u3002").addSlider(n=>{var l;return n.setLimits(0,60,2).setValue((l=this.plugin.settings.contentPad)!=null?l:18).setDynamicTooltip().onChange(async d=>{this.plugin.settings.contentPad=d,await this.plugin.saveSettings(),this.plugin.applyLayout()})}),new E.Setting(t).setName("\u683C\u5B50\u95F4\u8DDD").setDesc("\u683C\u5B50\u4E4B\u95F4\u7684\u7A7A\u9699\uFF08px\uFF09\u3002").addSlider(n=>{var l;return n.setLimits(4,40,2).setValue((l=this.plugin.settings.gridGap)!=null?l:14).setDynamicTooltip().onChange(async d=>{this.plugin.settings.gridGap=d,await this.plugin.saveSettings(),this.plugin.applyLayout()})}),new E.Setting(t).setName("\u53F3\u4FA7\u680F\u5BBD\u5EA6").setDesc("\u63A5\u7BA1 Obsidian \u53F3\u4FA7 dock \u7684\u5BBD\u5EA6\uFF1B0 = \u4E0D\u63A5\u7BA1\uFF08\u81EA\u5DF1\u62D6\uFF09\u3002\u8BBE\u4E3A\u975E 0 \u540E\u5199\u5165\u5E03\u5C40\u6A21\u677F\u53EF\u4E00\u952E\u6062\u590D\uFF0C\u4F46\u4E3B\u9898\u5347\u7EA7\u53EF\u80FD\u8BA9\u5B83\u5931\u6548\u3002").addSlider(n=>{var l;return n.setLimits(0,640,20).setValue((l=this.plugin.settings.rightDockWidth)!=null?l:0).setDynamicTooltip().onChange(async d=>{this.plugin.settings.rightDockWidth=d,await this.plugin.saveSettings(),this.plugin.applyLayout()})}),new E.Setting(t).setName("\u5E03\u5C40\u6A21\u677F").setHeading();let s=null;new E.Setting(t).setName("\u4FDD\u5B58\u5F53\u524D\u5E03\u5C40").setDesc("\u628A\u5DE6\u680F\u5BBD\u3001\u8FB9\u8DDD\u3001\u95F4\u8DDD\u3001\u5217\u6570\u3001\u683C\u5B50\u9AD8\u3001\u5B57\u53F7\u3001\u53F3\u680F\u5BBD\u5B58\u6210\u4E00\u4E2A\u6A21\u677F\u3002").addText(n=>{n.setPlaceholder("\u6A21\u677F\u540D\uFF0C\u5982\uFF1A\u9605\u8BFB\u6A21\u5F0F"),s=n.inputEl}).addButton(n=>n.setButtonText("\u4FDD\u5B58").onClick(async()=>{var g,p,y,w;let l=((s==null?void 0:s.value)||"").trim();if(!l){new E.Notice("\u5148\u7ED9\u6A21\u677F\u8D77\u4E2A\u540D\u5B57");return}let d=this.plugin.settings,h=d.layoutPresets.findIndex(m=>m.name===l),u={name:l,leftWidth:d.leftWidth,contentPad:(g=d.contentPad)!=null?g:18,gridGap:(p=d.gridGap)!=null?p:14,columns:d.columns,cellHeight:d.cellHeight,rightDockWidth:(y=d.rightDockWidth)!=null?y:0,pluginFontSize:(w=d.pluginFontSize)!=null?w:15};h>=0?d.layoutPresets[h]=u:d.layoutPresets.push(u),d.activePreset=l,await this.plugin.saveSettings(),new E.Notice(`\u5E03\u5C40\u6A21\u677F\u300C${l}\u300D\u5DF2\u4FDD\u5B58`),this.display()}));for(let n of[...(r=this.plugin.settings.layoutPresets)!=null?r:[]])new E.Setting(t).setName(n.name).setDesc(`\u5DE6\u680F ${n.leftWidth}px \xB7 \u8FB9\u8DDD ${n.contentPad} \xB7 \u95F4\u8DDD ${n.gridGap} \xB7 ${n.columns} \u5217 \xB7 \u683C\u9AD8 ${n.cellHeight}${n.rightDockWidth?` \xB7 \u53F3\u680F ${n.rightDockWidth}px`:""} \xB7 \u5B57\u53F7 ${n.pluginFontSize}`).addButton(l=>l.setButtonText("\u5E94\u7528").onClick(async()=>{let d=this.plugin.settings;d.leftWidth=n.leftWidth,d.contentPad=n.contentPad,d.gridGap=n.gridGap,d.columns=n.columns,d.cellHeight=n.cellHeight,d.rightDockWidth=n.rightDockWidth,d.pluginFontSize=n.pluginFontSize,d.activePreset=n.name,await this.plugin.saveSettings(),this.plugin.applyLayout(),this.plugin.refreshViews(),new E.Notice(`\u5DF2\u5E94\u7528\u5E03\u5C40\u6A21\u677F\u300C${n.name}\u300D`)})).addButton(l=>l.setButtonText("\u6539\u540D").onClick(()=>{let d=document.createElement("input");d.type="text",d.value=n.name;let h=new E.Modal(this.app);h.titleEl.setText("\u6539\u540D"),h.contentEl.appendChild(d),d.focus(),h.contentEl.createEl("div",{cls:"setting-item-description",text:"\u56DE\u8F66\u786E\u8BA4"}),d.addEventListener("keydown",async u=>{if(u.key==="Enter"){let g=d.value.trim();g&&(n.name=g,await this.plugin.saveSettings(),h.close(),this.display())}}),h.open()})).addButton(l=>l.setButtonText("\u5220\u9664").setWarning().onClick(async()=>{var h;let d=this.plugin.settings;d.layoutPresets=((h=d.layoutPresets)!=null?h:[]).filter(u=>u.name!==n.name),d.activePreset===n.name&&(d.activePreset=void 0),await this.plugin.saveSettings(),this.display()}));new E.Setting(t).setName("\u76EE\u5F55\u8FDE\u7EBF\u6837\u5F0F").setDesc("\u53F3\u4FA7\u65E5\u8BB0\u5217\u8868\u7684\u8FDE\u7EBF\u98CE\u683C\u3002\u6298\u7EBF\u661F\u56FE = \u8282\u70B9 + \u6A2A\u5411\u6298\u7EBF\u8FDE\u63A5\u5230\u53F3\u4FA7\u65E5\u671F\uFF0C\u9F20\u6807\u60AC\u505C\u65F6\u8BE5\u884C\u8FDE\u7EBF\u53D8\u4EAE\u3002").addDropdown(n=>{var l;n.addOption("vertical","\u6807\u51C6\u5782\u76F4\uFF08\u666E\u901A\u6A21\u5F0F\uFF09"),n.addOption("polyline","\u6298\u7EBF\u661F\u56FE\uFF08Polyline\uFF09"),n.setValue((l=this.plugin.settings.listLineStyle)!=null?l:"vertical"),n.onChange(async d=>{this.plugin.settings.listLineStyle=d==="polyline"?"polyline":"vertical",await this.plugin.saveSettings(),this.plugin.refreshViews()})}),new E.Setting(t).setName("\u663E\u793A\u5DE6\u4FA7\u76EE\u5F55\u9762\u677F").setDesc("\u5DE6\u4FA7\uFF1D\u300C\u6700\u8FD1\u6587\u4EF6 + \u6587\u4EF6\u5939\u6811\u300D\uFF0C\u53F3\u4FA7\uFF1D\u4E5D\u5BAB\u683C\u4E0E\u65F6\u95F4\u6D41\uFF1B\u4E2D\u95F4\u5206\u9694\u6761\u53EF\u62D6\u52A8\u6539\u5BBD\u5EA6\u3002").addToggle(n=>n.setValue(this.plugin.settings.showLeftPanel).onChange(async l=>{this.plugin.settings.showLeftPanel=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u663E\u793A\u300C\u6700\u8FD1\u6587\u4EF6\u300D").setDesc("\u5DE6\u4FA7\u4E0A\u534A\u533A\uFF1A\u6309\u4FEE\u6539\u65F6\u95F4\u6392\u5E8F\u5217\u51FA\u6700\u8FD1 12 \u7BC7 md\u3002").addToggle(n=>n.setValue(this.plugin.settings.showRecentFiles).onChange(async l=>{this.plugin.settings.showRecentFiles=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u6587\u4EF6\u5939\u6811\u663E\u793A\u6298\u7EBF\u8FDE\u63A5\u7EBF").setDesc("\u4E0B\u534A\u533A\u6587\u4EF6\u5939\u5C42\u7EA7\u5DE6\u4FA7\u7684\u7AD6\u7EBF + \u6A2A\u7EBF\uFF0C\u7528\u6765\u6807\u793A\u5C42\u7EA7\u3002").addToggle(n=>n.setValue(this.plugin.settings.showTreeLines).onChange(async l=>{this.plugin.settings.showTreeLines=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u6587\u4EF6\u5939\u9ED8\u8BA4\u5C55\u5F00").setDesc("\u6253\u5F00\u65F6\u6587\u4EF6\u5939\u6811\u662F\u5426\u9ED8\u8BA4\u5168\u90E8\u5C55\u5F00\uFF08\u4F60\u624B\u52A8\u6298\u53E0\u8FC7\u7684\u4F1A\u8BB0\u4F4F\uFF09\u3002").addToggle(n=>n.setValue(this.plugin.settings.treeDefaultOpen).onChange(async l=>{this.plugin.settings.treeDefaultOpen=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u76EE\u5F55\u6392\u5E8F\u65B9\u5F0F").setDesc("\u6587\u4EF6\u5939\u6811\u91CC\u540C\u7EA7\u6761\u76EE\u7684\u6392\u5217\u987A\u5E8F\u3002").addDropdown(n=>n.addOption("folders","\u6587\u4EF6\u5939\u4F18\u5148\uFF08\u6309\u540D\u79F0\uFF09").addOption("name","\u7EAF\u540D\u79F0").addOption("mtime","\u4FEE\u6539\u65F6\u95F4\uFF08\u65B0\u5728\u4E0A\uFF09").setValue(this.plugin.settings.treeSort).onChange(async l=>{let d=l;this.plugin.settings.treeSort=d,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u60AC\u505C\u9AD8\u4EAE / \u6D41\u661F\u6ED1\u8FC7").setDesc("\u9F20\u6807\u5212\u8FC7\u5DE6\u4FA7\u6761\u76EE\u65F6\u7684\u9AD8\u4EAE\u4E0E\u659C\u5411\u6D41\u5149\u52A8\u6548\u3002").addToggle(n=>n.setValue(this.plugin.settings.hoverGlow).onChange(async l=>{this.plugin.settings.hoverGlow=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u6587\u4EF6\u56FE\u6807").setDesc("\u53EF\u586B emoji \u6216\u7559\u7A7A\u7528 CSS \u53D8\u91CF --gd-icon-file \u63A7\u5236\u3002").addText(n=>n.setValue(this.plugin.settings.iconFile).onChange(async l=>{this.plugin.settings.iconFile=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u6587\u4EF6\u5939\u56FE\u6807\uFF08\u6536\u8D77 / \u5C55\u5F00\uFF09").setDesc("\u4E24\u4E2A\u8F93\u5165\u6846\uFF1A\u6536\u8D77\u65F6\u3001\u5C55\u5F00\u65F6\u3002\u60F3\u7528\u81EA\u5B9A\u4E49 SVG \u5C31\u7559\u7A7A\uFF0C\u6539 CSS \u53D8\u91CF --gd-icon-folder / --gd-icon-folder-open\u3002").addText(n=>n.setPlaceholder("\u7559\u7A7A = \u5185\u7F6E\u7EBF\u6761\u56FE\u6807").setValue(this.plugin.settings.iconFolder).onChange(async l=>{this.plugin.settings.iconFolder=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})).addText(n=>n.setPlaceholder("\u7559\u7A7A = \u5185\u7F6E\u7EBF\u6761\u56FE\u6807").setValue(this.plugin.settings.iconFolderOpen).onChange(async l=>{this.plugin.settings.iconFolderOpen=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u5F53\u524D\u6A21\u677F").setDesc("\u65B0\u5EFA\u5F53\u5929\u6587\u4EF6\u3001\u81EA\u52A8\u8865\u9F50\u65F6\u7528\u54EA\u4E2A\u6A21\u677F\u3002\u968F\u65F6\u53EF\u6362\u3002").addDropdown(n=>{for(let l of this.plugin.settings.templates)n.addOption(l.name,l.name);n.setValue(this.plugin.settings.defaultTemplate),n.onChange(async l=>{this.plugin.settings.defaultTemplate=l,await this.plugin.saveSettings(),this.plugin.refreshViews()})}),new E.Setting(t).setName("\u6C38\u4E45\u5220\u9664\u65F6\u4E0D\u518D\u786E\u8BA4").setDesc("\u5F00\u542F\u540E\uFF0C\u300C\u6C38\u4E45\u5220\u9664\u300D\u76F4\u63A5\u6267\u884C\u4E0D\u5F39\u7A97\uFF08\u79FB\u5165\u56DE\u6536\u7AD9\u59CB\u7EC8\u79D2\u5220\u3001\u59CB\u7EC8\u53EF\u6062\u590D\uFF09\u3002\u968F\u65F6\u53EF\u5728\u8FD9\u91CC\u5173\u56DE\u6765\u3002").addToggle(n=>n.setValue(this.plugin.settings.skipPermanentConfirm).onChange(async l=>{this.plugin.settings.skipPermanentConfirm=l,await this.plugin.saveSettings()})),new E.Setting(t).setName("\u6A21\u677F\u5E93").setDesc("\u70B9\u300C+ \u65B0\u589E\u6A21\u677F\u300D\u6DFB\u52A0\uFF1B\u4E5F\u53EF\u76F4\u63A5\u5728\u4E0B\u9762\u6309\u300C\u6A21\u677F\u540D | \u683C\u5B501 ; \u683C\u5B502\u300D\u9010\u884C\u7F16\u8F91\u3002\u65B0\u589E\u540E\u7ACB\u523B\u51FA\u73B0\u5728\u300C\u5F53\u524D\u6A21\u677F\u300D\u91CC\u3002").addButton(n=>n.setButtonText("+ \u65B0\u589E\u6A21\u677F").setCta().onClick(()=>{new Wt(this.app,async(l,d)=>this.plugin.settings.templates.some(h=>h.name===l)?(new E.Notice("\u5DF2\u6709\u540C\u540D\u6A21\u677F\uFF0C\u6362\u4E2A\u540D\u5B57"),!1):(this.plugin.settings.templates.push({name:l,titles:d}),await this.plugin.saveSettings(),this.plugin.refreshViews(),this.display(),new E.Notice(`\u5DF2\u6DFB\u52A0\u6A21\u677F\uFF1A${l}`),!0)).open()})).addTextArea(n=>{n.inputEl.rows=7,n.inputEl.style.width="100%",n.setValue(this.plugin.settings.templates.map(l=>`${l.name} | ${l.titles.join(" ; ")}`).join(`
-`)).onChange(async l=>{let d=[];for(let h of l.split(`
-`)){let u=h.trim();if(!u)continue;let[g,p]=u.split("|");if(!p)continue;let y=p.split(";").map(w=>w.trim()).filter(Boolean);y.length&&d.push({name:g.trim(),titles:y})}d.length&&(this.plugin.settings.templates=d,d.find(h=>h.name===this.plugin.settings.defaultTemplate)||(this.plugin.settings.defaultTemplate=d[0].name),await this.plugin.saveSettings(),this.plugin.refreshViews())})});for(let n of[...this.plugin.settings.templates])new E.Setting(t).setName(n.name).setDesc(`${n.titles.length} \u683C\uFF1A${n.titles.join(" / ")}`).addExtraButton(l=>l.setIcon("trash").setTooltip("\u5220\u9664\u8FD9\u4E2A\u6A21\u677F").onClick(async()=>{var d,h;this.plugin.settings.templates=this.plugin.settings.templates.filter(u=>u.name!==n.name),this.plugin.settings.defaultTemplate===n.name&&(this.plugin.settings.defaultTemplate=(h=(d=this.plugin.settings.templates[0])==null?void 0:d.name)!=null?h:""),await this.plugin.saveSettings(),this.plugin.refreshViews(),this.display(),new E.Notice(`\u5DF2\u5220\u9664\u6A21\u677F\uFF1A${n.name}`)}))}renderStyle(t){new E.Setting(t).setName("\u80CC\u666F\u56FE").setDesc("\u7559\u7A7A\u5219\u65E0\u80CC\u666F\u3002\u53EF\u586B vault \u5185\u56FE\u7247\u8DEF\u5F84\uFF08\u5982 \u9644\u4EF6/bg.jpg\uFF09\u6216 http \u94FE\u63A5\u3002").addText(i=>i.setPlaceholder("\u9644\u4EF6/bg.jpg").setValue(this.plugin.settings.background).onChange(async s=>{this.plugin.settings.background=s.trim(),await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u683C\u5B50\u900F\u660E\u5EA6").setDesc("0.3 ~ 1\uFF0C\u8D8A\u5C0F\u8D8A\u901A\u900F\u3002").addSlider(i=>i.setLimits(.3,1,.02).setValue(this.plugin.settings.cardOpacity).setDynamicTooltip().onChange(async s=>{this.plugin.settings.cardOpacity=s,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u5B57\u4F53").setDesc("CSS font-family\uFF0C\u9ED8\u8BA4\u6977\u4F53\uFF0C\u88C5\u4E86\u971E\u9E5C\u6587\u6977\u4F1A\u66F4\u50CF\u624B\u5199\u3002").addText(i=>i.setValue(this.plugin.settings.fontFamily).onChange(async s=>{this.plugin.settings.fontFamily=s,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u5BFC\u5165\u672C\u5730\u5B57\u4F53").setDesc(`\u652F\u6301 .ttf / .otf\uFF0C\u5BFC\u5165\u540E\u7ACB\u523B\u5E94\u7528\u5230\u683C\u5B50\u548C\u65E5\u5386\uFF1B\u5EFA\u8BAE\u5C0F\u4E8E 4MB\u3002${this.plugin.settings.fontFileName?`\u5F53\u524D\u5DF2\u5BFC\u5165\uFF1A${this.plugin.settings.fontFileName}`:"\u5F53\u524D\u672A\u5BFC\u5165\u5B57\u4F53\u6587\u4EF6\u3002"}`).addButton(i=>i.setButtonText("\u4E0A\u4F20\u5B57\u4F53\u6587\u4EF6").onClick(()=>{let s=document.createElement("input");s.type="file",s.accept=".ttf,.otf,font/ttf,font/otf,application/x-font-ttf",s.onchange=()=>{var n;let a=(n=s.files)==null?void 0:n[0];if(!a)return;if(a.size>4*1024*1024){new E.Notice("\u5B57\u4F53\u6587\u4EF6\u8D85\u8FC7 4MB\uFF0C\u5EFA\u8BAE\u6539\u7528 CSS \u5B57\u4F53\u540D\u65B9\u5F0F\uFF0C\u6216\u6362\u66F4\u5C0F\u7684\u5B50\u96C6\u5B57\u4F53");return}let r=new FileReader;r.onload=async()=>{this.plugin.settings.fontDataUrl=String(r.result||""),this.plugin.settings.fontFileName=a.name,await this.plugin.saveSettings(),this.plugin.applyCustomCss(),this.plugin.refreshViews(),this.display(),new E.Notice(`\u5DF2\u5E94\u7528\u5B57\u4F53\uFF1A${a.name}`)},r.onerror=()=>new E.Notice("\u8BFB\u53D6\u5B57\u4F53\u6587\u4EF6\u5931\u8D25"),r.readAsDataURL(a)},s.click()})).addExtraButton(i=>i.setIcon("trash").setTooltip("\u79FB\u9664\u5DF2\u5BFC\u5165\u7684\u5B57\u4F53").onClick(async()=>{this.plugin.settings.fontDataUrl="",this.plugin.settings.fontFileName="",await this.plugin.saveSettings(),this.plugin.applyCustomCss(),this.plugin.refreshViews(),this.display()})),new E.Setting(t).setName("\u4ECE .obsidian/fonts \u8BFB\u53D6\uFF08\u5927\u5B57\u4F53\u5907\u9009\uFF09").setDesc("\u628A .ttf/.otf \u653E\u8FDB vault \u7684 .obsidian/fonts \u76EE\u5F55\uFF0C\u70B9\u300C\u626B\u63CF\u76EE\u5F55\u300D\uFF0C\u518D\u5728\u4E0B\u62C9\u91CC\u9009\u3002\u9002\u5408\u8D85\u8FC7 4MB \u7684\u5B57\u4F53\u3002").addDropdown(i=>{i.addOption("","\uFF08\u672A\u9009\u62E9\uFF09"),this.plugin.settings.fontDirFile&&i.addOption(this.plugin.settings.fontDirFile,this.plugin.settings.fontDirFile),i.setValue(this.plugin.settings.fontDirFile||""),i.onChange(async s=>{this.plugin.settings.fontDirFile=s,s&&(this.plugin.settings.fontDataUrl="",this.plugin.settings.fontFileName=""),await this.plugin.saveSettings(),this.plugin.applyCustomCss(),this.plugin.refreshViews(),new E.Notice(s?`\u5DF2\u5E94\u7528\u76EE\u5F55\u5B57\u4F53\uFF1A${s}`:"\u5DF2\u53D6\u6D88\u76EE\u5F55\u5B57\u4F53")}),this.dirDropdown=i}).addButton(i=>i.setButtonText("\u626B\u63CF\u76EE\u5F55").onClick(async()=>{let s=await this.scanFontDir();if(!s.length){new E.Notice("\u6CA1\u627E\u5230 .ttf/.otf\u3002\u8BF7\u5148\u5728 vault \u7684 .obsidian/fonts \u91CC\u653E\u5B57\u4F53\u6587\u4EF6");return}let a=this.dirDropdown;if(a){let r=new Set(Array.from(a.selectEl.options).map(n=>n.value));for(let n of s)r.has(n)||a.addOption(n,n);a.setValue(s[0])}this.plugin.settings.fontDirFile=s[0],this.plugin.settings.fontDataUrl="",this.plugin.settings.fontFileName="",await this.plugin.saveSettings(),this.plugin.applyCustomCss(),this.plugin.refreshViews(),new E.Notice(`\u627E\u5230 ${s.length} \u4E2A\u5B57\u4F53\uFF0C\u5DF2\u5E94\u7528\uFF1A${s[0]}`)})),new E.Setting(t).setName("\u5B57\u91CD").setDesc("\u6570\u5B57\u8D8A\u5C0F\u8D8A\u7EC6\u3002300 \u7EC6\u4F53\u3001400 \u5E38\u89C4\u3001500 \u7A0D\u7C97\u3002").addSlider(i=>i.setLimits(200,600,100).setValue(this.plugin.settings.fontWeight).setDynamicTooltip().onChange(async s=>{this.plugin.settings.fontWeight=s,await this.plugin.saveSettings(),this.plugin.refreshViews()})),new E.Setting(t).setName("\u81EA\u5B9A\u4E49 CSS").setDesc("\u5199\u5728\u8FD9\u91CC\u7684\u6837\u5F0F\u4F1A\u6CE8\u5165\u5230\u6574\u4E2A\u5E93\uFF0C\u4FDD\u5B58\u540E\u7ACB\u5373\u751F\u6548\uFF08\u4E0D\u7528\u91CD\u542F\uFF09\u3002").setClass("gd-set-css").addTextArea(i=>{i.inputEl.rows=14,i.inputEl.style.width="100%",i.inputEl.spellcheck=!1,i.setPlaceholder(".grid-diary-view .gd-cell { border: none; }"),i.setValue(this.plugin.settings.customCss).onChange(async s=>{this.plugin.settings.customCss=s,await this.plugin.saveSettings(),this.plugin.applyCustomCss()})})}},Wt=class extends E.Modal{constructor(o,t){super(o),this.onSubmit=t}onOpen(){let{contentEl:o}=this;o.createEl("h3",{text:"\u65B0\u589E\u6A21\u677F"});let t="",e="";new E.Setting(o).setName("\u6A21\u677F\u540D\u79F0").addText(i=>{i.setPlaceholder("\u4E94\u884C\u65E5\u8BB0"),i.onChange(s=>t=s),window.setTimeout(()=>i.inputEl.focus(),40)}),new E.Setting(o).setName("\u683C\u5B50\u540D\u79F0").setDesc("\u7528\u9017\u53F7\u6216\u5206\u53F7\u9694\u5F00\uFF0C\u4F8B\u5982\uFF1A\u4E8B\u4EF6\u3001\u4E66\u8D26\u3001\u65B0\u77E5\u3001\u788E\u8BB0\u3001\u5F85\u529E").addText(i=>{i.setPlaceholder("\u4E8B\u4EF6\u3001\u4E66\u8D26\u3001\u65B0\u77E5\u3001\u788E\u8BB0\u3001\u5F85\u529E"),i.inputEl.style.width="100%",i.onChange(s=>e=s)}),new E.Setting(o).addButton(i=>i.setButtonText("\u53D6\u6D88").onClick(()=>this.close())).addButton(i=>i.setButtonText("\u4FDD\u5B58").setCta().onClick(async()=>{let s=t.trim(),a=e.split(/[,，;；]/).map(n=>n.trim()).filter(Boolean);if(!s){new E.Notice("\u8BF7\u586B\u6A21\u677F\u540D\u79F0");return}if(!a.length){new E.Notice("\u8BF7\u586B\u81F3\u5C11\u4E00\u4E2A\u683C\u5B50\u540D\u79F0");return}await this.onSubmit(s,a)&&this.close()}))}onClose(){this.contentEl.empty()}};var st=require("obsidian");function _t(c){return c.replace(/\r\n/g,`
-`).split(`
-`)}function Kt(c){let o=/^(#{1,6})\s+(.*?)\s*$/.exec(c);return o?{level:o[1].length,text:o[2]}:null}function lt(c){return/^\s*\d{1,2}\s*[:：]\s*\d{2}/.test(c)}function xt(c){let o=c.replace(/\r\n/g,`
-`).split(`
-`),t=new Array(o.length).fill(!0),e=0;for(;e<o.length;){let i=/^(#{1,6})\s+(.*)$/.exec(o[e]);if(!i){e++;continue}let s=i[1].length,a=e+1,r=!1;for(;a<o.length;a++){let n=/^(#{1,6})\s+/.exec(o[a]);if(n&&n[1].length<=s)break;if(o[a].trim()&&!/^#{1,6}\s+/.test(o[a])){r=!0;break}}r||(t[e]=!1),e++}return o.filter((i,s)=>t[s]).join(`
-`).replace(/\n{3,}/g,`
-
-`).trim()}function Tt(c,o){let t=c.replace(/\r\n/g,`
-`).split(`
-`),e=[],i=0;for(;i<t.length;){let s=/^(#{1,6})\s+(.*?)\s*$/.exec(t[i]);if(!s){e.push(t[i++]);continue}let a=s[1].length,r=s[2],n=i+1;for(;n<t.length;){let d=/^(#{1,6})\s+/.exec(t[n]);if(d&&d[1].length<=a)break;n++}e.push(t[i]);let l=o[r];if(l!==void 0){let d=l.trim();d&&e.push("",...d.split(`
-`),"")}else e.push(...t.slice(i+1,n));i=n}return e.join(`
-`)}function De(c,o,t){let e=o,i=t;for(;e<i&&c[e].trim()==="";)e++;for(;i>e&&c[i-1].trim()==="";)i--;return c.slice(e,i).join(`
-`)}function z(c,o=2){var r;let t=_t(c),e={h1:"",quote:"",frontmatter:"",sections:[]},i=0;if(((r=t[0])==null?void 0:r.trim())==="---"){for(let n=1;n<t.length;n++)if(t[n].trim()==="---"){e.frontmatter=t.slice(1,n).join(`
-`),i=n+1;break}}let s=[];for(let n=i;n<t.length;n++){let l=Kt(t[n]);l&&s.push({line:n,level:l.level,text:l.text})}for(let n=i;n<t.length;n++){let l=t[n].trim();if(!e.h1&&l.startsWith("# ")&&!l.startsWith("## ")&&(e.h1=l.slice(2).trim()),!e.quote&&l.startsWith(">")&&(e.quote=l.replace(/^>\s*/,"").trim()),e.h1&&e.quote)break}let a=s.filter(n=>n.level===o);for(let n=0;n<a.length;n++){let l=a[n],d=t.length;for(let h=l.line+1;h<t.length;h++){let u=Kt(t[h]);if(u&&u.level<=o){d=h;break}}e.sections.push({title:l.text,startLine:l.line,contentStart:l.line+1,contentEndExclusive:d,body:De(t,l.line+1,d)})}return e}function St(c,o,t,e=2){let i=_t(c),a=z(c,e).sections.find(h=>h.title===o),r=t.replace(/\r\n/g,`
-`).replace(/^\n+|\n+$/g,"");if(!a){let h="#".repeat(e),u=c.replace(/\s+$/,"");return u+=`
-
-${h} ${o}
-
-${r}
-`,u}let n=i.slice(0,a.contentStart),l=i.slice(a.contentEndExclusive),d=r?["",...r.split(`
-`),""]:[""];return[...n,...d,...l].join(`
-`)}function Xt(c,o,t,e,i=2){if(o===t)return c;let s=z(c,i),a=s.sections.length;if(a<2)return c;let r=s.sections.findIndex(y=>y.title===o),n=s.sections.findIndex(y=>y.title===t);if(r<0||n<0)return c;let l=_t(c),d=s.sections.map((y,w)=>({title:y.title,lines:l.slice(y.startLine,w+1<a?s.sections[w+1].startLine:l.length)})),h=l.slice(0,s.sections[0].startLine),[u]=d.splice(r,1),g=d.findIndex(y=>y.title===t);if(g<0)return c;e||(g+=1),d.splice(g,0,u);let p=[...h,...d.flatMap(y=>y.lines)].join(`
-`);return p===c?c:p}function ct(c){let t=c.replace(/\r\n/g,`
-`).split(`
-`),e=[],i=!1,s=r=>/^\s*([-*+]|\d+[.)])\s+\S/.test(r),a=r=>/^\s*(#{1,6}\s|>|---\s*$|\|)/.test(r);for(let r=0;r<t.length;r++){let n=t[r];if(/^\s*(```|~~~)/.test(n)){i=!i,e.push(n);continue}e.push(n);let l=r+1<t.length?t[r+1]:void 0;i||l===void 0||n.trim()===""||l.trim()===""||/ {2}$/.test(n)||/\\$/.test(n)||s(n)||s(l)||a(n)||a(l)||e.push("")}return e.join(`
-`)}function Qt(c){return c.replace(/!\[[^\]]*\]\([^)]*\)/g,"").replace(/\[([^\]]*)\]\([^)]*\)/g,"$1").replace(/^#{1,6}\s+/gm,"").replace(/^>\s?/gm,"").replace(/[*_`~]/g,"").replace(/\n{3,}/g,`
-
-`).trim()}function Jt(c,o,t=2){let i=c.replace(/\r\n/g,`
-`).split(`
-`),s="#".repeat(t)+" ",a="#".repeat(t+1)+" ",r=-1;for(let m=0;m<i.length;m++){let D=/^(#{1,6})\s+(.*?)\s*$/.exec(i[m]);if(D&&D[1].length===t){r=m;break}}let n=r>=0?i.slice(0,r):i.slice(),l=[],d=null;for(let m=r>=0?r:i.length;m<i.length;m++){let D=i[m],M=/^(#{1,6})\s+(.*?)\s*$/.exec(D);M&&M[1].length===t?(d&&l.push(d),d={title:M[2],body:[]}):d&&d.body.push(D)}d&&l.push(d);let h=m=>{let D=m.slice();for(;D.length&&!D[0].trim();)D.shift();for(;D.length&&!D[D.length-1].trim();)D.pop();return D},u=new Map,g=[],p=[];for(let m of l){if(lt(m.title)){g.push({title:m.title,body:h(m.body)});continue}u.has(m.title)||u.set(m.title,h(m.body))}for(let m of l)!lt(m.title)&&!o.includes(m.title)&&p.push({title:m.title,body:h(m.body)});let y=n.slice();for(;y.length&&!y[y.length-1].trim();)y.pop();y.length&&y.push("");let w=0;for(let m of o){y.push(`${s}${m}`,"");let D=u.get(m);D&&D.length&&(y.push(...D,""),w++)}if(p.length){y.push(`${s}\u672A\u5206\u7C7B\u5185\u5BB9`,"");for(let m of p)y.push(`${a}${m.title}`,""),m.body.length&&y.push(...m.body,"")}for(let m of g)y.push(`${s}${m.title}`,""),m.body.length&&y.push(...m.body,"");for(;y.length&&!y[y.length-1].trim();)y.pop();return{text:y.join(`
-`)+`
-`,orphans:p.map(m=>m.title),kept:w}}var Zt={\u6807\u9898:"title",\u9898\u76EE:"title",title:"title",\u5185\u5BB9:"content",content:"content",\u65E5\u671F:"date",\u65F6\u95F4:"date",date:"date",\u7528\u9014:"usage",usage:"usage",\u8BC4\u4EF7:"rating",\u8BC4\u5206:"rating",rating:"rating",\u6807\u7B7E:"tag",tag:"tag",tags:"tag",\u7F51\u5740:"url",\u94FE\u63A5:"url",url:"url",\u5408\u96C6:"collection",\u5408\u8F91:"collection",collection:"collection"},xe={title:"title",content:"content",date:"date",usage:"usage",rating:"rating",tag:"tag",url:"url",collection:"collection"},Te=["title","content","date","usage","rating","tag","url","collection"];function ee(c){var e;let o=c.trim();if(!o)return null;let t=(e=Zt[o])!=null?e:Zt[o.toLowerCase()];return t!=null?t:null}function ie(c){var t;let o=c.split(/\r?\n/);if(((t=o[0])==null?void 0:t.trim())!=="---")return{fm:null,body:c};for(let e=1;e<o.length;e++)if(o[e].trim()==="---")return{fm:o.slice(1,e),body:o.slice(e+1).join(`
-`)};return{fm:null,body:c}}function Se(c){let o=new Map,{body:t}=ie(c),e=t.split(/\r?\n/),i=!1;for(let s of e){if(/^\s*(```|~~~)/.test(s)){i=!i;continue}if(i)continue;let a=s.replace(/^\s*[-*+]\s+/,"").replace(/^\s*>\s*/,"").replace(/^\s*#{1,6}\s*/,"").replace(/\*\*/g,"").trim(),r=/^([^\s：:]{1,8})\s*[：:]\s*(.+)$/.exec(a);if(!r)continue;let n=ee(r[1]);if(!n)continue;let l=r[2].trim();l=l.replace(/^["'「『]/,"").replace(/["'」』]$/,"").trim(),l&&o.set(n,l)}return o}function te(c){return/[:#]/.test(c)||/^[\s"']/.test(c)||/\s$/.test(c)||c===""?`"${c.replace(/"/g,'\\"')}"`:c}function ke(c,o){if(!o.size)return c;let{fm:t,body:e}=ie(c),i=t?[...t]:[],s=new Set;for(let n=0;n<i.length;n++){let l=i[n],d=/^(\s*)([^\s:：][^:：]*?)\s*[：:]\s*(.*)$/.exec(l);if(!d)continue;let h=ee(d[2]);if(!h||!o.has(h))continue;let u=o.get(h);i[n]=`${d[1]}${d[2]}: ${te(u)}`,s.add(h)}for(let n of Te)!o.has(n)||s.has(n)||i.push(`${xe[n]}: ${te(o.get(n))}`);let a=["---",...i,"---"].join(`
-`),r=e.replace(/^\n+/,"");return r?`${a}
-${r}`:`${a}
-`}function se(c){let o=Se(c);return o.size?ke(c,o):c}var Ce=c=>c.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");function kt(c){let o=[];c.float&&c.float!=="none"&&o.push(`float:${c.float}`),c.border&&c.border!=="none"&&o.push(`border:${c.border}`),c.radius&&o.push(`border-radius:${c.radius}px`),c.shadow&&o.push("box-shadow:0 2px 10px rgba(0,0,0,.18)");let t=o.length?` style="${o.join(";")}"`:"",e=c.width?` width="${Math.round(c.width)}"`:"",i=c.height?` height="${Math.round(c.height)}"`:"";return`<img src="${c.src}"${e}${i}${t}>`}function ne(c,o,t){var a;let e=Ce(((a=o.split(/[\\/]/).pop())!=null?a:o).replace(/\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i,"")),i=new RegExp(`<img\\s[^>]*src="(?:[^"]*/)?(${e}\\.(?:png|jpe?g|gif|webp|svg|bmp|avif))"[^>]*>`,"i");if(i.test(c))return c.replace(i,kt(t));let s=new RegExp(`!\\[\\[((?:[^\\]|/]*/)*)(${e})(?:\\|[^\\]]*)?\\]\\]`,"i");return s.test(c)?c.replace(s,(r,n,l)=>kt({...t,src:`${n}${l}`})):c}function Lt(c){return String(c).padStart(2,"0")}function R(c=new Date){return`${c.getFullYear()}-${Lt(c.getMonth()+1)}-${Lt(c.getDate())}`}function Gt(c,o){let[t,e,i]=c.split("-").map(Number),s=new Date(t,e-1,i);return s.setDate(s.getDate()+o),R(s)}function $t(c){let[o,t,e]=c.split("-").map(Number),i=new Date(o,t-1,e);return["\u5468\u65E5","\u5468\u4E00","\u5468\u4E8C","\u5468\u4E09","\u5468\u56DB","\u5468\u4E94","\u5468\u516D"][i.getDay()]}var Ct=["\u58F9","\u8D30","\u53C1","\u8086","\u4F0D","\u9646","\u67D2","\u634C","\u7396"],Yt="\u62FE",ae=/^[壹贰叁肆伍陆柒捌玖拾]+$/,Le=/^(\d{4}-\d{2}-\d{2})(.+)?\.md$/;function Pe(c){if(!Number.isInteger(c)||c<1||c>99)return String(c);if(c<10)return Ct[c-1];let o=Math.floor(c/10),t=c%10,e=o===1?Yt:`${Ct[o-1]}${Yt}`;return t?`${e}${Ct[t-1]}`:e}function re(c){if(!c)return 0;if(!ae.test(c))return Number.POSITIVE_INFINITY;let o=s=>Ct.indexOf(s)+1,t=c.indexOf(Yt);if(t<0)return o(c)||Number.POSITIVE_INFINITY;let e=t===0?1:o(c.slice(0,t)),i=t===c.length-1?0:o(c.slice(t+1));return e<1||t+1<c.length&&i<1?Number.POSITIVE_INFINITY:e*10+i}var Pt=class{constructor(o,t){this.app=o;this.getRoot=t;this.getDefaultTitles=null;this.ensureDayFile=null}root(){return(0,st.normalizePath)(this.getRoot().trim()||"\u65E5\u8BB0")}pathFor(o,t){return(0,st.normalizePath)(`${this.root()}/${o}${t!=null?t:""}.md`)}fileFor(o,t){let e=this.app.vault.getAbstractFileByPath(this.pathFor(o,t));return e&&typeof e.path=="string"?e:null}entriesFor(o){var i,s;let t=this.root(),e=[];for(let a of this.app.vault.getFiles()){if(((i=a.parent)==null?void 0:i.path)!==t)continue;let r=Le.exec(a.name);if(!r||r[1]!==o)continue;let n=(s=r[2])!=null?s:"";n&&!ae.test(n)||e.push({suffix:n,file:a})}return e.sort((a,r)=>re(a.suffix)-re(r.suffix)),e}nextSuffix(o){let t=new Set(this.entriesFor(o).map(e=>e.suffix));if(!t.has(""))return"";for(let e=1;e<=99;e++){let i=Pe(e);if(!t.has(i))return i}return""}async ensureFolder(){let o=this.root();if(!this.app.vault.getAbstractFileByPath(o))try{await this.app.vault.createFolder(o)}catch(t){}}async syncAttrs(o){try{let t=await this.app.vault.cachedRead(o),e=se(t);e!==t&&await this.app.vault.process(o,()=>e)}catch(t){console.error("[grid-diary] \u56DE\u586B\u5C5E\u6027\u5931\u8D25",t)}}async createDayFile(o,t,e,i){await this.ensureFolder();let s=(e!=null?e:"").trim(),a;return s?a=await this.app.vault.create(this.pathFor(o,i),s.replace(/\s*$/,"")+`
-`):a=await this.app.vault.create(this.pathFor(o,i),""),await this.syncAttrs(a),a}async readDay(o,t){let e=this.fileFor(o,t);if(!e)return{date:o,file:null,h1:"",quote:"",cells:[],timeline:[]};let i=await this.app.vault.cachedRead(e);return this.buildSnapshot(o,e,i)}buildSnapshot(o,t,e){let i=z(e,2),s=[],a=[];for(let r of i.sections){let n=Qt(r.body),l={title:r.title,preview:n.slice(0,220),line:r.startLine,size:n.replace(/\s/g,"").length,hasContent:n.length>0||/!\[\[/.test(r.body),body:r.body};if(lt(r.title)){let d=/^\s*(\d{1,2}\s*[:：]\s*\d{2})/.exec(r.title);l.time=d?d[1].replace("\uFF1A",":"):r.title,a.push(l)}else s.push(l)}return{date:o,file:t,h1:i.h1,quote:i.quote,cells:s,timeline:a}}async appendTimelineNote(o,t,e="\u5206\u7B14\u8BB0",i){var d;let s=this.fileFor(o,i);s||(this.ensureDayFile&&await this.ensureDayFile(o),s=(d=this.fileFor(o,i))!=null?d:await this.createDayFile(o,[],void 0,i));let a=new Date,r=Lt(a.getHours()),n=Lt(a.getMinutes()),l=`${r}:${n} ${e}`;return await this.app.vault.process(s,h=>`${h.replace(/\s*$/,"")}
-
-## ${l}
-
-${t.replace(/\s*$/,"")}
-`),await this.syncAttrs(s),!0}async setImageWidth(o,t,e,i){let s=this.fileFor(o,i);if(!s)return!1;let a=h=>h.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),r=a(t),n=a(t.replace(/\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i,"")),l=new RegExp(`!\\[\\[((?:[^\\]|/]*/)*)(${r}|${n})(?:\\|[^\\]]*)?\\]\\]`,"i"),d=!1;return await this.app.vault.process(s,h=>l.test(h)?(d=!0,h.replace(l,(u,g,p)=>`![[${g}${p}|${Math.round(e)}]]`)):h),d}async setImageAttrs(o,t,e,i){let s=this.fileFor(o,i);if(!s)return!1;let a=!1;return await this.app.vault.process(s,r=>{let n=ne(r,t,{...e,src:t});return n!==r&&(a=!0),n}),a}async fillWithTemplate(o,t,e){let i=this.fileFor(o,e);if(!i)return await this.createDayFile(o,t,void 0,e),[...t];let s=await this.app.vault.cachedRead(i),a=new Set(z(s,2).sections.map(n=>n.title)),r=t.filter(n=>!a.has(n));return r.length?(await this.app.vault.process(i,n=>{let l=n;for(let d of r)l=St(l,d,"");return l}),r):[]}async writeSection(o,t,e,i){let s=this.fileFor(o,i);if(!s)return new st.Notice("\u8FD9\u4E00\u5929\u7684\u6587\u4EF6\u4E0D\u5B58\u5728"),!1;let a=ct(e);return await this.app.vault.process(s,r=>St(r,t,a)),await this.syncAttrs(s),!0}async retitleTemplate(o,t,e){let i=this.fileFor(o,e);if(!i)return new st.Notice("\u8FD9\u4E00\u5929\u7684\u6587\u4EF6\u4E0D\u5B58\u5728"),null;let s={kept:0,orphans:[]};return await this.app.vault.process(i,a=>{let r=Jt(a,t,2);return s={kept:r.kept,orphans:r.orphans},r.text}),s}async addSection(o,t,e){let i=this.fileFor(o,e);i||(await this.ensureFolder(),i=await this.app.vault.create(this.pathFor(o,e),""));let s=await this.app.vault.cachedRead(i);return z(s,2).sections.some(a=>a.title===t)?(new st.Notice("\u5DF2\u6709\u540C\u540D\u683C\u5B50"),!1):(await this.app.vault.process(i,a=>St(a,t,"")),!0)}async moveSection(o,t,e,i,s){let a=this.fileFor(o,s);if(!a||t===e)return!1;let r=!1;return await this.app.vault.process(a,n=>{let l=Xt(n,t,e,i,2);return l!==n&&(r=!0),l}),r}async deleteSection(o,t,e){let i=this.fileFor(o,e);if(!i)return null;let s={v:null};return await this.app.vault.process(i,a=>{var u;let r=z(a,2),n=r.sections.findIndex(g=>g.title===t);if(n<0)return a;let l=a.replace(/\r\n/g,`
-`).split(`
-`),d=r.sections[n];s.v={title:t,body:(u=d.body)!=null?u:"",index:n};let h=d.contentEndExclusive;for(;h<l.length&&l[h].trim()==="";)h++;return l.splice(d.startLine,h-d.startLine),l.join(`
-`).replace(/\n{3,}/g,`
-
-`)}),s.v}async restoreSection(o,t,e,i,s){let a=this.fileFor(o,s);return a?(await this.app.vault.process(a,r=>{let n=z(r,2);if(n.sections.some(u=>u.title===t))return r;let l=r.replace(/\r\n/g,`
-`).split(`
-`),d=n.sections[Math.min(i,n.sections.length)],h=[`## ${t}`,"",...e.replace(/\r\n/g,`
-`).split(`
-`)];if(d)l.splice(d.startLine,0,...h,"");else{for(;l.length&&l[l.length-1].trim()==="";)l.pop();l.push("",...h,"")}return l.join(`
-`).replace(/\n{4,}/g,`
+/* Grid Diary v3.11.0 - built from src/ by build.mjs - DO NOT EDIT THIS FILE DIRECTLY */
+/* ---- 00-header.js ---- */
+/* ============================================================
+ * 格间日记 Grid Diary v2.0
+ * 源码分片，由 build.mjs 顺序拼接为单文件 main.js
+ * 零运行时依赖：只需要 Obsidian 自带的 obsidian 模块
+ * ============================================================ */
+"use strict";
+(function () {
+/* 加载期冲突的轻量告警：只在视图类型撞名等异常时写一行，正常路径零开销 */
+var __gdTrace = function (msg) { try { console.warn("[格间日记]", msg); } catch (e) { } };
+const {
+  Plugin, PluginSettingTab, ItemView, Modal, Setting, Notice, Platform,
+  Menu, TFile, TFolder, MarkdownRenderer, normalizePath, setIcon
+} = require("obsidian");
 
 
-`)}),!0):!1}};var S=require("obsidian");var J=require("obsidian"),Ft=class extends J.Modal{constructor(o,t){var e,i,s;super(o),this.title=t.title,this.desc=(e=t.desc)!=null?e:"",this.placeholder=(i=t.placeholder)!=null?i:"",this.value=(s=t.initial)!=null?s:"",this.onSubmit=t.onSubmit}onOpen(){let{contentEl:o}=this;o.empty(),o.createEl("h3",{text:this.title}),this.desc&&o.createEl("p",{text:this.desc,cls:"grid-diary-modal-desc"}),new J.Setting(o).addText(t=>{t.setValue(this.value),t.setPlaceholder(this.placeholder),t.inputEl.style.width="100%",t.onChange(e=>this.value=e),t.inputEl.addEventListener("keydown",e=>{e.key==="Enter"&&(e.preventDefault(),this.submit())}),window.setTimeout(()=>t.inputEl.focus(),10)}),new J.Setting(o).addButton(t=>t.setButtonText("\u786E\u5B9A").setCta().onClick(()=>this.submit()))}submit(){let o=this.value.trim();this.close(),o&&this.onSubmit(o)}onClose(){this.contentEl.empty()}};var Mt=class extends J.Modal{constructor(t,e,i){super(t);this.ta=null;this.date=e,this.onSubmit=i}onOpen(){let{contentEl:t,modalEl:e}=this;e.addClass("grid-diary-edit-modal"),e.style.width="min(620px, 92vw)",t.empty(),t.createEl("h3",{text:`\u5FEB\u901F\u7B14\u8BB0 \xB7 ${this.date}`,cls:"grid-diary-edit-title"});let i=t.createEl("textarea",{cls:"grid-diary-edit-area gd-quick-area"});i.placeholder="\u968F\u624B\u5199\u70B9\u4EC0\u4E48\u2026\uFF08\u4F1A\u81EA\u52A8\u8FFD\u52A0\u4E3A\u4E00\u6761\u5E26\u65F6\u95F4\u7684\u7B14\u8BB0\uFF0C\u4E0D\u5F71\u54CD\u4E5D\u5BAB\u683C\uFF09",i.style.height="150px",this.ta=i,i.addEventListener("keydown",n=>{(n.ctrlKey||n.metaKey)&&n.key==="Enter"&&(n.preventDefault(),this.save())}),window.setTimeout(()=>i.focus(),10);let s=t.createDiv({cls:"grid-diary-edit-bar"});s.createEl("span",{text:"Ctrl+Enter \u4FDD\u5B58",cls:"grid-diary-edit-hint"}),s.createEl("button",{text:"\u53D6\u6D88",cls:"mod-cta-alt"}).addEventListener("click",()=>this.close()),s.createEl("button",{text:"\u6DFB\u52A0",cls:"mod-cta"}).addEventListener("click",()=>void this.save())}async save(){var e,i;let t=((i=(e=this.ta)==null?void 0:e.value)!=null?i:"").trim();if(!t){this.close();return}await this.onSubmit(t),this.close()}onClose(){this.contentEl.empty()}},nt=class extends J.Modal{constructor(o,t,e,i){super(o),this.options=t,this.onPick=e,this.onSetDefault=i}onOpen(){let{contentEl:o}=this;o.empty(),o.createEl("h3",{text:"\u9009\u62E9\u4E00\u4E2A\u6A21\u677F"});for(let t of this.options){let e=o.createDiv({cls:"grid-diary-tpl-row"}),i=e.createDiv({cls:"grid-diary-tpl-main"});i.createEl("div",{text:t.name,cls:"grid-diary-tpl-name"}),i.createEl("div",{text:t.titles.join(" \xB7 "),cls:"grid-diary-tpl-desc"}),i.addEventListener("click",()=>{this.close(),this.onPick(t)}),this.onSetDefault&&e.createEl("button",{text:"\u8BBE\u4E3A\u5F53\u524D",cls:"grid-diary-tpl-set"}).addEventListener("click",a=>{a.stopPropagation(),this.onSetDefault(t),this.close()})}}onClose(){this.contentEl.empty()}},dt=class extends J.Modal{constructor(t,e){super(t);this.opts=e}onOpen(){this.titleEl.setText(this.opts.title),this.opts.desc&&this.contentEl.createEl("p",{text:this.opts.desc});let t=null;if(this.opts.checkboxLabel){let a=this.contentEl.createDiv({cls:"gd-check-row"});t=a.createEl("input"),t.type="checkbox",t.id="gd-confirm-check",a.createEl("label",{text:this.opts.checkboxLabel}).setAttribute("for","gd-confirm-check")}let e=this.contentEl.createDiv({cls:"gd-modal-row"});e.createEl("button",{text:"\u53D6\u6D88",cls:"gd-btn"}).addEventListener("click",()=>this.close()),e.createEl("button",{text:this.opts.okText||"\u786E\u5B9A",cls:this.opts.danger?"gd-btn gd-btn-danger":"gd-btn gd-btn-primary"}).addEventListener("click",()=>{let a=t?t.checked:!1;Promise.resolve(this.opts.onOk(a)).finally(()=>this.close())})}onClose(){this.contentEl.empty()}};function oe(c,o,t={}){let[e,i,s]=o.split("-").map(Number),a=c.createEl("span",{cls:"gd-cdate"+(t.cls?" "+t.cls:"")});return t.year!==!1&&(a.createEl("span",{text:String(e),cls:"gd-cy"}),a.createEl("span",{text:"\u5E74",cls:"gd-csep"})),a.createEl("span",{text:String(i).padStart(2,"0"),cls:"gd-cm"}),a.createEl("span",{text:"\u6708",cls:"gd-csep"}),a.createEl("span",{text:String(s).padStart(2,"0"),cls:"gd-cd"}),a.createEl("span",{text:"\u65E5",cls:"gd-csep"}),t.weekday&&a.createEl("span",{text:" "+$t(o),cls:"gd-cweek"}),a}function ft(c,o,t){let e=c.createEl("span",{cls:"gd-cdate"});return e.createEl("span",{text:String(o),cls:"gd-cy"}),e.createEl("span",{text:"\u5E74",cls:"gd-csep"}),e.createEl("span",{text:String(t).padStart(2,"0"),cls:"gd-cm"}),e.createEl("span",{text:"\u6708",cls:"gd-csep"}),e}var P=require("obsidian"),$e=new Set([".obsidian",".trash",".git",".github","node_modules"]),_=new Map,zt=/^(\d{4}-\d{2}-\d{2})([壹贰叁肆伍陆柒捌玖拾]+)?\.md$/,jt="",At=(c,o)=>!o||o===(c==="file"?"\u{1F4C4}":"\u{1F4C1}");function It(c,o,t){c.style.setProperty("--indent",`${o*8}px`),t&&c.createDiv({cls:"gd-meteor"})}function le(c){c.createDiv({cls:"gd-row-line"})}function qt(c){if(c instanceof P.TFile)return 1;if(c instanceof P.TFolder){let o=0;for(let t of c.children)o+=qt(t);return o}return 0}function rt(c,o){let t=o.settings;c.empty(),c.style.width=`${Math.max(150,Math.min(480,t.leftWidth||240))}px`;let e=(i,s)=>!s||s===(i==="file"?"\u{1F4C4}":"\u{1F4C1}");c.style.setProperty("--gd-icon-file",`"${t.iconFile||""}"`),c.style.setProperty("--gd-icon-folder",`"${t.iconFolder||""}"`),c.style.setProperty("--gd-icon-folder-open",`"${t.iconFolderOpen||""}"`),c.toggleClass("gd-with-lines",t.showTreeLines),c.toggleClass("gd-hover-glow",t.hoverGlow),Fe(c,o),t.showRecentFiles&&Ae(c,o),Ie(c,o),ce(c)}function Fe(c,o){let t=o.settings,e=c.createDiv({cls:"gd-left-toolbar"});e.createSpan({cls:"gd-left-toolbar-title",text:"\u76EE\u5F55"});let i=e.createEl("button",{cls:"gd-left-mini gd-left-close",text:"\u2715"});i.setAttribute("aria-label","\u5173\u95ED\u76EE\u5F55\u9762\u677F"),i.setAttribute("title","\u5173\u95ED\u76EE\u5F55\u9762\u677F"),i.addEventListener("click",async()=>{t.showLeftPanel=!1,await o.saveSettings(),o.refreshViews()});let s=c.createDiv({cls:"gd-left-toolbar gd-left-toolbar-2"}),a=s.createEl("input",{cls:"gd-left-search",type:"text"});a.placeholder="\u641C\u7D22\u6587\u4EF6\u2026",a.value=jt,a.addEventListener("input",()=>{jt=a.value,ce(c)});let r=s.createEl("select",{cls:"gd-left-sort"});[["folders","\u6587\u4EF6\u5939\u4F18\u5148"],["name","\u540D\u79F0"],["mtime","\u65F6\u95F4"]].forEach(([d,h])=>{let u=r.createEl("option",{text:h});u.value=d,d===t.treeSort&&(u.selected=!0)}),r.addEventListener("change",()=>{(async()=>(t.treeSort=r.value,await o.saveSettings(),rt(c,o)))()});let n=s.createEl("button",{cls:"gd-left-mini",text:"\u229E"});n.setAttribute("aria-label","\u5168\u90E8\u5C55\u5F00"),n.setAttribute("title","\u5168\u90E8\u5C55\u5F00"),n.addEventListener("click",()=>{o.app.vault.getAllLoadedFiles().forEach(d=>{d instanceof P.TFolder&&_.set(d.path,!0)}),_.set("__vault__",!0),rt(c,o)});let l=s.createEl("button",{cls:"gd-left-mini",text:"\u229F"});l.setAttribute("aria-label","\u5168\u90E8\u6536\u8D77"),l.setAttribute("title","\u5168\u90E8\u6536\u8D77"),l.addEventListener("click",()=>{o.app.vault.getAllLoadedFiles().forEach(d=>{d instanceof P.TFolder&&_.set(d.path,!1)}),_.set("__vault__",!1),rt(c,o)})}function ce(c){let o=jt.trim().toLowerCase(),t=Array.from(c.querySelectorAll(".gd-tree-file, .gd-left-row")),e=Array.from(c.querySelectorAll(".gd-tree-folder"));if(!o){t.forEach(r=>r.style.display=""),e.forEach(r=>r.style.display="");return}let i=r=>(r.dataset.search||r.textContent||"").toLowerCase().includes(o),s=new Map;t.forEach(r=>s.set(r,i(r)));let a=new Map;[...e].reverse().forEach(r=>{let n=(r.dataset.search||r.textContent||"").toLowerCase().includes(o),l=r.nextElementSibling,d=l?Array.from(l.querySelectorAll(".gd-tree-file, .gd-tree-folder")).some(h=>{var u;return(u=a.get(h))!=null?u:!1}):!1;a.set(r,n||d)}),t.forEach(r=>r.style.display=s.get(r)?"":"none"),e.forEach(r=>r.style.display=a.get(r)?"":"none")}function de(c,o){var i;let t=zt.exec(o.name);if(t&&c.store.fileFor(t[1],t[2])){c.activateView(t[1],(i=t[2])!=null?i:"");return}let e=c.app.workspace.activeLeaf;c.app.workspace.getLeaf("tab").openFile(o).then(()=>{e&&c.app.workspace.setActiveLeaf(e,{focus:!0})})}function pe(c,o,t){c.addItem(e=>e.setTitle("\u5728\u65B0\u6807\u7B7E\u9875\u6253\u5F00").setIcon("file-input").onClick(()=>void o.app.workspace.getLeaf("tab").openFile(t))),c.addItem(e=>e.setTitle("\u5728\u65B0\u7A97\u53E3\u6253\u5F00").setIcon("box").onClick(()=>{try{let i=o.app.workspace.openPopoutLeaf();i==null||i.openFile(t)}catch(i){new P.Notice("\u65B0\u7A97\u53E3\u9700\u8981\u684C\u9762\u7248 Obsidian")}})),c.addItem(e=>e.setTitle("\u521B\u5EFA\u526F\u672C").setIcon("copy").onClick(()=>{var h;let i=(h=t.parent)!=null&&h.path?t.parent.path+"/":"",s=/^(.*?)(\.[^.]+)$/.exec(t.name),a=s?s[1]:t.name,r=s?s[2]:"",n=1,l=()=>`${i}${a} ${n}${r}`,d=n===1&&t.name.includes(" 1")?l():`${i}${a} 1${r}`;o.app.vault.create(d,"").then(async u=>{let g=await o.app.vault.read(t);await o.app.vault.modify(u,g)}).catch(()=>new P.Notice("\u526F\u672C\u5DF2\u5B58\u5728"))})),c.addItem(e=>e.setTitle("\u79FB\u52A8\u5230\u2026").setIcon("folder-input").onClick(()=>{var a,r;let i=window.prompt("\u79FB\u52A8\u5230\uFF08\u76EE\u5F55\u8DEF\u5F84\uFF0C\u7559\u7A7A=\u6839\u76EE\u5F55\uFF09",(r=(a=t.parent)==null?void 0:a.path)!=null?r:"");if(i===null)return;let s=`${i.replace(/\/+$/,"")?i.replace(/\/+$/,"")+"/":""}${t.name}`;o.app.fileManager.renameFile(t,s).catch(()=>new P.Notice("\u79FB\u52A8\u5931\u8D25\uFF1A\u8DEF\u5F84\u65E0\u6548"))})),c.addSeparator(),c.addItem(e=>e.setTitle("\u91CD\u547D\u540D").setIcon("pencil").onClick(()=>{var s;let i=window.prompt("\u91CD\u547D\u540D",t.basename);i===null||!i.trim()||i.trim()===t.basename||o.app.fileManager.renameFile(t,`${(s=t.parent)!=null&&s.path?t.parent.path+"/":""}${i.trim()}.${t.extension}`)})),c.addItem(e=>e.setTitle("\u5220\u9664").setIcon("trash").onClick(async()=>{if(window.confirm(`\u628A\u300C${t.path}\u300D\u79FB\u5230\u56DE\u6536\u7AD9\uFF1F`))try{await o.app.vault.trash(t,!0)}catch(i){try{await o.app.vault.trash(t,!1)}catch(s){new P.Notice(`\u5220\u9664\u5931\u8D25\uFF1A${String(s)}`)}}})),c.addItem(e=>e.setTitle("\u590D\u5236\u8DEF\u5F84").setIcon("link").onClick(()=>{navigator.clipboard.writeText(t.path),new P.Notice("\u8DEF\u5F84\u5DF2\u590D\u5236")})),c.addSeparator(),o.app.workspace.trigger("file-menu",c,t,"grid-diary")}function Me(c,o,t){c.addItem(e=>e.setTitle("\u65B0\u5EFA\u7B14\u8BB0").setIcon("file-plus").onClick(()=>{let i=window.prompt("\u65B0\u5EFA\u7B14\u8BB0\u540D\u79F0","\u672A\u547D\u540D");if(!(i!=null&&i.trim()))return;let s=`${t.path?t.path+"/":""}${i.trim()}.md`;o.app.vault.create(s,"").catch(()=>new P.Notice("\u521B\u5EFA\u5931\u8D25\uFF1A\u6587\u4EF6\u5DF2\u5B58\u5728"))})),c.addItem(e=>e.setTitle("\u65B0\u5EFA\u6587\u4EF6\u5939").setIcon("folder-plus").onClick(()=>{let i=window.prompt("\u65B0\u5EFA\u6587\u4EF6\u5939\u540D\u79F0","\u65B0\u6587\u4EF6\u5939");if(!(i!=null&&i.trim()))return;let s=`${t.path?t.path+"/":""}${i.trim()}`;o.app.vault.createFolder(s).catch(()=>new P.Notice("\u521B\u5EFA\u5931\u8D25\uFF1A\u6587\u4EF6\u5939\u5DF2\u5B58\u5728"))})),c.addSeparator(),c.addItem(e=>e.setTitle("\u91CD\u547D\u540D").setIcon("pencil").onClick(()=>{var s;let i=window.prompt("\u91CD\u547D\u540D\u6587\u4EF6\u5939",t.name);i===null||!i.trim()||i.trim()===t.name||o.app.fileManager.renameFile(t,`${(s=t.parent)!=null&&s.path?t.parent.path+"/":""}${i.trim()}`)})),c.addItem(e=>e.setTitle("\u5220\u9664").setIcon("trash").onClick(async()=>{if(window.confirm(`\u628A\u300C${t.path}\u300D\u53CA\u5176\u5185\u5BB9\u79FB\u5230\u56DE\u6536\u7AD9\uFF1F`))try{await o.app.vault.trash(t,!0)}catch(i){new P.Notice(`\u5220\u9664\u5931\u8D25\uFF1A${String(i)}`)}})),c.addItem(e=>e.setTitle("\u590D\u5236\u8DEF\u5F84").setIcon("link").onClick(()=>{navigator.clipboard.writeText(t.path),new P.Notice("\u8DEF\u5F84\u5DF2\u590D\u5236")})),c.addSeparator(),o.app.workspace.trigger("file-menu",c,t,"grid-diary")}function Ae(c,o){let t=o.settings,e=c.createDiv({cls:"gd-left-section gd-left-recent"});e.createDiv({cls:"gd-left-head"}).createSpan({cls:"gd-left-title",text:"\u6700\u8FD1\u6587\u4EF6"});let s=o.app.vault.getMarkdownFiles().slice().sort((r,n)=>n.stat.mtime-r.stat.mtime).slice(0,12);if(!s.length){e.createDiv({cls:"gd-left-empty",text:"\u8FD8\u6CA1\u6709\u7B14\u8BB0"});return}let a=e.createDiv({cls:"gd-left-list"});for(let r of s){let n=a.createDiv({cls:"gd-left-row"});It(n,0,t.hoverGlow),(zt.test(r.name)&&r.basename===o.activeDate||r.path===o.openFilePath)&&n.addClass("active"),n.dataset.search=r.basename.toLowerCase(),n.dataset.path=r.path,le(n),n.createSpan({cls:"gd-row-icon gd-icon-file"+(At("file",t.iconFile)?" gd-icon-svg gd-ico-file":"")}),n.createSpan({cls:"gd-row-name",text:r.basename}).setAttribute("title",r.path),n.addEventListener("click",h=>{h.preventDefault(),h.stopPropagation(),de(o,r)}),n.addEventListener("contextmenu",h=>{h.preventDefault();let u=new P.Menu;pe(u,o,r),u.showAtMouseEvent(h)})}}function Ie(c,o){let t=c.createDiv({cls:"gd-left-section gd-left-tree"});t.createDiv({cls:"gd-left-head"}).createSpan({cls:"gd-left-title",text:"\u6587\u4EF6\u5939"});let i=o.app.vault.getRoot(),s=t.createDiv({cls:"gd-tree-row gd-tree-folder gd-vault-row"});It(s,0,o.settings.hoverGlow);let a=_.has("__vault__")?_.get("__vault__"):!0;a&&s.addClass("is-open"),s.createSpan({cls:"gd-row-icon gd-icon-folder"+(At("folder",o.settings.iconFolder)?" gd-icon-svg gd-ico-folder":"")}),s.createSpan({cls:"gd-row-name",text:o.app.vault.getName()}),s.createSpan({cls:"gd-tree-caret",text:a?"\u25BE":"\u25B8"}),s.createSpan({cls:"gd-tree-count",text:String(qt(i))});let r=t.createDiv({cls:"gd-tree-kids"});a||r.addClass("is-collapsed"),he(r,o,i,1),s.addEventListener("click",()=>{let n=!(!_.has("__vault__")||_.get("__vault__"));_.set("__vault__",n),s.toggleClass("is-open",n),r.toggleClass("is-collapsed",!n);let l=s.querySelector(".gd-tree-caret");l&&l.setText(n?"\u25BE":"\u25B8")}),r.childElementCount||r.createDiv({cls:"gd-left-empty",text:"\u6CA1\u6709\u53EF\u663E\u793A\u7684\u6587\u4EF6"})}function he(c,o,t,e){let i=o.settings,s=[...t.children].sort((a,r)=>{if(i.treeSort==="mtime"){let d=a instanceof P.TFolder?0:1,h=r instanceof P.TFolder?0:1;if(d!==h)return d-h;let u=a instanceof P.TFile?a.stat.mtime:0,g=r instanceof P.TFile?r.stat.mtime:0;return u!==g?g-u:a.name.localeCompare(r.name,"zh")}if(i.treeSort==="name")return a.name.localeCompare(r.name,"zh");let n=a instanceof P.TFolder?0:1,l=r instanceof P.TFolder?0:1;return n!==l?n-l:a.name.localeCompare(r.name,"zh")});for(let a of s){if(a instanceof P.TFolder){if($e.has(a.name))continue;let l=a.path,d=_.has(l)?_.get(l):i.treeDefaultOpen,h=c.createDiv({cls:"gd-tree-row gd-tree-folder"});It(h,e,i.hoverGlow),h.dataset.depth=String(e),h.dataset.search=a.name.toLowerCase(),d&&h.addClass("is-open"),h.createSpan({cls:"gd-row-icon gd-icon-folder"+(At("folder",i.iconFolder)?" gd-icon-svg gd-ico-folder":"")}),h.createSpan({cls:"gd-row-name",text:a.name}),h.createSpan({cls:"gd-tree-caret",text:d?"\u25BE":"\u25B8"}),h.createSpan({cls:"gd-tree-count",text:String(qt(a))});let u=c.createDiv({cls:"gd-tree-kids"});d||u.addClass("is-collapsed"),he(u,o,a,e+1),h.addEventListener("click",g=>{g.preventDefault(),g.stopPropagation();let p=!(_.has(l)?_.get(l):i.treeDefaultOpen);_.set(l,p),h.toggleClass("is-open",p),u.toggleClass("is-collapsed",!p);let y=h.querySelector(".gd-tree-caret");y&&y.setText(p?"\u25BE":"\u25B8")}),h.addEventListener("contextmenu",g=>{g.preventDefault();let p=new P.Menu;Me(p,o,a),p.showAtMouseEvent(g)});continue}if(!(a instanceof P.TFile)||a.extension!=="md")continue;let r=c.createDiv({cls:"gd-tree-row gd-tree-file"});It(r,e,i.hoverGlow),r.dataset.depth=String(e),r.dataset.search=a.basename.toLowerCase(),r.dataset.path=a.path;let n=zt.exec(a.name);(n&&n[1]===o.activeDate||a.path===o.openFilePath)&&r.addClass("active"),le(r),r.createSpan({cls:"gd-row-icon gd-icon-file"+(At("file",i.iconFile)?" gd-icon-svg gd-ico-file":"")}),r.createSpan({cls:"gd-row-name",text:n&&!n[2]?n[1]:a.basename}),r.setAttribute("title",a.path),r.addEventListener("click",l=>{l.preventDefault(),l.stopPropagation(),de(o,a)}),r.addEventListener("contextmenu",l=>{l.preventDefault();let d=new P.Menu;pe(d,o,a),d.showAtMouseEvent(l)})}}function ge(c){document.querySelectorAll(".gd-left-panel [data-path]").forEach(o=>o.classList.remove("is-open-file")),c&&document.querySelectorAll(".gd-left-panel [data-path]").forEach(o=>{o.dataset.path===c&&o.classList.add("is-open-file")})}var Q='xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"',Ne={palette:`<svg ${Q}><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.83-.44-1.12-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.56-2.5 5.56-5.55C21.97 6.01 17.46 2 12 2z"/><circle cx="13.5" cy="6.5" r=".7"/><circle cx="17.5" cy="10.5" r=".7"/><circle cx="8.5" cy="7.5" r=".7"/><circle cx="6.5" cy="12.5" r=".7"/></svg>`,image:`<svg ${Q}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></svg>`,paperclip:`<svg ${Q}><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`,mic:`<svg ${Q}><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg>`,plus:`<svg ${Q}><path d="M5 12h14"/><path d="M12 5v14"/></svg>`,undo:`<svg ${Q}><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>`,trash:`<svg ${Q}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`,calendar:`<svg ${Q}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>`,x:`<svg ${Q}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`};function q(c,o){var t;c.innerHTML=(t=Ne[o])!=null?t:""}var ht="grid-diary-view",pt=class extends S.ItemView{constructor(t,e){super(t);this.renderTimer=null;this.snapshot=null;this.rawCache=new Map;this.suppressRenderUntil=0;this.selfWriteUntil=0;this.imgBound=new WeakSet;this.draggingTitle=null;this.lastScrollTop=0;this.timelineSlot=null;this.tlTimer=null;this.imgRos=[];this.fileMtime="";this.pushingHistory=!1;this.cellHist=new Map;this.lastCellTitle=null;this.cellValues=new Map;this.cellAppliers=new Map;this.histTimer=null;this.lastRecorded=new Map;this.entrySuffix="";this.pendingSaves=new Map;this.tlSig="";this.plugin=e,this.currentDate=this.plugin.activeDate||R()}getViewType(){return ht}getDisplayText(){return"\u683C\u95F4\u65E5\u8BB0"}getIcon(){return"layout-grid"}getState(){return{date:this.currentDate}}async setState(t,e){let i=t==null?void 0:t.date;i&&/^\d{4}-\d{2}-\d{2}$/.test(i)&&i!==this.currentDate&&(this.currentDate=i,this.entrySuffix="",this.plugin.setActiveDate(i,this),await this.render())}pushHistory(t){this.pushingHistory||(this.pushingHistory=!0,this.leaf.setViewState({type:this.getViewType(),state:{date:t},active:!0}).catch(()=>{}),window.setTimeout(()=>this.pushingHistory=!1,80))}async onOpen(){this.contentEl.addClass("grid-diary-view"),this.contentEl.toggleClass("gd-mobile",S.Platform.isMobile),this.register(this.plugin.onDateChange(t=>this.jumpTo(t))),this.currentDate=this.plugin.activeDate||this.currentDate,this.registerEvent(this.app.vault.on("modify",t=>{let e=this.plugin.store.fileFor(this.currentDate,this.entrySuffix);e&&t.path===e.path&&this.scheduleRender()})),this.registerEvent(this.app.vault.on("create",t=>{t.path===this.plugin.store.pathFor(this.currentDate,this.entrySuffix)&&this.scheduleRender()})),this.registerEvent(this.app.vault.on("delete",t=>{t.path===this.plugin.store.pathFor(this.currentDate,this.entrySuffix)&&this.scheduleRender()})),this.registerInterval(window.setInterval(()=>{if(this.pendingSaves.size)for(let t of Array.from(this.pendingSaves.values()))t()},1500)),await this.ensureDayFile(this.currentDate,!0),await this.render()}async onClose(){this.renderTimer&&window.clearTimeout(this.renderTimer);for(let t of Array.from(this.pendingSaves.values()))t();this.pendingSaves.clear(),this.contentEl.empty()}isTyping(){let t=document.activeElement;return!!t&&this.contentEl.contains(t)}scheduleRender(){Date.now()<this.selfWriteUntil||Date.now()<this.suppressRenderUntil||this.isTyping()||(this.renderTimer&&window.clearTimeout(this.renderTimer),this.renderTimer=window.setTimeout(()=>{this.renderTimer=null,!this.isTyping()&&this.render()},400))}backgroundUrl(){let t=this.plugin.settings.background.trim();if(!t)return null;if(/^https?:\/\//i.test(t))return t;let e=this.app.vault.getAbstractFileByPath(t);if(e)try{return this.app.vault.adapter.getResourcePath(e.path)}catch(i){return null}return null}async refreshRawCache(){this.rawCache.clear();let t=this.plugin.store.fileFor(this.currentDate,this.entrySuffix);if(!t)return;let e=await this.app.vault.cachedRead(t);for(let i of z(e,2).sections){this.rawCache.set(i.title,i.body);let s=`${this.currentDate}|${this.entrySuffix}|${i.title}`;this.lastRecorded.has(s)||this.lastRecorded.set(s,i.body)}}async render(){let t=this.contentEl,e=t.querySelector(".gd-scroll"),i=e?e.scrollTop:this.lastScrollTop;this.timelineSlot=null,t.empty(),t.style.setProperty("--gd-op",String(this.plugin.settings.cardOpacity)),t.style.setProperty("--gd-cols",String(this.plugin.settings.columns)),t.style.setProperty("--gd-font",this.plugin.fontStack()),t.style.setProperty("--gd-weight",String(this.plugin.settings.fontWeight)),t.style.setProperty("--gd-cell-h",`${this.plugin.settings.cellHeight}px`),t.style.setProperty("--gd-pad",`${this.plugin.settings.contentPad}px`),t.style.setProperty("--gd-gap",`${this.plugin.settings.gridGap}px`);let s=t.createDiv({cls:"gd-shell"}),a=this.backgroundUrl();a&&s.createDiv({cls:"gd-bg",attr:{style:`background-image:url("${a}")`}});let r=await this.plugin.store.readDay(this.currentDate,this.entrySuffix);this.snapshot=r;{let v=this.plugin.store.fileFor(this.currentDate,this.entrySuffix);if(v){let b=new Date(v.stat.mtime),x=T=>String(T).padStart(2,"0");this.fileMtime=`${x(b.getHours())}:${x(b.getMinutes())}`}else this.fileMtime=""}await this.refreshRawCache(),this.cellAppliers.clear();let n=s.createDiv({cls:"gd-mobile-dock"});n.createEl("button",{cls:"gd-mobile-btn",text:"\u76EE\u5F55"}).addEventListener("click",()=>{this.plugin.openExplorerDock()}),n.createEl("button",{cls:"gd-mobile-btn",text:"\u65E5\u5386"}).addEventListener("click",()=>void this.plugin.toggleCalendarSidebar()),n.createEl("button",{cls:"gd-mobile-btn",text:"\u6D41\u56FE"}).addEventListener("click",()=>void this.plugin.openTimelinePanel());let u=s.createDiv({cls:"gd-scroll"}),g=()=>{requestAnimationFrame(()=>{u.isConnected&&(u.scrollTop=i,this.lastScrollTop=u.scrollTop)})};u.addEventListener("scroll",()=>{this.lastScrollTop=u.scrollTop},{passive:!0});let p=u.createDiv({cls:"gd-header"}),y=p.createDiv({cls:"gd-date"}),[w,m,D]=this.currentDate.split("-").map(Number);if(!Number.isFinite(w)||!Number.isFinite(m)||!Number.isFinite(D)){let v=new Date;w=v.getFullYear(),m=v.getMonth()+1,D=v.getDate()}y.createEl("span",{cls:"gd-daynum"}).createEl("span",{text:String(D).padStart(2,"0"),cls:"gd-cd"});let L=y.createDiv({cls:"gd-datemeta"}),H=L.createEl("span",{cls:"gd-datemeta-line"});ft(H,w,m),L.createEl("span",{text:$t(this.currentDate)+(this.currentDate===R()?" \xB7 \u4ECA\u5929":""),cls:"gd-datemeta-line"}),r.quote&&L.createEl("span",{text:r.quote,cls:"gd-datemeta-line gd-quote"});let F=p.createDiv({cls:"gd-actions"}),Y=(v,b)=>{let x=F.createEl("button",{text:v,cls:"gd-btn"});return x.addEventListener("click",T=>{T.stopPropagation(),b()}),x};Y("+",()=>this.addCell());let U=F.createEl("button",{text:"\uFF0B\u7BC7",cls:"gd-btn gd-btn-entry"});U.setAttribute("aria-label","\u5728\u8FD9\u4E00\u5929\u65B0\u5EFA\u4E00\u7BC7\u65E5\u8BB0"),U.setAttribute("title","\u5728\u8FD9\u4E00\u5929\u65B0\u5EFA\u4E00\u7BC7\u65E5\u8BB0"),U.addEventListener("click",v=>{v.stopPropagation(),this.addEntry()});let k=F.createEl("button",{text:"<",cls:"gd-btn gd-undo-btn"});k.setAttribute("aria-label","\u64A4\u9500"),k.addEventListener("click",v=>{v.stopPropagation(),this.stepHist(-1)});let $=F.createEl("button",{text:">",cls:"gd-btn gd-undo-btn"});$.setAttribute("aria-label","\u91CD\u505A"),$.addEventListener("click",v=>{v.stopPropagation(),this.stepHist(1)});let G=F.createEl("button",{text:"\u21E4",cls:"gd-btn"});G.setAttribute("aria-label","\u663E\u793A / \u9690\u85CF\u5DE6\u4FA7\u76EE\u5F55\u9762\u677F"),G.setAttribute("title","\u663E\u793A / \u9690\u85CF\u5DE6\u4FA7\u76EE\u5F55\u9762\u677F"),G.addEventListener("click",v=>{v.stopPropagation(),(async()=>(this.plugin.settings.showLeftPanel=!this.plugin.settings.showLeftPanel,await this.plugin.saveSettings(),this.plugin.refreshViews()))()});let A=F.createEl("button",{text:"\u21E5",cls:"gd-btn"});A.setAttribute("aria-label","\u6253\u5F00 / \u5173\u95ED\u65E5\u8BB0\u65E5\u5386\u4FA7\u680F"),A.setAttribute("title","\u6253\u5F00 / \u5173\u95ED\u65E5\u8BB0\u65E5\u5386\u4FA7\u680F"),A.addEventListener("click",v=>{v.stopPropagation(),this.plugin.toggleCalendarSidebar()}),F.createEl("button",{text:"\xB7\xB7\xB7",cls:"gd-btn"}).addEventListener("click",v=>{v.stopPropagation(),this.openHeaderMenu(v)}),Y("\xD7",()=>this.leaf.detach());let N=u.createDiv({cls:"gd-nav"});N.createEl("button",{text:"\u2039 \u524D\u4E00\u5929",cls:"gd-nav-btn"}).addEventListener("click",()=>this.goDate(Gt(this.currentDate,-1))),N.createEl("button",{text:"\u4ECA\u5929",cls:"gd-nav-btn"}).addEventListener("click",()=>this.goDate(R())),N.createEl("button",{text:"\u540E\u4E00\u5929 \u203A",cls:"gd-nav-btn"}).addEventListener("click",()=>this.goDate(Gt(this.currentDate,1)));let ut=this.plugin.store.entriesFor(this.currentDate);if(ut.length>=2){let v=N.createDiv({cls:"gd-entry-switch"});for(let b of ut){let x=v.createEl("button",{text:b.suffix||"\u4E3B\u7BC7",cls:"gd-entry-btn"+(b.suffix===this.entrySuffix?" is-on":"")});x.setAttribute("aria-label",b.suffix?`\u7B2C ${b.suffix} \u7BC7`:"\u4E3B\u7BC7"),x.addEventListener("click",()=>{this.entrySuffix!==b.suffix&&(this.entrySuffix=b.suffix,this.render().catch(T=>console.error("[grid-diary] \u6E32\u67D3\u5931\u8D25",T)))})}}r.file&&N.createEl("button",{text:"\u6253\u5F00\u6574\u7BC7",cls:"gd-nav-btn gd-nav-right"}).addEventListener("click",()=>void this.openWholeFile());let bt=N.createEl("span",{text:"\u81EA\u52A8\u4FDD\u5B58",cls:"gd-save-hint"}),f=u.createDiv({cls:"gd-grid"});if(!r.file){this.renderEmpty(f,"\u8FD9\u4E00\u5929\u8FD8\u6CA1\u6709\u6587\u4EF6\u3002","\u7528\u6A21\u677F\u751F\u6210"),g();return}if(!r.cells.length){this.renderEmpty(f,"\u6587\u4EF6\u91CC\u8FD8\u6CA1\u6709 ## \u5C0F\u8282\u3002","\u7528\u6A21\u677F\u751F\u6210"),g();return}for(let v of r.cells)f.appendChild(this.renderCell(v));g()}async recordDelta(t,e){let i=`${this.currentDate}|${this.entrySuffix}|${t}`,s=(e!=null?e:"").replace(/\s*$/,""),a=this.lastRecorded.get(i);if(a===void 0||a===s)return;let r=h=>h.split(/\n\s*\n/).map(u=>u.trim()).filter(Boolean),n=h=>h.replace(/\s+/g,""),l=new Set(r(a).map(n)),d=r(s).filter(h=>!l.has(n(h)));if(this.lastRecorded.set(i,s),!!d.length){this.suppressRenderUntil=Date.now()+2e3,this.selfWriteUntil=Date.now()+1500;try{await this.plugin.store.appendTimelineNote(this.currentDate,d.join(`
+/* ---- 01-constants.js ---- */
+/* ============ 常量 · 默认设置 · 通用工具 ============ */
 
-`),t,this.entrySuffix),window.setTimeout(()=>this.refreshTimeline(),200)}catch(h){console.error("[grid-diary] \u589E\u91CF\u8BB0\u5F55\u5931\u8D25",h)}}}syncCellToSnapshot(t,e){var s;let i=(s=this.snapshot)==null?void 0:s.cells.find(a=>a.title===t);i&&(i.body=e),this.scheduleTimelineRefresh()}scheduleTimelineRefresh(){this.tlTimer&&window.clearTimeout(this.tlTimer),this.tlTimer=window.setTimeout(()=>this.refreshTimeline(),120)}buildCards(t){var s,a;let e={};for(let r of t.cells)e[r.title]=(s=r.body)!=null?s:"";let i=[];for(let r of t.timeline){let n=xt(Tt(r.body||"",e));n.trim()&&i.push({title:r.title,body:n,raw:r.body||"",time:(a=r.time)!=null?a:"",kind:"note"})}return i}refreshTimeline(){if(!this.timelineSlot||!this.snapshot||!this.timelineSlot.isConnected)return;let t=document.activeElement;if(t&&this.timelineSlot.contains(t)||this.buildCards(this.snapshot).map(a=>`${a.title}${a.body}`).join("")===this.tlSig)return;let i=this.contentEl.querySelector(".gd-scroll"),s=i?i.scrollTop:0;this.timelineSlot.empty(),this.renderTimeline(this.timelineSlot,this.snapshot),i&&(i.scrollTop=s)}renderTimeline(t,e){t.empty();let i=this.buildCards(e);if(this.tlSig=i.map(n=>`${n.title}${n.body}`).join(""),!i.length){let n=t.createDiv({cls:"gd-tl-empty",text:"\u4ECA\u5929\u8FD8\u6CA1\u6709\u5185\u5BB9\uFF0C\u5728\u4E0A\u65B9\u683C\u5B50\u91CC\u5199\u70B9\u4EC0\u4E48\u8BD5\u8BD5"});return}let s=t.createDiv({cls:"gd-timeline"}),a=s.createDiv({cls:"gd-tl-head"});a.createEl("span",{text:"\u65F6\u95F4\u6D41",cls:"gd-tl-title"}),a.createEl("span",{text:`${i.length} \u6761`,cls:"gd-tl-count"});let r=this.plugin.store.pathFor(this.currentDate,this.entrySuffix);for(let n of i){let l=s.createDiv({cls:"gd-tl-item"});n.kind==="cell"&&l.addClass("is-cell");let d=l.createDiv({cls:"gd-tl-bar gd-tl-toggle"});d.setAttribute("aria-label","\u70B9\u51FB\u6298\u53E0/\u5C55\u5F00");let h=n.kind==="cell"?n.title:n.title.replace(/^\s*\d{1,2}\s*[:：]\s*\d{2}\s*/,"");d.createEl("span",{text:n.time||this.fileMtime||"--:--",cls:"gd-tl-time"}),d.createEl("span",{text:h,cls:"gd-tl-label"}),d.createEl("span",{text:"\u25BE",cls:"gd-tl-caret"}),d.addEventListener("click",w=>{w.stopPropagation(),l.toggleClass("is-collapsed",!l.hasClass("is-collapsed"))});let u=l.createDiv({cls:"gd-tl-bubble"}),g=u.createDiv({cls:"gd-tl-body markdown-rendered gd-cell-text"});g.setAttribute("title","\u53CC\u51FB\u4FEE\u6539"),S.MarkdownRenderer.render(this.app,n.body,g,r,this).then(()=>this.bindImages(g)).catch(()=>g.setText(n.body)),g.addEventListener("dblclick",w=>{if(w.stopPropagation(),w.preventDefault(),u.querySelector(".gd-tl-editor"))return;let m=u.createEl("textarea",{cls:"gd-tl-editor gd-cell-text"});m.value=(n.kind==="note"?n.raw:n.body).replace(/^\s*\n+/,"").replace(/\s+$/,""),g.addClass("is-hidden"),m.style.height=`${Math.max(80,Math.min(360,(m.value.split(`
-`).length+2)*26))}px`,m.focus();let D=!1,M=async()=>{var F,Y;if(D)return;D=!0;let L=m.value;if(this.selfWriteUntil=Date.now()+1200,await this.plugin.store.writeSection(this.currentDate,n.title,L,this.entrySuffix)){n.kind==="cell"&&this.rawCache.set(n.title,ct(L));let U=(F=this.snapshot)==null?void 0:F.cells.find($=>$.title===n.title);U&&(U.body=ct(L));let k=(Y=this.snapshot)==null?void 0:Y.timeline.find($=>$.title===n.title);k&&(k.body=L),new S.Notice(`\u5DF2\u4FDD\u5B58\u300C${n.title}\u300D`)}else new S.Notice("\u4FDD\u5B58\u5931\u8D25");m.remove(),g.removeClass("is-hidden"),await this.refreshRawFromDisk(),this.refreshTimeline()};m.addEventListener("blur",()=>void M()),m.addEventListener("keydown",L=>{L.stopPropagation(),(L.ctrlKey||L.metaKey)&&L.key==="Enter"&&(L.preventDefault(),m.blur())})});let p=l.createEl("button",{text:"\xD7",cls:"gd-tl-del"});p.setAttribute("aria-label","\u5220\u9664\u8FD9\u4E00\u6761"),p.addEventListener("click",w=>{w.stopPropagation();let m=new S.Menu;m.addItem(D=>D.setTitle("\u5220\u9664\u8FD9\u4E00\u8282\uFF085 \u79D2\u53EF\u64A4\u9500\uFF09").setIcon("undo-2").onClick(()=>void this.removeSection(n,!1))),m.addItem(D=>D.setTitle("\u5220\u9664\u8FD9\u4E00\u8282\uFF08\u9700\u786E\u8BA4\uFF09").setIcon("trash").onClick(()=>void this.removeSection(n,!0))),m.showAtMouseEvent(w)});let y=l.createEl("button",{text:"\u2197",cls:"gd-cell-more gd-tl-open"});y.setAttribute("aria-label","\u5728\u6587\u4EF6\u91CC\u5B9A\u4F4D"),y.addEventListener("click",async w=>{var D,M,L;w.stopPropagation();let m=(L=(D=this.snapshot)==null?void 0:D.cells.find(H=>H.title===n.title))!=null?L:(M=this.snapshot)==null?void 0:M.timeline.find(H=>H.title===n.title);m&&await this.openAtSection(m)})}}async refreshRawFromDisk(){try{await this.refreshRawCache()}catch(t){console.error("[grid-diary] \u91CD\u8BFB\u5931\u8D25",t)}}bindImages(t){var e,i;this.imgRos=this.imgRos.filter(s=>s.box.isConnected);for(let s of Array.from(t.querySelectorAll("img"))){if((e=s.parentElement)!=null&&e.classList.contains("gd-imgbox"))continue;let a=t.ownerDocument,r=a.createElement("div");r.className="gd-imgbox",s.replaceWith(r),r.appendChild(s);let n=()=>{let k=s.getAttribute("src")||"",$="";return k&&!/^(https?:|data:|app:)/i.test(k)&&($=decodeURIComponent(k.split("?")[0].split("#")[0]).split(/[\\/]/).pop()||""),$||($=(s.getAttribute("alt")||"").split(/[\\/]/).pop()||""),$},l=Number.parseInt(s.getAttribute("width")||"",10),d=Number.parseInt(s.getAttribute("height")||"",10);r.style.width=`${Number.isFinite(l)&&l>0?l:400}px`,Number.isFinite(d)&&d>0&&(r.style.height=`${d}px`),s.style.width="100%",s.style.height="100%",s.style.objectFit="contain",s.complete||(r.style.minHeight=`${Number.isFinite(d)&&d>0?d:80}px`,s.addEventListener("load",()=>r.style.minHeight="",{once:!0}));let h=(i=/float:\s*(left|right)/.exec(s.getAttribute("style")||""))==null?void 0:i[1];(h==="left"||h==="right")&&(r.style.float=h);let u=a.createElement("div");u.className="gd-img-tools",r.appendChild(u);let g=k=>{let $=n();if(!$||!/\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test($))return;let G=Math.round(r.getBoundingClientRect().width),A=Math.round(r.getBoundingClientRect().height);this.plugin.store.setImageAttrs(this.currentDate,$,{width:G,height:A,...k},this.entrySuffix).then(()=>new S.Notice("\u56FE\u7247\u6837\u5F0F\u5DF2\u4FDD\u5B58",1200))},p=(k,$,G)=>{let A=a.createElement("button");A.type="button",A.textContent=k,A.title=$,A.addEventListener("mousedown",K=>K.preventDefault()),A.addEventListener("click",K=>{K.stopPropagation(),G()}),u.appendChild(A)};p("\u25C0","\u9760\u5DE6\u6D6E\u52A8",()=>{let k=r.style.float!=="left";r.style.float=k?"left":"",r.style.display="",r.style.marginInline="",g({float:k?"left":"none"})}),p("\u25B6","\u9760\u53F3\u6D6E\u52A8",()=>{let k=r.style.float!=="right";r.style.float=k?"right":"",r.style.display="",r.style.marginInline="",g({float:k?"right":"none"})}),p("\u25A4","\u72EC\u7ACB\u5C45\u4E2D",()=>{let k=r.style.display!=="block";r.style.display=k?"block":"",r.style.float="",r.style.marginInline=k?"auto":"",g({float:"none"})});let y=["","1px solid var(--background-modifier-border)","2px solid #A6392E"],w=Number(r.dataset.bi||0);p("\u2B1A","\u8FB9\u6846\uFF08\u5FAA\u73AF\uFF1A\u65E0 \u2192 \u7070\u6846 \u2192 \u6731\u7802\u6846\uFF09",()=>{w=(w+1)%y.length,r.dataset.bi=String(w),r.style.border=y[w],r.style.borderRadius=w===2?"8px":"",r.style.boxShadow=w===2?"0 2px 10px rgba(0,0,0,.18)":"",g({border:y[w]||"none",radius:w===2?8:0,shadow:w===2})});let m=a.createElement("span");m.className="gd-img-handle",m.setAttribute("aria-label","\u62D6\u52A8\u8C03\u6574\u56FE\u7247\u5927\u5C0F"),r.appendChild(m);let D=!1,M=0,L=0,H=0,F=0,Y=!1;m.addEventListener("pointerdown",k=>{k.preventDefault(),k.stopPropagation(),D=!0,Y=!1,M=k.clientX,L=k.clientY;let $=r.getBoundingClientRect();H=$.width,F=$.height,m.setPointerCapture(k.pointerId)}),m.addEventListener("pointermove",k=>{var K,N;if(!D)return;k.preventDefault();let $=((N=(K=r.parentElement)==null?void 0:K.clientWidth)!=null?N:800)||800,G=Math.max(60,Math.min($,Math.round(H+(k.clientX-M)))),A=Math.max(40,Math.round(F+(k.clientY-L)));(Math.abs(G-H)>2||Math.abs(A-F)>2)&&(Y=!0),r.style.width=`${G}px`,r.style.height=`${A}px`}),m.addEventListener("pointerup",k=>{if(D){D=!1;try{m.releasePointerCapture(k.pointerId)}catch($){}Y&&g({})}}),m.addEventListener("pointercancel",()=>D=!1);let U=new ResizeObserver(()=>{});U.observe(r),this.imgRos.push({ro:U,box:r})}}renderEmpty(t,e,i){let s=t.createDiv({cls:"gd-empty"});s.createEl("p",{text:e}),s.createEl("button",{text:i,cls:"gd-btn gd-btn-primary"}).addEventListener("click",()=>this.pickTemplate())}renderCell(t){var bt;let e=document.createElement("div");e.className="gd-cell";let i=new ResizeObserver(()=>{e.offsetHeight>275?e.addClass("gd-cell-resized"):e.removeClass("gd-cell-resized")});i.observe(e),this.imgRos.push({ro:i,box:e});let s=e.createDiv({cls:"gd-cell-head"});s.createEl("div",{text:t.title,cls:"gd-cell-title"});let a=s.createDiv({cls:"gd-cell-tools"}),r=a.createEl("span",{text:"\u283F",cls:"gd-cell-handle"});r.setAttribute("aria-label","\u6309\u4F4F\u62D6\u52A8\uFF0C\u6362\u683C\u5B50\u987A\u5E8F"),r.setAttribute("draggable","true");let n=a.createEl("span",{text:"",cls:"gd-cell-status"}),l=a.createEl("button",{text:"\u2197",cls:"gd-cell-more"});l.setAttribute("aria-label","\u5728\u6587\u4EF6\u91CC\u5B9A\u4F4D"),l.addEventListener("click",f=>{f.stopPropagation(),this.openAtSection(t)}),a.createEl("button",{text:"\xB7\xB7\xB7",cls:"gd-cell-more"}).addEventListener("click",f=>{f.stopPropagation(),this.openCellMenu(f,t)});let h=e.createDiv({cls:"gd-cell-fmt"}),u=e.createDiv({cls:"gd-cell-body"}),g=u.createDiv({cls:"gd-cell-preview markdown-rendered gd-cell-text"}),p=u.createEl("textarea",{cls:"gd-cell-editor gd-cell-text is-hidden"});p.value=(bt=this.rawCache.get(t.title))!=null?bt:"",p.spellcheck=!1,p.setAttribute("placeholder","\u5728\u8FD9\u91CC\u5199\u2026");let y=async()=>{var v;let f=(v=this.rawCache.get(t.title))!=null?v:"";if(g.empty(),!f.trim()){g.createDiv({cls:"gd-cell-placeholder",text:"\u70B9\u51FB\u8FD9\u91CC\u5F00\u59CB\u5199\u2026"});return}try{await S.MarkdownRenderer.render(this.app,f,g,this.plugin.store.pathFor(this.currentDate,this.entrySuffix),this)}catch(b){g.setText(f)}};y();let w=!1,m=()=>{var v,b;if(w)return;if(w=!0,g.addClass("is-hidden"),p.removeClass("is-hidden"),p.value=(v=this.rawCache.get(t.title))!=null?v:"",this.autoGrow(p),(b=this.contentEl.querySelector(".gd-shell"))==null||b.addClass("is-editing"),S.Platform.isMobile){this.contentEl.querySelectorAll(".gd-edit-sheet").forEach(B=>B.remove());let x=this.contentEl.createDiv({cls:"gd-edit-sheet"}),T=x.createDiv({cls:"gd-edit-sheet-bar"});T.createSpan({text:t.title,cls:"gd-edit-sheet-title"}),T.createEl("button",{cls:"gd-edit-sheet-done mod-cta",text:"\u5B8C\u6210"}).addEventListener("click",()=>void Bt()),x.appendChild(p),window.setTimeout(()=>{p.isConnected&&p.focus()},60),x.addEventListener("click",B=>{var O;(O=B.target)!=null&&O.closest("button")||p.focus()})}else p.focus();let f=p.value.length;p.setSelectionRange(f,f),this.lastCellTitle=t.title,this.cellValues.set(t.title,p.value),this.cellHist.has(t.title)||this.cellHist.set(t.title,{stack:[p.value],idx:0})};this.cellAppliers.set(t.title,f=>{p.classList.contains("is-hidden")&&(w=!1,m()),p.value=f,this.autoGrow(p),this.cellValues.set(t.title,f),this.syncCellToSnapshot(t.title,f),this.pendingSaves.set(t.title,et),et()}),g.addEventListener("click",f=>{f.stopPropagation(),m()});let D={start:0,end:0},M=()=>{var T,I;let f=p.value,v=(T=p.selectionStart)!=null?T:f.length,b=(I=p.selectionEnd)!=null?I:f.length;return!(document.activeElement===p)&&v===b&&D.start!==D.end&&(v=Math.min(D.start,f.length),b=Math.min(D.end,f.length)),v>b&&([v,b]=[b,v]),{start:v,end:b}},L=()=>{var f,v;D={start:(f=p.selectionStart)!=null?f:0,end:(v=p.selectionEnd)!=null?v:0}};p.addEventListener("select",L),p.addEventListener("keyup",L),p.addEventListener("mouseup",L),p.addEventListener("blur",L);let H=(f,v)=>{let{start:b,end:x}=M(),T=p.value,I=T.slice(b,x)||"\u6587\u5B57";p.value=T.slice(0,b)+f+I+v+T.slice(x);let B=b+f.length+I.length;D={start:B,end:B},p.focus({preventScroll:!0}),p.setSelectionRange(B,B),p.dispatchEvent(new Event("input"))},F=(f,v,b,x)=>{let T=h.createEl("button",{text:f,cls:"gd-fmt-btn"});T.type="button",T.setAttribute("aria-label",v),T.addEventListener("mousedown",I=>{I.preventDefault(),I.stopPropagation()}),T.addEventListener("click",I=>{I.preventDefault(),I.stopPropagation(),p.classList.contains("is-hidden")&&(w=!1,m(),D={start:p.value.length,end:p.value.length}),H(b,x)})};F("B","\u7C97\u4F53 **\u6587\u5B57**","**","**"),F("I","\u659C\u4F53 *\u6587\u5B57*","*","*"),F("S","\u5220\u9664\u7EBF ~~\u6587\u5B57~~","~~","~~"),F("H","\u9AD8\u4EAE ==\u6587\u5B57==","==","==");let Y=f=>{p.classList.contains("is-hidden")&&(w=!1,m(),D={start:p.value.length,end:p.value.length});let{start:v,end:b}=M(),x=p.value;p.value=x.slice(0,v)+f+x.slice(b);let T=v+f.length;D={start:T,end:T},p.focus({preventScroll:!0}),p.setSelectionRange(T,T),p.dispatchEvent(new Event("input"))},U=[["#e05555","\u80ED\u8102"],["#d97706","\u7425\u73C0"],["#c2a20a","\u82A5\u672B"],["#4d9e6a","\u8584\u8377"],["#3d9b8f","\u9752\u74F7"],["#4a86c5","\u96FE\u84DD"],["#6a6fc4","\u975B\u9752"],["#9a6bbd","\u6D45\u7D2B"],["#c76ba0","\u6A31\u82B1"],["#a8766b","\u9676\u571F"],["#8a8f98","\u77F3\u7070"],["#5a5f66","\u58A8\u7070"]],k=h.createEl("button",{cls:"gd-fmt-btn gd-fmt-color"});q(k,"palette"),k.type="button",k.setAttribute("aria-label","\u6587\u5B57\u989C\u8272"),k.addEventListener("mousedown",f=>{f.preventDefault(),f.stopPropagation()}),k.addEventListener("click",f=>{f.preventDefault(),f.stopPropagation();let v=document.createElement("div");v.className="gd-palette";let b=v.createDiv({cls:"gd-palette-grid"});for(let[O,X]of U){let j=b.createEl("button",{cls:"gd-swatch"});j.type="button",j.setAttribute("aria-label",X),j.style.background=O,j.addEventListener("mousedown",W=>{W.preventDefault(),W.stopPropagation()}),j.addEventListener("click",W=>{W.preventDefault(),W.stopPropagation(),p.classList.contains("is-hidden")&&(w=!1,m(),D={start:p.value.length,end:p.value.length}),H(`<span style="color:${O}">`,"</span>"),v.remove()})}let x=v.createEl("label",{cls:"gd-palette-custom"});x.createSpan({text:"\u81EA\u5B9A\u4E49"});let T=x.createEl("input");T.type="color",T.value="#e05555",T.addEventListener("input",()=>{p.classList.contains("is-hidden")&&(w=!1,m(),D={start:p.value.length,end:p.value.length});let O=p.value,X=T.value,j=T.dataset.lastColor||"",{start:W,end:mt}=M();j&&mt-W>0;let Ut=O.slice(W,mt)||"\u6587\u5B57";p.value=O.slice(0,W)+`<span style="color:${X}">${Ut}</span>`+O.slice(mt);let Et=W+`<span style="color:${X}">${Ut}</span>`.length;D={start:Et,end:Et},T.dataset.lastColor=X,p.focus({preventScroll:!0}),p.setSelectionRange(Et,Et),p.dispatchEvent(new Event("input")),v.remove()});let I=k.getBoundingClientRect();v.style.position="fixed",v.style.left=`${Math.min(I.left,window.innerWidth-220)}px`,v.style.top=`${I.bottom+6}px`,document.body.appendChild(v);let B=O=>{v.contains(O.target)||(v.remove(),document.removeEventListener("mousedown",B,!0))};window.setTimeout(()=>document.addEventListener("mousedown",B,!0),0)});let $=(f,v)=>{let b=document.createElement("input");b.type="file",f&&(b.accept=f),b.addEventListener("change",()=>{var T;let x=(T=b.files)==null?void 0:T[0];x&&(async()=>{var I,B,O;try{let X=(x.name.split(".").pop()||"bin").toLowerCase(),j=await this.plugin.saveAttachment(this.currentDate,x,X);if(v){let W=(O=(B=(I=this.plugin.store.fileFor(this.currentDate,this.entrySuffix))==null?void 0:I.parent)==null?void 0:B.path)!=null?O:"",mt=W&&j.startsWith(W+"/")?j.slice(W.length+1):j;Y(kt({src:mt,width:400}))}else Y(`![[${j}]]`);new S.Notice(`\u5DF2\u63D2\u5165 ${x.name}`)}catch(X){console.error("[grid-diary] \u63D2\u5165\u9644\u4EF6\u5931\u8D25",X),new S.Notice("\u63D2\u5165\u5931\u8D25")}})()}),b.click()},G=(f,v,b)=>{let x=h.createEl("button",{cls:"gd-fmt-btn gd-fmt-media"});q(x,f),x.type="button",x.setAttribute("aria-label",v),x.addEventListener("mousedown",T=>{T.preventDefault(),T.stopPropagation()}),x.addEventListener("click",T=>{T.preventDefault(),T.stopPropagation(),p.classList.contains("is-hidden")&&(w=!1,m(),D={start:p.value.length,end:p.value.length}),b()})};G("image","\u63D2\u5165\u56FE\u7247",()=>$("image/*",!0)),G("paperclip","\u63D2\u5165\u9644\u4EF6\uFF08PDF / \u97F3\u9891 / \u4EFB\u610F\u6587\u4EF6\uFF09",()=>$("",!1));let A=null,K=[],N=h.createEl("button",{cls:"gd-fmt-btn gd-fmt-media"});q(N,"mic"),N.type="button",N.setAttribute("aria-label","\u5F55\u97F3"),N.addEventListener("mousedown",f=>{f.preventDefault(),f.stopPropagation()}),N.addEventListener("click",f=>{f.preventDefault(),f.stopPropagation(),(async()=>{if(A&&A.state==="recording"){A.stop(),N.removeClass("is-recording"),q(N,"mic");return}try{let v=await navigator.mediaDevices.getUserMedia({audio:!0});K=[];let b=new MediaRecorder(v);A=b,b.addEventListener("dataavailable",x=>{x.data.size>0&&K.push(x.data)}),b.addEventListener("stop",()=>{v.getTracks().forEach(x=>x.stop()),(async()=>{try{let x=new Blob(K,{type:b.mimeType||"audio/webm"}),T=x.type.includes("ogg")?"ogg":"webm",I=await this.plugin.saveAttachment(this.currentDate,x,T,"rec-");Y(`![[${I}]]`),new S.Notice("\u5F55\u97F3\u5DF2\u63D2\u5165")}catch(x){console.error("[grid-diary] \u4FDD\u5B58\u5F55\u97F3\u5931\u8D25",x),new S.Notice("\u5F55\u97F3\u4FDD\u5B58\u5931\u8D25")}})()}),b.start(),N.addClass("is-recording"),N.setText("\u25A0"),new S.Notice("\u5F00\u59CB\u5F55\u97F3\uFF0C\u518D\u70B9\u4E00\u6B21\u505C\u6B62")}catch(v){console.error("[grid-diary] \u65E0\u6CD5\u5F55\u97F3",v),new S.Notice("\u65E0\u6CD5\u8BBF\u95EE\u9EA6\u514B\u98CE")}})()});let tt=null,et=async()=>{var b;tt&&(window.clearTimeout(tt),tt=null);let f=p.value;if(f===((b=this.rawCache.get(t.title))!=null?b:"")){this.pendingSaves.delete(t.title);return}n.setText("\u4FDD\u5B58\u4E2D"),this.suppressRenderUntil=Date.now()+2e3,this.selfWriteUntil=Date.now()+1500;let v=await this.plugin.store.writeSection(this.currentDate,t.title,f,this.entrySuffix);this.pendingSaves.delete(t.title),v?(this.rawCache.set(t.title,ct(f)),n.setText("\u5DF2\u4FDD\u5B58"),window.setTimeout(()=>{n.isConnected&&n.getText()==="\u5DF2\u4FDD\u5B58"&&n.setText("")},1600)):n.setText("\u4FDD\u5B58\u5931\u8D25")},Bt=async()=>{var f,v,b;(f=this.contentEl.querySelector(".gd-edit-sheet"))==null||f.remove(),await et(),w=!1,p.addClass("is-hidden"),g.removeClass("is-hidden"),(v=this.contentEl.querySelector(".gd-shell"))==null||v.removeClass("is-editing"),await y(),await this.recordDelta(t.title,(b=this.rawCache.get(t.title))!=null?b:p.value)};p.addEventListener("input",()=>{this.autoGrow(p),n.setText("\u7F16\u8F91\u4E2D"),this.pendingSaves.set(t.title,et),this.lastCellTitle=t.title,this.cellValues.set(t.title,p.value),this.histTimer&&window.clearTimeout(this.histTimer),this.histTimer=window.setTimeout(()=>this.recordHist(t.title,p.value),400),this.syncCellToSnapshot(t.title,p.value),tt&&window.clearTimeout(tt),tt=window.setTimeout(()=>void et(),250)}),p.addEventListener("blur",()=>void Bt()),p.addEventListener("keydown",f=>{(f.ctrlKey||f.metaKey)&&f.key==="Enter"&&(f.preventDefault(),et(),p.blur()),f.stopPropagation()}),p.addEventListener("click",f=>f.stopPropagation());let ut=()=>{e.classList.remove("gd-drop-before","gd-drop-after","gd-dragging")};return r.addEventListener("dragstart",f=>{this.draggingTitle=t.title,f.dataTransfer&&(f.dataTransfer.setData("text/plain",t.title),f.dataTransfer.effectAllowed="move"),e.classList.add("gd-dragging")}),r.addEventListener("dragend",()=>{this.draggingTitle=null,ut()}),e.addEventListener("dragover",f=>{if(!this.draggingTitle)return;f.preventDefault(),f.dataTransfer&&(f.dataTransfer.dropEffect="move");let v=e.getBoundingClientRect(),b=f.clientY<v.top+v.height/2;e.classList.toggle("gd-drop-before",b),e.classList.toggle("gd-drop-after",!b)}),e.addEventListener("dragleave",f=>{e.contains(f.relatedTarget)||e.classList.remove("gd-drop-before","gd-drop-after")}),e.addEventListener("drop",f=>{f.preventDefault();let v=this.draggingTitle;if(this.draggingTitle=null,ut(),!v||v===t.title)return;let b=e.getBoundingClientRect(),x=f.clientY<b.top+b.height/2;(async()=>await this.plugin.store.moveSection(this.currentDate,v,t.title,x,this.entrySuffix)?(new S.Notice(`\u5DF2\u79FB\u52A8\u5230\u300C${t.title}\u300D${x?"\u4E4B\u524D":"\u4E4B\u540E"}`),await this.render()):new S.Notice("\u6362\u4F4D\u5931\u8D25"))()}),e}autoGrow(t){t.style.height="100%",t.style.overflowY="auto"}async openAtSection(t){let e=this.plugin.store.fileFor(this.currentDate,this.entrySuffix);if(!e)return;await this.app.workspace.getLeaf("tab").openFile(e,{eState:{line:t.line}})}async openWholeFile(){let t=this.plugin.store.fileFor(this.currentDate,this.entrySuffix);if(!t)return;await this.app.workspace.getLeaf("tab").openFile(t,{active:!0})}goDate(t){/^\d{4}-\d{2}-\d{2}$/.test(t)&&(this.currentDate=t,this.entrySuffix="",this.plugin.setActiveDate(t,this),this.pushHistory(t),(async()=>{try{await this.ensureDayFile(t,!0)}catch(e){console.error("[grid-diary] \u5EFA\u6587\u4EF6\u5931\u8D25",e)}try{await this.render()}catch(e){console.error("[grid-diary] \u6E32\u67D3\u5931\u8D25",e),new S.Notice("\u8FD9\u4E00\u5929\u6E32\u67D3\u5931\u8D25\uFF0C\u8BF7\u770B\u63A7\u5236\u53F0")}})())}async ensureDayFile(t,e=!1){if(this.plugin.settings.autoCreateToday&&!(e&&t!==R())&&!this.plugin.store.fileFor(t,this.entrySuffix))try{await this.plugin.createDayFileFor(t)}catch(i){console.error("[grid-diary] \u81EA\u52A8\u521B\u5EFA\u5931\u8D25",i)}}toggleDirSheet(){let t=this.contentEl.querySelector(".gd-dir-sheet");if(t){t.remove();return}let e=this.contentEl.createDiv({cls:"gd-dir-sheet"});e.createDiv({cls:"gd-dir-sheet-backdrop"}).addEventListener("click",()=>e.remove());let i=e.createDiv({cls:"gd-dir-sheet-body"});rt(i,this.plugin),i.style.width="100%";let s=i.querySelector(".gd-left-close");s&&(s.onclick=()=>e.remove())}jumpTo(t,e){if(!/^\d{4}-\d{2}-\d{2}$/.test(t))return;let i=t!==this.currentDate;!i&&(e===void 0||e===this.entrySuffix)||(this.currentDate=t,this.entrySuffix=e!=null?e:"",i&&this.pushHistory(t),this.render().catch(s=>console.error("[grid-diary] \u6E32\u67D3\u5931\u8D25",s)))}async addEntry(){let t=this.currentDate,e=this.plugin.store;try{if(!e.fileFor(t)){await this.plugin.createDayFileFor(t),this.entrySuffix="",new S.Notice("\u5DF2\u65B0\u5EFA\u8FD9\u4E00\u5929\u7684\u65E5\u8BB0"),await this.render();return}let i=e.nextSuffix(t);if(!i){new S.Notice("\u8FD9\u4E00\u5929\u7684\u7BC7\u6570\u5DF2\u7ECF\u6EE1\u4E86\uFF0899 \u7BC7\uFF09");return}await this.plugin.createDayFileFor(t,i),this.entrySuffix=i,new S.Notice(`\u5DF2\u65B0\u5EFA\u7B2C ${e.entriesFor(t).length} \u7BC7`),await this.render()}catch(i){console.error("[grid-diary] \u65B0\u5EFA\u5931\u8D25",i),new S.Notice("\u65B0\u5EFA\u5931\u8D25\uFF0C\u8BF7\u770B\u63A7\u5236\u53F0")}}recordHist(t,e){let i=this.cellHist.get(t);i&&(i.idx<i.stack.length-1&&(i.stack=i.stack.slice(0,i.idx+1)),i.stack[i.stack.length-1]!==e&&(i.stack.push(e),i.stack.length>100&&i.stack.shift(),i.idx=i.stack.length-1))}stepHist(t){let e=this.lastCellTitle;if(!e){new S.Notice("\u5148\u70B9\u8FDB\u4E00\u4E2A\u683C\u5B50");return}let i=this.cellHist.get(e);if(!i){new S.Notice("\u8FD9\u4E2A\u683C\u5B50\u8FD8\u6CA1\u6709\u53EF\u64A4\u9500\u7684\u6539\u52A8");return}let s=i.idx+t;if(s<0||s>=i.stack.length){new S.Notice(t===-1?"\u5DF2\u7ECF\u5230\u6700\u65E9\u7684\u4E00\u6B65":"\u5DF2\u7ECF\u5230\u6700\u65B0\u7684\u4E00\u6B65");return}i.idx=s;let a=i.stack[s];this.cellValues.set(e,a);let r=this.cellAppliers.get(e);r?r(a):(async()=>(this.selfWriteUntil=Date.now()+1500,await this.plugin.store.writeSection(this.currentDate,e,a,this.entrySuffix),await this.render()))(),new S.Notice(t===-1?`\u5DF2\u64A4\u9500\uFF1A${e}`:`\u5DF2\u91CD\u505A\uFF1A${e}`)}addCell(){new Ft(this.app,{title:"\u65B0\u683C\u5B50",desc:"\u5199\u5728\u6587\u4EF6\u91CC\u7684\u4E8C\u7EA7\u6807\u9898\uFF08## \u540E\u9762\u7684\u5B57\uFF09\uFF1A",placeholder:"\u4F8B\u5982\uFF1A\u4ECA\u65E5\u996E\u98DF",onSubmit:async t=>{await this.plugin.store.addSection(this.currentDate,t,this.entrySuffix)&&new S.Notice(`\u5DF2\u6DFB\u52A0\uFF1A${t}`),await this.render()}}).open()}pickTemplate(){new nt(this.app,this.plugin.settings.templates,async t=>{let e=await this.plugin.store.fillWithTemplate(this.currentDate,t.titles,this.entrySuffix);new S.Notice(e.length?`\u5DF2\u8865\u9F50 ${e.length} \u4E2A\u683C\u5B50`:"\u8FD9\u4E2A\u6A21\u677F\u7684\u683C\u5B50\u5DF2\u7ECF\u6709\u4E86"),await this.render()},async t=>{this.plugin.settings.defaultTemplate=t.name,await this.plugin.saveSettings(),new S.Notice(`\u5DF2\u628A\u300C${t.name}\u300D\u8BBE\u4E3A\u5F53\u524D\u6A21\u677F`),await this.render()}).open()}pickRetitleTemplate(){new nt(this.app,this.plugin.settings.templates,async t=>{let e=await this.plugin.store.retitleTemplate(this.currentDate,t.titles,this.entrySuffix);if(!e)return;let i=[`\u5DF2\u6309\u300C${t.name}\u300D\u91CD\u6392\uFF0C\u4FDD\u7559 ${e.kept} \u8282\u5185\u5BB9`];e.orphans.length&&i.push(`${e.orphans.length} \u8282\u5F52\u5165\u300C\u672A\u5206\u7C7B\u5185\u5BB9\u300D`),new S.Notice(i.join("\uFF0C")),await this.render()},async t=>{this.plugin.settings.defaultTemplate=t.name,await this.plugin.saveSettings(),new S.Notice(`\u5DF2\u628A\u300C${t.name}\u300D\u8BBE\u4E3A\u5F53\u524D\u6A21\u677F`),await this.render()}).open()}async removeSection(t,e){let i=async()=>{this.selfWriteUntil=Date.now()+1200;let s=await this.plugin.store.deleteSection(this.currentDate,t.title,this.entrySuffix);if(!s){new S.Notice("\u5220\u9664\u5931\u8D25");return}let a=new S.Notice(`\u5DF2\u5220\u9664\u300C${t.title}\u300D`,5e3),r=!1;a.noticeEl.createEl("button",{text:"\u64A4\u9500",cls:"gd-undo-btn"}).addEventListener("click",async()=>{r||(r=!0,this.selfWriteUntil=Date.now()+1200,await this.plugin.store.restoreSection(this.currentDate,s.title,s.body,s.index,this.entrySuffix),a.hide(),await this.render())}),await this.render()};if(!e){await i();return}new dt(this.app,{title:"\u5220\u9664\u8FD9\u4E00\u8282\uFF1F",desc:`\u300C## ${t.title}\u300D\u4F1A\u4ECE\u6587\u4EF6\u4E2D\u79FB\u9664\uFF0C\u5176\u4ED6\u5185\u5BB9\u4E0D\u52A8\u3002\u8FD9\u4E00\u64CD\u4F5C\u4E0D\u7ECF\u8FC7\u56DE\u6536\u7AD9\u3002`,okText:"\u5220\u9664",danger:!0,checkboxLabel:"\u4EE5\u540E\u4E0D\u518D\u63D0\u793A",onOk:async s=>{s&&(this.plugin.settings.skipPermanentConfirm=!0,await this.plugin.saveSettings()),await i()}}).open()}openHeaderMenu(t){let e=new S.Menu;e.addItem(i=>i.setTitle("\u9009\u62E9\u65E5\u671F\u2026").setIcon("calendar").onClick(()=>{var a;let s=document.createElement("input");s.type="date",s.value=this.currentDate,s.style.position="fixed",s.style.opacity="0",document.body.appendChild(s),s.addEventListener("change",()=>{s.value&&this.goDate(s.value),s.remove()}),(a=s.showPicker)==null||a.call(s)})),e.addItem(i=>i.setTitle("\u7528\u6A21\u677F\u8865\u9F50\u683C\u5B50").setIcon("layout-template").onClick(()=>this.pickTemplate())),e.addItem(i=>i.setTitle("\u66F4\u6362\u6A21\u677F\uFF08\u4FDD\u7559\u65E7\u5185\u5BB9\uFF09").setIcon("replace").onClick(()=>this.pickRetitleTemplate())),e.addItem(i=>i.setTitle("\u6253\u5F00\u8FD9\u4E00\u5929\u7684\u6587\u4EF6").setIcon("file-text").onClick(()=>void this.openWholeFile())),e.addItem(i=>i.setTitle("\u65B0\u5EFA\u8FD9\u4E00\u5929\u7684\u6587\u4EF6").setIcon("file-plus").onClick(()=>void this.addEntry())),e.showAtMouseEvent(t)}openCellMenu(t,e){let i=new S.Menu;i.addItem(s=>s.setTitle("\u5728\u6587\u4EF6\u91CC\u5B9A\u4F4D").setIcon("file-symlink").onClick(()=>void this.openAtSection(e))),i.addSeparator(),i.addItem(s=>s.setTitle("\u5220\u9664\u8FD9\u4E00\u683C").setIcon("trash").onClick(async()=>{let a=this.currentDate,r=await this.plugin.store.deleteSection(a,e.title,this.entrySuffix);if(await this.render(),!r)return;let n=new S.Notice(`\u5DF2\u5220\u9664\u300C${e.title}\u300D`,5e3),l=!1;n.noticeEl.createEl("button",{text:"\u64A4\u9500",cls:"gd-undo-btn"}).addEventListener("click",async()=>{l||(l=!0,await this.plugin.store.restoreSection(a,r.title,r.body,r.index,this.entrySuffix),n.hide(),await this.render(),new S.Notice(`\u5DF2\u6062\u590D\u300C${r.title}\u300D`))})})),i.showAtMouseEvent(t)}};var V=require("obsidian");var at="grid-diary-calendar";function Re(c){let o=c.replace(/^\uFEFF/,""),t=/^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(o);return t&&(o=o.slice(t[0].length)),o.split(/\r?\n/).filter(e=>!/^#{1,6}\s/.test(e)).join(" ").replace(/\s+/g," ").trim()}function He(c,o=50){let t=Re(c);return t?t.length>o?t.slice(0,o)+"\u2026":t:""}var vt=class extends V.ItemView{constructor(t,e){super(t);this.plugin=e;this.calY=0;this.calM=0;this.calDay=1;this.calMode="month";this.bodyEl=null;this.dayLimit=200;this.listEl=null;this.calEl=null;this.splitTopEl=null;this.splitRatio=.6;this.refreshTimer=null;this.openState=new Map;let[i,s,a]=(this.plugin.activeDate||R()).split("-").map(Number);this.calY=i,this.calM=s,this.calDay=a||1}getViewType(){return at}getDisplayText(){return"\u65E5\u8BB0\u65E5\u5386"}getIcon(){return"calendar"}async onOpen(){this.contentEl.addClass("gd-cal-side"),this.register(this.plugin.onDateChange((t,e)=>{e!==this&&this.refreshHighlight(t)})),this.renderCal()}async onClose(){this.refreshTimer&&window.clearTimeout(this.refreshTimer)}refreshCal(){this.scheduleRefresh()}scheduleRefresh(){this.refreshTimer&&window.clearTimeout(this.refreshTimer),this.refreshTimer=window.setTimeout(()=>{this.refreshTimer=null,this.renderCal()},120)}refreshHighlight(t){let[e,i,s]=t.split("-").map(Number);this.calY=e,this.calM=i,this.calDay=s||1,this.renderCal()}shiftCalDays(t){let e=new Date(this.calY,this.calM-1,this.calDay);e.setDate(e.getDate()+t),this.calY=e.getFullYear(),this.calM=e.getMonth()+1,this.calDay=e.getDate(),this.renderCal()}shiftMonth(t){let e=new Date(this.calY,this.calM-1+t,1);this.calY=e.getFullYear(),this.calM=e.getMonth()+1;let i=new Date(this.calY,this.calM,0).getDate();this.calDay>i&&(this.calDay=i),this.renderCal()}pick(t,e=!0){let[i,s,a]=t.split("-").map(Number);this.calY=i,this.calM=s,this.calDay=a||1,this.renderCal(),e&&this.plugin.setActiveDate(t,this)}renderCal(){var h;let t=this.contentEl;if(!t)return;t.empty(),t.addClass("gd-cal-side"),t.style.setProperty("--gd-weight",String(this.plugin.settings.fontWeight)),t.style.setProperty("--gd-font",this.plugin.fontStack());let e=t.createDiv({cls:"gd-cal-bar"}),i=e.createDiv({cls:"gd-cal-seg"}),s=[["day","\u6309\u65E5"],["month","\u6309\u6708"]];for(let[u,g]of s)i.createEl("button",{text:g,cls:"gd-cal-seg-btn"+(this.calMode===u?" is-on":"")}).addEventListener("click",y=>{y.stopPropagation(),this.calMode!==u&&(this.calMode=u,this.renderCal())});this.calMode==="month"&&this.buildPicker(e);let a=i.createEl("button",{text:"\u21D5",cls:"gd-cal-reset"});a.setAttribute("aria-label","\u6062\u590D\u9ED8\u8BA4\u6BD4\u4F8B 60/40"),a.addEventListener("click",u=>{u.stopPropagation(),this.splitRatio=.6,this.applySplit(),this.plugin.settings.splitRatio=.6,this.plugin.saveSettings(),new V.Notice("\u5DF2\u6062\u590D\u9ED8\u8BA4\u6BD4\u4F8B 60/40")});let r=e.createEl("button",{cls:"gd-cal-close"});q(r,"x"),r.setAttribute("aria-label","\u5173\u95ED\u65E5\u5386\u4FA7\u680F"),r.setAttribute("title","\u5173\u95ED\u65E5\u5386\u4FA7\u680F"),r.addEventListener("click",u=>{u.stopPropagation(),this.leaf.detach()}),this.splitRatio=(h=this.plugin.settings.splitRatio)!=null?h:.6;let n=t.createDiv({cls:"gd-split"});this.splitTopEl=n.createDiv({cls:"gd-split-top"}),this.listEl=this.splitTopEl.createDiv({cls:"gd-cal-list-pane"});let l=n.createDiv({cls:"gd-split-grip"}),d=n.createDiv({cls:"gd-split-bottom"});this.calEl=d.createDiv({cls:"gd-cal-cal-pane"}),this.applySplit(),l.addEventListener("mousedown",u=>{u.preventDefault(),document.body.classList.add("gd-split-resizing");let g=y=>{let w=n.getBoundingClientRect();if(!w.height)return;let m=(y.clientY-w.top)/w.height;this.splitRatio=Math.min(.85,Math.max(.15,m)),this.applySplit()},p=()=>{document.removeEventListener("mousemove",g),document.removeEventListener("mouseup",p),document.body.classList.remove("gd-split-resizing"),this.plugin.settings.splitRatio=this.splitRatio,this.plugin.saveSettings()};document.addEventListener("mousemove",g),document.addEventListener("mouseup",p),this.register(()=>{document.removeEventListener("mousemove",g),document.removeEventListener("mouseup",p)})}),this.renderBody()}applySplit(){this.splitTopEl&&(this.splitTopEl.style.flex=`0 0 ${(this.splitRatio*100).toFixed(1)}%`)}monthValue(t,e){return`${t}-${String(e).padStart(2,"0")}`}buildPicker(t){let e=t.createDiv({cls:"gd-cal-dd"}),i=new V.DropdownComponent(e),s=new Date(this.calY,this.calM-1,1);for(let a=-12;a<=12;a++){let r=new Date(s.getFullYear(),s.getMonth()+a,1);i.addOption(this.monthValue(r.getFullYear(),r.getMonth()+1),`${r.getFullYear()}\u5E74${r.getMonth()+1}\u6708`)}i.setValue(this.monthValue(this.calY,this.calM)),i.onChange(a=>{if(!a)return;let[r,n]=a.split("-").map(Number);this.calY=r,this.calM=n;let l=new Date(r,n,0).getDate();this.calDay>l&&(this.calDay=l),this.renderCal()})}renderBody(){let t=this.listEl,e=this.calEl;!t||!e||(t.empty(),e.empty(),this.renderCalMonth(e),this.renderList(t))}renderCalMonth(t){let e=t.createDiv({cls:"gd-cal-head"});e.createEl("button",{text:"\u2039",cls:"gd-cal-nav"}).addEventListener("click",g=>{g.stopPropagation(),this.shiftMonth(-1)});let s=e.createEl("span",{cls:"gd-cal-title"});ft(s,this.calY,this.calM),e.createEl("button",{text:"\u203A",cls:"gd-cal-nav"}).addEventListener("click",g=>{g.stopPropagation(),this.shiftMonth(1)});let r=t.createDiv({cls:"gd-cal-week"});for(let g of["\u65E5","\u4E00","\u4E8C","\u4E09","\u56DB","\u4E94","\u516D"])r.createEl("div",{text:g});let n=t.createDiv({cls:"gd-cal-grid"}),l=new Date(this.calY,this.calM-1,1).getDay(),d=new Date(this.calY,this.calM,0).getDate();for(let g=0;g<l;g++)n.createDiv({cls:"gd-cal-day empty"});let h=String(this.calM).padStart(2,"0"),u=this.plugin.activeDate;for(let g=1;g<=d;g++){let p=`${this.calY}-${h}-${String(g).padStart(2,"0")}`,y=n.createDiv({cls:"gd-cal-day"});y.setText(String(g)),this.plugin.store.fileFor(p)&&y.addClass("has"),p===R()&&y.addClass("today"),p===u&&y.addClass("active"),y.addEventListener("click",w=>{w.stopPropagation(),this.showDayMenu(p,w)})}}allDiaryDates(){let t=this.plugin.store.root()+"/",e=[],i=new Set;for(let s of this.app.vault.getFiles()){if(!s.path.startsWith(t))continue;let a=/^(\d{4})-(\d{2})-(\d{2})(?:[壹贰叁肆伍陆柒捌玖拾]+)?\.md$/.exec(s.name);if(!a)continue;let r=`${a[1]}-${a[2]}-${a[3]}`;i.has(r)||(i.add(r),e.push(r))}return e.sort(),e}datesInMonth(t,e){let i=new Date(t,e,0).getDate(),s=[];for(let a=1;a<=i;a++)s.push(`${t}-${String(e).padStart(2,"0")}-${String(a).padStart(2,"0")}`);return s}countFiles(t){return t.filter(e=>this.plugin.store.fileFor(e)).length}isOpen(t,e){let i=this.openState.get(t);return i===void 0?e:i}async renderList(t){var s;let e=t.createDiv({cls:"gd-cal-list"});if(((s=this.plugin.settings.listLineStyle)!=null?s:"vertical")==="polyline"&&e.addClass("is-polyline"),this.calMode==="day"){let a=this.allDiaryDates().reverse();if(!a.length){e.createDiv({cls:"gd-cal-item-sum is-empty",text:"\u8FD8\u6CA1\u6709\u5199\u8FC7\u65E5\u8BB0"});return}let r=a.slice(0,this.dayLimit);await this.fillEntries(e,r,!0);let n=a.length-r.length;n>0&&e.createEl("button",{text:`\u52A0\u8F7D\u66F4\u591A\uFF08\u8FD8\u6709 ${n} \u7BC7\uFF09`,cls:"gd-cal-more"}).addEventListener("click",d=>{d.stopPropagation(),this.dayLimit+=200,this.renderBody()});return}let i=!1;for(let a=-6;a<=6;a++){let r=new Date(this.calY,this.calM-1+a,1),n=r.getFullYear(),l=r.getMonth()+1,d=this.datesInMonth(n,l),h=this.countFiles(d),u=n===this.calY&&l===this.calM;if(!u&&h===0)continue;i=!0;let g=`${n}\u5E74${String(l).padStart(2,"0")}\u6708`,p=this.groupEl(e,g,h,this.isOpen(g,u),n,l);await this.fillEntries(p,d.filter(y=>this.plugin.store.fileFor(y)))}i||e.createDiv({cls:"gd-cal-item-sum is-empty",text:"\u8FD9\u9644\u8FD1\u8FD8\u6CA1\u6709\u65E5\u8BB0"})}groupEl(t,e,i,s,a,r){let n=t.createEl("details",{cls:"gd-cal-group"});n.open=s,n.addEventListener("toggle",()=>this.openState.set(e,n.open));let l=n.createEl("summary",{cls:"gd-cal-summary"});return ft(l,a,r),l.createEl("span",{text:`${i} \u7BC7`,cls:"gd-cal-count"}),n}addPolylineNode(t){let e="http://www.w3.org/2000/svg",i=document.createElementNS(e,"svg");i.setAttribute("class","gd-node-svg"),i.setAttribute("viewBox","0 0 44 36"),i.setAttribute("width","44"),i.setAttribute("height","36"),i.setAttribute("aria-hidden","true");let s=document.createElementNS(e,"polyline");s.setAttribute("points","5,12 15,12 26,24 42,24"),s.setAttribute("class","gd-node-line");let a=document.createElementNS(e,"circle");a.setAttribute("cx","5"),a.setAttribute("cy","12"),a.setAttribute("r","2.6"),a.setAttribute("class","gd-node-dot"),i.appendChild(s),i.appendChild(a),t.appendChild(i)}async fillEntries(t,e,i=!1){var r;let s=this.plugin.activeDate,a=((r=this.plugin.settings.listLineStyle)!=null?r:"vertical")==="polyline";for(let n of e){let l=this.plugin.store.fileFor(n),d=t.createDiv({cls:"gd-cal-item"});n===s&&d.addClass("active"),a&&this.addPolylineNode(d);let h=d.createDiv({cls:"gd-cal-item-head"});if(oe(h,n,{year:i,weekday:!0,cls:"gd-cal-item-date"}),d.addClass("is-clickable"),d.addEventListener("click",p=>{p.preventDefault(),p.stopPropagation(),this.plugin.setActiveDate(n,this),this.renderBody()}),l){let p=h.createEl("button",{cls:"gd-cal-del"});p.type="button",q(p,"x"),p.setAttribute("aria-label","\u5220\u9664\u8FD9\u7BC7\u65E5\u8BB0"),p.addEventListener("click",y=>{y.preventDefault(),y.stopPropagation();let w=new V.Menu;w.addItem(m=>m.setTitle("\u79FB\u5165\u56DE\u6536\u7AD9\uFF08\u79D2\u5220\uFF0C\u53EF\u6062\u590D\uFF09").setIcon("trash").onClick(()=>void this.trashFile(l,!1))),w.addItem(m=>m.setTitle("\u6C38\u4E45\u5220\u9664\u2026").setIcon("x-circle").onClick(()=>void this.trashFile(l,!0))),w.showAtMouseEvent(y)})}if(!l){h.createEl("span",{text:"\u7A7A",cls:"gd-cal-item-badge"}),d.createDiv({cls:"gd-cal-item-sum is-empty",text:"\u8FD9\u5929\u8FD8\u6CA1\u6709\u65E5\u8BB0\uFF0C\u70B9\u8FD9\u91CC\u53BB\u5199"});continue}let u="";try{u=await this.app.vault.cachedRead(l)}catch(p){u=""}let g=this.firstImageThumb(u,l.path);if(g){let y=d.createDiv({cls:"gd-cal-item-thumb"}).createEl("img");y.src=g,y.loading="lazy",y.alt=""}d.createDiv({cls:"gd-cal-item-sum",text:He(u,50)||"\uFF08\u8FD9\u5929\u6CA1\u6709\u6B63\u6587\uFF09"})}}async trashFile(t,e){let i=async()=>{try{await this.app.vault.trash(t,!0),new V.Notice(`\u5DF2\u79FB\u5165\u7CFB\u7EDF\u56DE\u6536\u7AD9\uFF1A${t.name}`)}catch(a){console.error("[grid-diary] \u7CFB\u7EDF\u56DE\u6536\u7AD9\u5931\u8D25\uFF0C\u6539\u7528 .trash",a);try{await this.app.vault.trash(t,!1),new V.Notice(`\u5DF2\u79FB\u5165 .trash\uFF1A${t.name}`)}catch(r){console.error("[grid-diary] \u79FB\u5165\u56DE\u6536\u7AD9\u5931\u8D25",r),new V.Notice("\u79FB\u5165\u56DE\u6536\u7AD9\u5931\u8D25\uFF0C\u6587\u4EF6\u672A\u6539\u52A8");return}}this.plugin.refreshAll()};if(!e){await i();return}let s=()=>new dt(this.app,{title:"\u6C38\u4E45\u5220\u9664\u8FD9\u7BC7\u65E5\u8BB0\uFF1F",desc:`${t.path}
-\u4E0D\u4F1A\u8FDB\u5165\u56DE\u6536\u7AD9\uFF0C\u5220\u9664\u540E\u65E0\u6CD5\u901A\u8FC7 Obsidian \u627E\u56DE\u3002`,okText:"\u6C38\u4E45\u5220\u9664",danger:!0,checkboxLabel:"\u4EE5\u540E\u4E0D\u518D\u63D0\u793A\u6C38\u4E45\u5220\u9664",onOk:async a=>{a&&(this.plugin.settings.skipPermanentConfirm=!0,await this.plugin.saveSettings());try{await this.app.vault.delete(t),new V.Notice(`\u5DF2\u6C38\u4E45\u5220\u9664\uFF1A${t.name}`)}catch(r){console.error("[grid-diary] \u6C38\u4E45\u5220\u9664\u5931\u8D25",r),new V.Notice("\u5220\u9664\u5931\u8D25\uFF0C\u6587\u4EF6\u672A\u6539\u52A8");return}this.plugin.refreshAll()}}).open();if(this.plugin.settings.skipPermanentConfirm){try{await this.app.vault.delete(t),new V.Notice(`\u5DF2\u6C38\u4E45\u5220\u9664\uFF1A${t.name}`)}catch(a){console.error("[grid-diary] \u6C38\u4E45\u5220\u9664\u5931\u8D25",a),new V.Notice("\u5220\u9664\u5931\u8D25\uFF0C\u6587\u4EF6\u672A\u6539\u52A8");return}this.plugin.refreshAll();return}s()}showDayMenu(t,e){let i=new V.Menu;i.addItem(s=>s.setTitle("\u6253\u5F00\u8FD9\u5929\u7684\u683C\u95F4\u65E5\u8BB0").setIcon("layout-grid").onClick(()=>void this.plugin.activateView(t))),i.addItem(s=>s.setTitle("\u63D2\u5165\u6A21\u677F\u7B14\u8BB0").setIcon("layout-template").onClick(()=>this.plugin.pickTemplateNote(t,e))),i.addItem(s=>s.setTitle("\u63D2\u5165\u56FE\u7247").setIcon("image").onClick(()=>void this.plugin.insertImage(t))),i.showAtMouseEvent(e)}firstImageThumb(t,e){var n,l;let i=/!\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]/.exec(t),s=/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/.exec(t),a=((n=i==null?void 0:i[1])==null?void 0:n.trim())||((l=s==null?void 0:s[1])==null?void 0:l.trim());if(!a)return null;if(/^(https?:)?\/\//.test(a))return a;if(!/\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(a))return null;let r=this.app.metadataCache.getFirstLinkpathDest(a,e);return r?this.app.vault.getResourcePath(r):null}};var ue=require("obsidian");var gt="grid-diary-explorer",Nt=class extends ue.ItemView{constructor(o,t){super(o),this.plugin=t}getViewType(){return gt}getDisplayText(){return"\u76EE\u5F55"}getIcon(){return"folder"}async onOpen(){let o=this.contentEl;o.empty(),o.addClass("gd-left-panel"),o.addClass("gd-dock-explorer"),rt(o,this.plugin),o.style.width="",o.style.height="100%",o.style.overflow="auto";let t=o.querySelector(".gd-left-close");t&&(t.onclick=()=>{this.app.workspace.detachLeavesOfType(gt)})}async refreshPanel(){await this.onOpen()}};var Z=require("obsidian");var ot="grid-diary-timeline",yt="[DELETED]",Rt=".grid-diary-snapshots",Ve=10;function me(c){return c.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}function Ht(c){return c.replace(/^\d{1,2}[:：]\d{2}\s*/,"").replace(new RegExp(me(yt)),"").trim()}var wt=class extends Z.ItemView{constructor(t,e){super(t);this.plugin=e;this.off=null;this.bodyEl=null;this.date=e.activeDate}getViewType(){return ot}getDisplayText(){return"\u65F6\u95F4\u6D41"}getIcon(){return"list-tree"}async onOpen(){this.off=this.plugin.onDateChange(t=>{this.date=t,this.renderBody()}),await this.render()}async onClose(){var t;(t=this.off)==null||t.call(this),this.off=null}refresh(){this.renderBody()}async render(){let t=this.contentEl;t.empty(),t.addClass("gd-tl-side");let e=t.createDiv({cls:"gd-tl-side-bar"});e.createDiv({cls:"gd-tl-side-title",text:"\u65F6\u95F4\u6D41"}),e.createDiv({cls:"gd-tl-side-date"}).setText(this.date);let s=e.createEl("button",{cls:"gd-tl-side-btn"});q(s,"plus"),s.setAttribute("aria-label","\u6309\u6A21\u677F\u8FFD\u52A0\u4E00\u6761\u8BB0\u5F55"),s.addEventListener("click",()=>{new nt(this.app,this.plugin.settings.templates,r=>{this.plugin.store.appendTimelineNote(this.date,r.name,"").then(()=>this.refresh()).catch(n=>console.error("[grid-diary] \u8FFD\u52A0\u5931\u8D25",n))}).open()});let a=e.createEl("button",{cls:"gd-tl-side-btn"});q(a,"undo"),a.setAttribute("aria-label","\u6062\u590D\u6700\u8FD1\u5220\u9664\u7684\u4E00\u6761"),a.addEventListener("click",()=>void this.restoreLast()),this.bodyEl=t.createDiv({cls:"gd-tl-side-body"}),await this.renderBody()}async renderBody(){var h,u;let t=this.bodyEl;if(!t)return;t.empty();let e=this.contentEl.querySelector(".gd-tl-side-date");e&&e.setText(this.date);let i=this.plugin.store.fileFor(this.date);if(!i){t.createDiv({cls:"gd-tl-side-empty",text:`${this.date} \u8FD8\u6CA1\u6709\u6587\u4EF6`});return}let s="";try{s=await this.app.vault.read(i)}catch(g){console.error("[grid-diary] \u65F6\u95F4\u6D41\u8BFB\u53D6\u5931\u8D25",g),t.createDiv({cls:"gd-tl-side-empty",text:"\u8BFB\u53D6\u5931\u8D25"});return}let a=z(s),r={};for(let g of a.sections)r[g.title]=g.body;let n=[],l=[];for(let g of a.sections){if(!lt(g.title))continue;let p={title:g.title,time:((h=g.title.match(/^\d{1,2}[:：]\d{2}/))!=null?h:[""])[0].replace("\uFF1A",":"),body:g.body};(g.title.includes(yt)?l:n).push(p)}let d=t.createDiv({cls:"gd-tl-side-list"});n.length===0&&l.length===0&&d.createDiv({cls:"gd-tl-side-empty",text:"\u8FD9\u4E00\u5929\u8FD8\u6CA1\u6709\u8BB0\u5F55"});for(let g=0;g<n.length;g++){let p=n[g],y=d.createDiv({cls:"gd-tl-side-row"}),w=y.createDiv({cls:"gd-tl-side-axis"});w.createDiv({cls:"gd-tl-side-dot"}),g<n.length-1&&w.createDiv({cls:"gd-tl-side-line"}),w.createDiv({cls:"gd-tl-side-meta",text:`${p.time}
-${Ht(p.title)}`});let m=y.createDiv({cls:"gd-tl-side-card"}),D=m.createDiv({cls:"gd-tl-side-card-bar"});D.createSpan({cls:"gd-tl-side-card-title",text:Ht(p.title)||"\u8BB0\u5F55"});let M=D.createEl("button",{cls:"gd-tl-side-mini"});q(M,"trash"),M.setAttribute("aria-label","\u8F6F\u5220\u9664\uFF08\u53EF\u6062\u590D\uFF09"),M.addEventListener("click",F=>{F.stopPropagation(),this.softDelete(p.title)});let L=m.createDiv({cls:"gd-tl-side-preview gd-cell-text markdown-rendered"}),H=xt((u=Tt(p.body,r))!=null?u:p.body);H.trim()?Z.MarkdownRenderer.render(this.app,H,L,i.path,this.plugin):L.createDiv({cls:"gd-cell-placeholder",text:"\uFF08\u7A7A\uFF09"})}if(l.length>0){let g=t.createEl("details",{cls:"gd-tl-side-deleted"});g.createEl("summary",{text:`\u5DF2\u5220\u9664 ${l.length} \u6761\uFF08\u70B9\u5F00\u6062\u590D\uFF09`});for(let p of l){let y=g.createDiv({cls:"gd-tl-side-drow"});y.createSpan({cls:"gd-tl-side-dtitle",text:Ht(p.title)||p.title}),y.createEl("button",{cls:"gd-tl-side-mini",text:"\u6062\u590D"}).addEventListener("click",m=>{m.stopPropagation(),this.restoreTitle(p.title)})}}}async snapshot(t){try{this.app.vault.getAbstractFileByPath(Rt)||await this.app.vault.createFolder(Rt);let e=new Date().toISOString().replace(/[-:T]/g,"").slice(0,14),i=await this.app.vault.read(t);await this.app.vault.create(`${Rt}/${t.basename}-${e}.md`,i);let s=this.app.vault.getFiles().filter(a=>{var r;return((r=a.parent)==null?void 0:r.path)===Rt&&a.basename.startsWith(t.basename+"-")});s.sort((a,r)=>a.name.localeCompare(r.name));for(let a=0;a<s.length-Ve;a++)await this.app.vault.trash(s[a],!0)}catch(e){console.error("[grid-diary] \u5FEB\u7167\u5931\u8D25",e)}}async softDelete(t){let e=this.plugin.store.fileFor(this.date);e&&(await this.snapshot(e),await this.app.vault.process(e,i=>{let s=new RegExp(`^## ${me(t)}\\s*$`,"m");return s.test(i)?i.replace(s,`## ${t} ${yt}`):i}),await this.renderBody())}async restoreTitle(t){let e=this.plugin.store.fileFor(this.date);e&&(await this.app.vault.process(e,i=>i.split(`## ${t}`).join(`## ${t.replace(` ${yt}`,"")}`)),await this.renderBody())}async restoreLast(){let t=this.plugin.store.fileFor(this.date);if(!t){new Z.Notice("\u8FD9\u5929\u6CA1\u6709\u6587\u4EF6");return}let e=null,i=await this.app.vault.read(t);for(let s of i.split(`
-`))s.startsWith("## ")&&s.includes(yt)&&(e=s.slice(3).trim());if(!e){new Z.Notice("\u6CA1\u6709\u53EF\u6062\u590D\u7684\u5220\u9664\u8BB0\u5F55");return}await this.restoreTitle(e),new Z.Notice(`\u5DF2\u6062\u590D\uFF1A${Ht(e)||e}`)}};var Vt=class extends C.Plugin{constructor(){super(...arguments);this.activeDate=R();this.openFilePath=null;this.templateCommandIds=[];this.templateSig="";this.cssEl=null;this.refreshTimer=null;this.dateListeners=new Set}async onload(){await this.loadSettings(),this.applyCustomCss(),this.applyLayout(),this.store=new Pt(this.app,()=>this.settings.rootFolder),this.store.getDefaultTitles=()=>{var e,i;return(i=(e=this.getDefaultTemplate())==null?void 0:e.titles)!=null?i:[]},this.store.ensureDayFile=e=>this.createDayFileFor(e),this.registerEvent(this.app.workspace.on("file-open",e=>{var i;this.openFilePath=(i=e==null?void 0:e.path)!=null?i:null,ge(this.openFilePath)})),this.registerView(ht,e=>new pt(e,this)),this.registerView(at,e=>new vt(e,this)),this.registerView(gt,e=>new Nt(e,this)),this.registerView(ot,e=>new wt(e,this)),this.addCommand({id:"open-explorer-dock",name:"\u5728\u5DE6\u4FA7\u680F\u6253\u5F00\u76EE\u5F55\u9762\u677F",callback:()=>void this.openExplorerDock()}),this.addCommand({id:"open-timeline-panel",name:"\u6253\u5F00\u65F6\u95F4\u6D41\u9762\u677F",callback:()=>void this.openTimelinePanel()}),this.addCommand({id:"toggle-timeline-panel",name:"\u6253\u5F00 / \u5173\u95ED\u65F6\u95F4\u6D41\u9762\u677F",callback:()=>void this.toggleTimelineSidebar()}),this.addCommand({id:"open-calendar-sidebar",name:"\u6253\u5F00\u65E5\u8BB0\u65E5\u5386\u4FA7\u680F",callback:()=>void this.activateCalendar()}),this.addCommand({id:"toggle-calendar-sidebar",name:"\u6253\u5F00 / \u5173\u95ED\u65E5\u8BB0\u65E5\u5386\u4FA7\u680F",callback:()=>void this.toggleCalendarSidebar()}),this.addCommand({id:"toggle-left-panel",name:"\u663E\u793A / \u9690\u85CF\u5DE6\u4FA7\u76EE\u5F55\u9762\u677F",callback:async()=>{this.settings.showLeftPanel=!this.settings.showLeftPanel,await this.saveSettings(),this.refreshViews(),new C.Notice(this.settings.showLeftPanel?"\u5DF2\u663E\u793A\u5DE6\u4FA7\u76EE\u5F55\u9762\u677F":"\u5DF2\u9690\u85CF\u5DE6\u4FA7\u76EE\u5F55\u9762\u677F")}}),this.addRibbonIcon("layout-grid","\u6253\u5F00\u683C\u95F4\u65E5\u8BB0",()=>{this.activateView()}),this.addCommand({id:"open-grid-diary",name:"\u6253\u5F00\u683C\u95F4\u65E5\u8BB0",callback:()=>void this.activateView()}),this.addCommand({id:"open-today-grid",name:"\u6253\u5F00\u4ECA\u5929\u7684\u683C\u5B50",callback:()=>void this.activateView(R())}),this.addCommand({id:"fill-today-with-template",name:"\u7528\u9ED8\u8BA4\u6A21\u677F\u8865\u9F50\u4ECA\u5929\u7684\u683C\u5B50",callback:async()=>{let e=this.getDefaultTemplate();if(!e){new C.Notice("\u8FD8\u6CA1\u6709\u914D\u7F6E\u6A21\u677F");return}let i=await this.store.fillWithTemplate(R(),e.titles);new C.Notice(i.length?`\u5DF2\u8865\u9F50 ${i.length} \u4E2A\u683C\u5B50`:"\u4ECA\u5929\u7684\u683C\u5B50\u5DF2\u7ECF\u9F50\u4E86"),await this.activateView(R())}}),this.addCommand({id:"create-today-file",name:"\u65B0\u5EFA\u4ECA\u5929\u7684\u65E5\u8BB0\u6587\u4EF6",callback:async()=>{if(this.store.fileFor(R())){new C.Notice("\u4ECA\u5929\u5DF2\u7ECF\u6709\u6587\u4EF6\u4E86");return}let e=this.getDefaultTemplate();await this.createDayFileFor(R()),new C.Notice("\u5DF2\u521B\u5EFA\u4ECA\u5929\u7684\u65E5\u8BB0"),await this.activateView(R())}}),this.addCommand({id:"images-to-html",name:"\u628A\u5F53\u524D\u6587\u4EF6\u7684\u56FE\u7247\u8F6C\u6210\u901A\u7528 <img>\uFF08\u5BFC\u51FA\u7528\uFF09",checkCallback:()=>{let e=this.app.workspace.getActiveFile();return e?((async()=>{let i=await this.convertImagesToHtml(e);new C.Notice(i?`\u5DF2\u8F6C\u6362 ${i} \u5F20\u56FE\u7247`:"\u6CA1\u6709\u9700\u8981\u8F6C\u6362\u7684\u56FE\u7247")})(),!0):!1}}),this.addCommand({id:"images-to-wiki",name:"\u628A\u5F53\u524D\u6587\u4EF6\u7684 <img> \u8FD8\u539F\u6210 Obsidian \u5185\u94FE",checkCallback:()=>{let e=this.app.workspace.getActiveFile();return e?((async()=>{let i=await this.convertImagesToWiki(e);new C.Notice(i?`\u5DF2\u8FD8\u539F ${i} \u5F20\u56FE\u7247`:"\u6CA1\u6709\u9700\u8981\u8FD8\u539F\u7684\u56FE\u7247")})(),!0):!1}}),this.registerTemplateCommands(),this.addSettingTab(new Dt(this.app,this));let t=()=>this.scheduleGlobalRefresh();this.registerEvent(this.app.vault.on("modify",t)),this.registerEvent(this.app.vault.on("create",t)),this.registerEvent(this.app.vault.on("delete",t)),this.registerEvent(this.app.vault.on("rename",t))}registerTemplateCommands(){var e;let t=this.settings.templates.map(i=>`${i.name}:${i.titles.join(",")}`).join("|");if(t!==this.templateSig){this.templateSig=t;for(let i of this.templateCommandIds)try{(e=this.removeCommand)==null||e.call(this,i)}catch(s){}this.templateCommandIds=[];for(let i of this.settings.templates){let s=`insert-template-${i.name.replace(/[^\w\u4e00-\u9fa5]+/g,"-")}`;this.addCommand({id:s,name:`\u63D2\u5165\u6A21\u677F\uFF1A${i.name}`,callback:async()=>{let a=R();this.store.fileFor(a)||await this.createDayFileFor(a),await this.insertTemplateNote(a,i),new C.Notice(`\u5DF2\u63D2\u5165\u6A21\u677F\u300C${i.name}\u300D`),this.setActiveDate(a),this.refreshAll()}}),this.templateCommandIds.push(s)}}}async convertImagesToHtml(t){let e=0;return await this.app.vault.process(t,i=>i.replace(/!\[\[([^\]|#]+?)(?:\|(\d+))?\]\]/g,(a,r,n)=>{let l=(0,C.normalizePath)(`${this.settings.rootFolder||"\u65E5\u8BB0"}/attachments/${r.trim()}`);return e++,`<img src="${l}"${n?` width="${n}"`:""}>`})),e}async convertImagesToWiki(t){let e=0;return await this.app.vault.process(t,i=>i.replace(/<img\s+[^>]*src="([^"]+)"[^>]*?(?:width="(\d+)")?[^>]*>/g,(a,r,n)=>{let l=r.split("/").pop()||r;return e++,`![[${l}${n?`|${n}`:""}]]`})),e}applyCustomCss(){this.cssEl||(this.cssEl=document.createElement("style"),this.cssEl.id="grid-diary-custom-css",document.head.appendChild(this.cssEl),this.register(()=>{var i;return(i=this.cssEl)==null?void 0:i.remove()}));let t="";if(this.settings.fontDataUrl)t=`url("${this.settings.fontDataUrl}")`;else if(this.settings.fontDirFile)try{t=`url("${this.app.vault.adapter.getResourcePath(`.obsidian/fonts/${this.settings.fontDirFile}`)}")`}catch(i){t=""}let e=t?`@font-face{font-family:"GD-Custom";src:${t};font-display:swap;}`:"";this.cssEl.textContent=e+`
-`+(this.settings.customCss||"")}fontStack(){return this.settings.fontDataUrl||this.settings.fontDirFile?`"GD-Custom", ${this.settings.fontFamily}`:this.settings.fontFamily}scheduleGlobalRefresh(){this.refreshTimer&&window.clearTimeout(this.refreshTimer),this.refreshTimer=window.setTimeout(()=>{this.refreshTimer=null,this.refreshAll()},350)}refreshAll(){for(let t of this.app.workspace.getLeavesOfType(ht)){let e=t.view;e instanceof pt&&e.scheduleRender()}for(let t of this.app.workspace.getLeavesOfType(at)){let e=t.view;e instanceof vt&&e.refreshCal()}for(let t of this.app.workspace.getLeavesOfType(ot)){let e=t.view;e instanceof wt&&e.refresh()}}onunload(){}getDefaultTemplate(){var t;return(t=this.settings.templates.find(e=>e.name===this.settings.defaultTemplate))!=null?t:this.settings.templates[0]}onDateChange(t){return this.dateListeners.add(t),()=>{this.dateListeners.delete(t)}}setActiveDate(t,e){this.activeDate=t;for(let i of Array.from(this.dateListeners))try{i(t,e)}catch(s){console.error("[grid-diary] date listener failed",s)}}async activateCalendar(){var i;let{workspace:t}=this.app,e=t.getLeavesOfType(at)[0];e||(e=(i=t.getRightLeaf(!1))!=null?i:t.getLeaf("tab"),await e.setViewState({type:at,active:!0})),await t.revealLeaf(e)}async toggleCalendarSidebar(){let t=this.app.workspace.getLeavesOfType(at);if(t.length){for(let e of t)e.detach();new C.Notice("\u5DF2\u5173\u95ED\u65E5\u8BB0\u65E5\u5386\u4FA7\u680F")}else await this.activateCalendar(),new C.Notice("\u5DF2\u6253\u5F00\u65E5\u8BB0\u65E5\u5386\u4FA7\u680F")}async openTimelinePanel(){let{workspace:t}=this.app,e=t.getLeavesOfType(ot)[0];if(e){await t.revealLeaf(e);return}let i=await t.ensureSideLeaf(ot,"right",{active:!0});await t.revealLeaf(i)}async toggleTimelineSidebar(){let t=this.app.workspace.getLeavesOfType(ot);if(t.length){for(let e of t)e.detach();new C.Notice("\u5DF2\u5173\u95ED\u65F6\u95F4\u6D41\u9762\u677F")}else await this.openTimelinePanel(),new C.Notice("\u5DF2\u6253\u5F00\u65F6\u95F4\u6D41\u9762\u677F")}async openExplorerDock(){let{workspace:t}=this.app,e=t.getLeavesOfType(gt)[0];if(e){await t.revealLeaf(e);return}let i=t.leftSplit,s=t.createLeafInParent(i,i.children.length);await s.setViewState({type:gt,active:!0}),await t.revealLeaf(s)}pickTemplateNote(t,e){var a;let i=(a=this.settings.templates)!=null?a:[],s=new C.Menu;i.length||s.addItem(r=>r.setTitle("\u8FD8\u6CA1\u6709\u6A21\u677F\uFF0C\u8BF7\u5230\u8BBE\u7F6E\u91CC\u6DFB\u52A0").setDisabled(!0));for(let r of i)s.addItem(n=>n.setTitle(`${r.name}\uFF08${r.titles.length} \u683C\uFF09`).setIcon("layout-template").onClick(()=>void this.insertTemplateNote(t,r)));e?s.showAtMouseEvent(e):s.showAtPosition({x:window.innerWidth-240,y:160})}async insertTemplateNote(t,e){let i=e.titles.map(s=>`### ${s}
-`).join(`
-`).replace(/\s*$/,"");try{await this.store.appendTimelineNote(t,i||"\uFF08\u7A7A\u6A21\u677F\uFF09",e.name),new C.Notice(`\u5DF2\u63D2\u5165\u6A21\u677F\uFF1A${e.name}`),this.setActiveDate(t),this.refreshAll()}catch(s){console.error("[grid-diary] \u63D2\u5165\u6A21\u677F\u5931\u8D25",s),new C.Notice("\u63D2\u5165\u6A21\u677F\u5931\u8D25\uFF0C\u8BF7\u770B\u63A7\u5236\u53F0")}}quickNote(t){new Mt(this.app,t,async e=>{try{await this.store.appendTimelineNote(t,e),new C.Notice("\u5DF2\u6DFB\u52A0\u4E00\u6761\u7B14\u8BB0"),this.setActiveDate(t),this.refreshAll()}catch(i){console.error("[grid-diary] \u8FFD\u52A0\u7B14\u8BB0\u5931\u8D25",i),new C.Notice("\u6DFB\u52A0\u5931\u8D25\uFF0C\u8BF7\u770B\u63A7\u5236\u53F0")}}).open()}async saveAttachment(t,e,i,s=""){let a=(0,C.normalizePath)(`${this.settings.rootFolder||"\u65E5\u8BB0"}/attachments`);this.app.vault.getAbstractFileByPath(a)||await this.app.vault.createFolder(a).catch(()=>{});let r=(i||"bin").replace(/^\./,"").toLowerCase(),n=`${t}-${s}${Date.now().toString(36)}.${r}`,l=e instanceof Blob?await e.arrayBuffer():e;return await this.app.vault.createBinary((0,C.normalizePath)(`${a}/${n}`),l),n}async insertImage(t){let e=document.createElement("input");e.type="file",e.accept="image/*",e.addEventListener("change",()=>{var s;let i=(s=e.files)==null?void 0:s[0];i&&(async()=>{try{let a=(i.name.split(".").pop()||"png").toLowerCase(),r=await this.saveAttachment(t,i,a);await this.store.appendTimelineNote(t,`![[${r}|400]]`,"\u56FE\u7247"),new C.Notice("\u5DF2\u63D2\u5165\u56FE\u7247"),this.setActiveDate(t),this.refreshAll()}catch(a){console.error("[grid-diary] \u63D2\u5165\u56FE\u7247\u5931\u8D25",a),new C.Notice("\u63D2\u5165\u56FE\u7247\u5931\u8D25")}})()}),e.click()}applyVars(t,e){let i=window.moment;return t.replace(/\{\{\s*(date|time|title)\s*(?::([^}]*))?\}\}/g,(s,a,r)=>{if(a==="title")return e;let n=(r!=null?r:"").trim()||(a==="time"?"HH:mm":"YYYY-MM-DD");return a==="date"?i(e,"YYYY-MM-DD").format(n):i().format(n)})}async createDayFileFor(t,e){let i=this.store.pathFor(t,e);if(this.app.vault.getAbstractFileByPath(i)instanceof C.TFile)return;await this.store.ensureFolder();let a="",r=(this.settings.dailyTemplatePath||"").trim();if(r){let d=this.app.vault.getAbstractFileByPath((0,C.normalizePath)(r));if(d instanceof C.TFile)try{a=this.applyVars(await this.app.vault.read(d),t)}catch(h){console.error("[grid-diary] \u8BFB\u53D6\u6A21\u677F\u5931\u8D25",h)}else new C.Notice(`\u6A21\u677F\u6587\u4EF6\u4E0D\u5B58\u5728\uFF1A${r}`)}let n=a?a.replace(/\s*$/,"")+`
-`:"",l=await this.app.vault.create(i,n);await this.store.syncAttrs(l)}async activateView(t,e){let{workspace:i}=this.app,s=i.getLeavesOfType(ht)[0];s||(s=i.getLeaf("tab"),await s.setViewState({type:ht,active:!0})),await i.revealLeaf(s);let a=s.view;a instanceof pt&&(t&&(a.jumpTo(t,e),this.setActiveDate(t,a)),await a.render())}refreshViews(){this.refreshAll()}async loadSettings(){this.settings=Object.assign({},it,await this.loadData()),this.settings.leftPanelMigrated||(this.settings.showRecentFiles=!1,this.settings.leftPanelMigrated=!0,await this.saveSettings()),this.settings.cellHeight===150&&(this.settings.cellHeight=200);for(let t of this.settings.templates)!t.titles&&t.questions&&(t.titles=t.questions);this.settings.templates=this.settings.templates.filter(t=>Array.isArray(t.titles)&&t.titles.length),this.settings.templates.length||(this.settings.templates=it.templates),typeof this.settings.showLeftPanel!="boolean"&&(this.settings.showLeftPanel=!0),typeof this.settings.showRecentFiles!="boolean"&&(this.settings.showRecentFiles=!0),typeof this.settings.showTreeLines!="boolean"&&(this.settings.showTreeLines=!0),typeof this.settings.treeDefaultOpen!="boolean"&&(this.settings.treeDefaultOpen=!0),typeof this.settings.hoverGlow!="boolean"&&(this.settings.hoverGlow=!0),this.settings.iconFile||(this.settings.iconFile=it.iconFile),this.settings.iconFolder||(this.settings.iconFolder=it.iconFolder),this.settings.iconFolderOpen||(this.settings.iconFolderOpen=it.iconFolderOpen),(!this.settings.leftWidth||this.settings.leftWidth<120)&&(this.settings.leftWidth=190),this.settings.layoutMigrated||(this.settings.leftWidth===240&&(this.settings.leftWidth=190),this.settings.layoutMigrated=!0,await this.saveSettings()),Array.isArray(this.settings.layoutPresets)||(this.settings.layoutPresets=it.layoutPresets),typeof this.settings.pluginFontSize!="number"&&(this.settings.pluginFontSize=15),typeof this.settings.contentPad!="number"&&(this.settings.contentPad=18),typeof this.settings.gridGap!="number"&&(this.settings.gridGap=14),typeof this.settings.rightDockWidth!="number"&&(this.settings.rightDockWidth=0)}applyLayout(){var a,r,n,l;let t=this.settings,e=document.documentElement;e.style.setProperty("--gd-font-size",`${(a=t.pluginFontSize)!=null?a:15}px`),e.style.setProperty("--gd-pad",`${(r=t.contentPad)!=null?r:18}px`),e.style.setProperty("--gd-gap",`${(n=t.gridGap)!=null?n:14}px`);let i=(l=t.rightDockWidth)!=null?l:0,s=document.getElementById("gd-right-dock-style");i>0?(s||(s=document.createElement("style"),s.id="gd-right-dock-style",document.head.appendChild(s)),s.textContent=`.workspace-split.mod-right-split{width:${i}px !important;}`):s&&s.remove()}async saveSettings(){await this.saveData(this.settings),this.registerTemplateCommands()}};
+const PLUGIN_ID = "grid-diary";
+const VIEW_GRID = "gd-grid-view";
+const VIEW_SIDEBAR = "gd-sidebar-view";
+const VIEW_TIMELINE = "gd-timeline-view";
+const VIEW_CALENDAR = "gd-calendar-view";
+const VIEW_TABLE = "gd-table-view";
+const ICON_GRID = "layout-grid";
+const ICON_SIDEBAR = "list-tree";
+const ICON_TIMELINE = "history";
+const ICON_CALENDAR = "calendar-days";
+const ICON_TABLE = "table";
+
+/* v1.x 注册过的视图 id。Obsidian 会把标签页类型写进 workspace.json，
+ * 升级后若不认这些老名字，那些标签就会显示「插件不再活动」。
+ * 从旧源码确认的四个：主格子 / 日历 / 左侧目录 / 时间线。
+ * v3 把日历重新做回来了，所以老日历标签直接映射到新的日历视图。 */
+const LEGACY_VIEWS = {
+  "grid-diary-view": VIEW_GRID,
+  "grid-diary-calendar": VIEW_CALENDAR,
+  "grid-diary-explorer": VIEW_SIDEBAR,
+  "grid-diary-timeline": VIEW_TIMELINE,
+};
+
+/* 五种页面风格。card/paper 是 v2 就有的，后三种是 v3 新增。 */
+const THEMES = [
+  ["card", "现代卡片"],
+  ["paper", "手账纸感"],
+  ["magazine", "杂志留白"],
+  ["bento", "便当格"],
+  ["mono", "极简黑白"],
+];
+
+/* ---- 日历骨架：日期怎么排（5 种）---- */
+/* 模板种类：主页 / 目录 / 日历 / 悬浮窗 / 格子 / 表格（用户要求的排序即此顺序） */
+const TEMPLATE_KINDS = [
+  ["home", "主页"],
+  ["dir", "目录"],
+  ["cal", "日历"],
+  ["float", "悬浮窗"],
+  ["grid", "格子"],
+  ["table", "表格"],
+];
+const TEMPLATE_KIND_ORDER = TEMPLATE_KINDS.map((k) => k[0]);
+function templateKind(tpl) {
+  const k = tpl && tpl.kind;
+  return TEMPLATE_KIND_ORDER.includes(k) ? k : "grid";
+}
+function sortTemplates(list) {
+  return (list || [])
+    .map((t, i) => ({ t, i }))
+    .sort((a, b) => {
+      const ka = TEMPLATE_KIND_ORDER.indexOf(templateKind(a.t));
+      const kb = TEMPLATE_KIND_ORDER.indexOf(templateKind(b.t));
+      return ka !== kb ? ka - kb : a.i - b.i;
+    })
+    .map((x) => x.t);
+}
+
+const CAL_SKELETONS = [
+  ["grid", "月网格"],
+  ["strip", "周条"],
+  ["annual", "纵向年历"],
+  ["hero", "大日期"],
+  ["split", "双栏月历"],
+  ["dual", "双月并排"],
+];
+/* ---- 日历纹理：底子怎么画（6 种，可独立开关）---- */
+const CAL_TEXTURES = [
+  ["none", "无"],
+  ["graph", "方格纸"],
+  ["dots", "点点阵"],
+  ["lines", "细横线"],
+  ["paper", "纸纹"],
+  ["gradient", "渐变"],
+];
+/* ---- 日历底图摆放 ----
+ * 用户要的是「左上角是图片 / 右下角是图片 / 双角都放 / 整块当网格背景」 */
+const CAL_WALL_POS = [
+  ["left-top", "左上角"],
+  ["right-bottom", "右下角"],
+  ["both", "左上 + 右下"],
+  ["full", "整块铺满"],
+];
+
+/* ══════════ 目录颜色编号（v4 T-03）══════════
+ * 用户要求：目录/文件夹竖排的每一行按出现顺序换色，不是固定一种；
+ * 可自定义添加；先给两套随机色。
+ * 生成方式：HSL 均匀取色，保证相邻两项色差足够大。
+ * ═══════════════════════════════════════════════════════ */
+function treeRing(hueStart, sat, light, n) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const h = (hueStart + (360 / n) * i) % 360;
+    out.push(`hsl(${h.toFixed(0)} ${sat}% ${light}%)`);
+  }
+  return out;
+}
+
+/* 两套随机配色方案（用户原话：先两套随机颜色） */
+/* ══════════ 动图 / 视频壁纸（v4 T-06）══════════ */
+const VIDEO_EXT_RE = /\.(mp4|webm|ogv|mov|m4v|mkv)$/i;
+const ANIM_EXT_RE = /\.(gif|webp|apng)$/i;
+
+function isVideoSrc(src) { return VIDEO_EXT_RE.test(String(src || "").split("?")[0]); }
+function isAnimSrc(src) { return ANIM_EXT_RE.test(String(src || "").split("?")[0]); }
+
+const TREE_COLOR_SETS = [
+  { id: "random-a", name: "随机 A（暖彩）", ring: treeRing(12, 62, 42, 12) },
+  { id: "random-b", name: "随机 B（冷彩）", ring: treeRing(196, 55, 44, 12) },
+];
+
+/* ══════════ 底图颜色节奏（v4 T-04）══════════
+ * 用户要求：底图颜色按周、按月切换 —— 一个月一种颜色的底图。
+ * 优先级：按周 > 按月 > 主题默认底色。
+ * ═══════════════════════════════════════════════════ */
+/* 12 个月色板（默认值，可在设置里改） */
+const MONTH_PALETTE = {
+  "01": "#f2f5f9", "02": "#f7f2f4", "03": "#f1f7f1", "04": "#f8f6ef",
+  "05": "#f3f7fa", "06": "#f6f4fa", "07": "#faf5ee", "08": "#f4f7f3",
+  "09": "#f8f3f0", "10": "#f4f2f7", "11": "#f7f4ef", "12": "#f2f4f8",
+};
+
+/* 一周七色（周一起） */
+const WEEK_PALETTE = ["#f7f4ef", "#f2f6fa", "#f6f2f7", "#f2f8f4", "#faf6f0", "#f4f4fa", "#f8f2f2"];
+
+/* 取某天该用的底图色：先按周，再按月 */
+function bgColorForDate(dateStr, settings) {
+  const s = settings || {};
+  const mode = s.bgRhythm || "week";
+  if (mode === "off") return "";
+  const d = parseDate(dateStr);
+  if (mode === "week") {
+    const idx = (d.getDay() + 6) % 7;      // 周一起算
+    const map = s.bgByWeek || {};
+    /* 优先「按星期几」的自定义色（设置页写的是 wd0..wd6） */
+    if (map["wd" + idx]) return map["wd" + idx];
+    return WEEK_PALETTE[idx] || "";
+  }
+  /* month */
+  const mk = String(dateStr).slice(5, 7);
+  const map = s.bgByMonth || {};
+  if (map[mk]) return map[mk];
+  return MONTH_PALETTE[mk] || "";
+}
+
+/* 按序号取色（同组内 0,1,2… 依次换色，循环） */
+function treeColorOf(setId, index) {
+  const set = TREE_COLOR_SETS.find((s) => s.id === setId) || TREE_COLOR_SETS[0];
+  const n = set.ring.length || 1;
+  return set.ring[((index % n) + n) % n];
+}
+
+/* 重新随机一套（种子变化 → 色环整体旋转） */
+function treeRingRandom(setId, seed) {
+  const set = TREE_COLOR_SETS.find((s) => s.id === setId) || TREE_COLOR_SETS[0];
+  const n = set.ring.length || 12;
+  const base = ((Number(seed) || 0) * 37) % 360;
+  return treeRing(base, 58, 44, n);
+}
+
+/* 四种格子边框（纸胶带已按用户要求删除） */
+const BORDERS = [
+  ["none", "无边框"],
+  ["hair", "细线"],
+  ["double", "双线"],
+  ["dashed", "虚线"],
+];
+/* 贴纸三组：天气 / 心情 / 标签。纯 emoji，不引外部资源。 */
+const STICKER_GROUPS = [
+  ["weather", "天气", ["☀️", "⛅", "🌧️", "⛈️", "❄️", "🌈", "🌙", "🌫️"]],
+  ["mood", "心情", ["😌", "🙂", "😐", "😮‍💨", "🥲", "😤", "🥳", "😴"]],
+  ["tag", "标签", ["📚", "🏃", "🍜", "💡", "🎬", "✈️", "🎵", "🌱", "❤️", "⭐"]],
+];
+const ALL_STICKERS = STICKER_GROUPS.reduce((a, g) => a.concat(g[2]), []);
+/* 五款表格皮肤（v3 用在格子内嵌 md 表格 / 设置列表 / 快照列表，不动正文普通表格） */
+const TABLE_SKINS = [
+  ["zebra", "斑马表"],
+  ["rule", "三线表"],
+  ["bento", "便当格"],
+  ["magazine", "细线杂志"],
+  ["glass", "毛玻璃（按需）"],
+];
+/* 网格流方向：竖向（现状）| 横向（新增，解决"只能上下拉"） */
+const GRID_FLOWS = [
+  ["vertical", "上下滚（默认）"],
+  ["horizontal", "左右滚"],
+  ["paged", "左右翻页"],
+];
+/* 引导问题库：九宫格日记的精髓是"每格一句问句"，这里给三组轮换 */
+const PROMPT_SETS = {
+  晨间: ["今天的天气", "昨天晚上梦到什么", "今天最重要的一件事", "想感谢的人", "此刻的身体状态", "今天的情绪", "最期待的事", "今日反思", "明日计划"],
+  日间: ["今天发生了什么", "今日书账/花了什么", "今天学到的新知", "今天的碎碎念", "今天吃了什么", "今天的反思"],
+  夜间: ["今天最开心的一刻", "今天最难的时刻", "今天做成了什么", "哪里卡住了", "想对明天说的话", "今天值得记住的人"],
+};
+/* ============ 四层自由布局 ============
+ * 用户要求：「图片的拉扯只限于图片，文本框只限于文本框，背景只限于背景，彼此独立。」
+ * 做法：封面区变成一块舞台（.gd-cover-stage），上面叠四个可独立移动/缩放的层，
+ * 每层用百分比坐标存，换窗口大小也不会散架。
+ *   bg   —— 背景（封面图 / 渐变）
+ *   img  —— 照片（第二张图，可独立于背景摆放）
+ *   text —— 座右铭
+ *   mark —— 头像标志
+ * 老格式（cover + coverHeight + coverPos）读进来时自动折算成默认四层，不写回原文件。 */
+const LAYER_KEYS = ["bg", "img", "text", "mark"];
+const LAYER_NAMES = { bg: "背景", img: "照片", text: "座右铭", mark: "标志" };
+const DEFAULT_LAYERS = {
+  bg:   { x: 0,  y: 0,  w: 100, h: 100, on: true },
+  img:  { x: 62, y: 8,  w: 30,  h: 66,  on: false },
+  text: { x: 4,  y: 58, w: 52,  h: 30,  on: false },
+  mark: { x: 4,  y: 82, w: 12,  h: 16,  on: false },
+};
+/* 推板步长：鼠标点一下挪多少（百分比） */
+const LAYER_STEPS = [1, 5, 10];
+
+/* 目录配色：一套引擎 + 五套预设 */
+const TREE_PALETTES = [
+  ["warm", "暖木"],
+  ["ink", "墨青"],
+  ["rainbow", "彩虹"],
+  ["mono", "单色"],
+  ["depth", "按层级"],
+];
+
+const STICKER_DIR = "gd-stickers";
+
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})(.*)\.md$/;
+const LAYOUT_RE = /<!--\s*gd-layout\s*([\s\S]*?)\s*-->/;
+const WEEK_CN = ["日", "一", "二", "三", "四", "五", "六"];
+
+/* 中国大陆法定节假日（2025–2027，够用；表外的按周末/工作日推断） */
+const HOLIDAYS = {
+  "2025-01-01": "元旦", "2025-01-28": "除夕", "2025-01-29": "春节", "2025-01-30": "春节", "2025-01-31": "春节",
+  "2025-02-01": "春节", "2025-02-02": "春节", "2025-02-03": "春节", "2025-02-04": "春节",
+  "2025-04-04": "清明", "2025-04-05": "清明", "2025-04-06": "清明",
+  "2025-05-01": "劳动节", "2025-05-02": "劳动节", "2025-05-03": "劳动节", "2025-05-04": "劳动节", "2025-05-05": "劳动节",
+  "2025-05-31": "端午", "2025-06-01": "端午", "2025-06-02": "端午",
+  "2025-10-01": "国庆", "2025-10-02": "国庆", "2025-10-03": "国庆", "2025-10-04": "国庆",
+  "2025-10-05": "国庆", "2025-10-06": "国庆", "2025-10-07": "国庆", "2025-10-08": "国庆",
+  "2026-01-01": "元旦", "2026-01-02": "元旦", "2026-01-03": "元旦",
+  "2026-02-16": "除夕", "2026-02-17": "春节", "2026-02-18": "春节", "2026-02-19": "春节",
+  "2026-02-20": "春节", "2026-02-21": "春节", "2026-02-22": "春节", "2026-02-23": "春节",
+  "2026-04-04": "清明", "2026-04-05": "清明", "2026-04-06": "清明",
+  "2026-05-01": "劳动节", "2026-05-02": "劳动节", "2026-05-03": "劳动节", "2026-05-04": "劳动节", "2026-05-05": "劳动节",
+  "2026-06-19": "端午", "2026-06-20": "端午", "2026-06-21": "端午",
+  "2026-09-25": "中秋", "2026-09-26": "中秋", "2026-09-27": "中秋",
+  "2026-10-01": "国庆", "2026-10-02": "国庆", "2026-10-03": "国庆", "2026-10-04": "国庆",
+  "2026-10-05": "国庆", "2026-10-06": "国庆", "2026-10-07": "国庆", "2026-10-08": "国庆",
+  "2027-01-01": "元旦", "2027-01-02": "元旦", "2027-01-03": "元旦",
+  "2027-02-05": "除夕", "2027-02-06": "春节", "2027-02-07": "春节", "2027-02-08": "春节",
+  "2027-02-09": "春节", "2027-02-10": "春节", "2027-02-11": "春节",
+  "2027-04-05": "清明", "2027-05-01": "劳动节", "2027-06-09": "端午",
+  "2027-09-15": "中秋", "2027-10-01": "国庆", "2027-10-02": "国庆", "2027-10-03": "国庆",
+  "2027-10-04": "国庆", "2027-10-05": "国庆", "2027-10-06": "国庆", "2027-10-07": "国庆",
+};
+const MAKEUP_WORKDAYS = {
+  "2025-01-26": 1, "2025-02-08": 1, "2025-04-27": 1, "2025-09-28": 1, "2025-10-11": 1,
+  "2026-02-14": 1, "2026-02-15": 1, "2026-04-26": 1, "2026-09-20": 1, "2026-10-10": 1,
+  "2027-02-04": 1, "2027-04-25": 1, "2027-09-26": 1, "2027-10-09": 1,
+};
+/* 返回 { kind: "holiday" | "workday" | "weekend", name } */
+function dayKind(dateStr) {
+  const s = String(dateStr || "").slice(0, 10);
+  if (!s) return { kind: "workday", name: "" };
+  if (HOLIDAYS[s]) return { kind: "holiday", name: HOLIDAYS[s] };
+  if (MAKEUP_WORKDAYS[s]) return { kind: "workday", name: "调休上班" };
+  const d = parseDate(s);
+  const w = d && !isNaN(d.getTime()) ? d.getDay() : -1;
+  if (w === 0 || w === 6) return { kind: "weekend", name: "" };
+  return { kind: "workday", name: "" };
+}
+const IS_MOBILE = !!(Platform.isMobile || Platform.isMobileApp);
+const PASTE_MODES = [
+  ["auto", "自动识别（推荐）"],
+  ["headings", "按标题行拆分"],
+  ["blank", "按空行分段"],
+  ["table", "按 Markdown 表格"],
+  ["raw", "整段放一格"],
+];
+const PASTE_TARGETS = [
+  ["replace", "替换整篇（新建格子）"],
+  ["append", "追加到末尾"],
+  ["merge", "同名合并 / 新标题追加"],
+];
+
+function tc(list, n, kind) {
+  return { name: list, kind: kind || "grid", cells: n.map((t) => ({ title: t, cs: 1, rs: 1, h: 0, accent: "" })) };
+}
+
+const DEFAULT_SETTINGS = {
+  version: 3,
+  rootFolder: "日记",
+  theme: "card",                 // card | paper | magazine | bento | mono
+  skin: "zebra",                 // 内嵌表格皮肤
+  columns: 2,
+  rowHeight: 150,
+  gap: 14,
+  pad: 20,
+  radius: 14,
+  accent: "#c2704f",
+  cardOpacity: 1,
+  fontFamily: "",
+  fontSize: 15,
+  /* ── 主题系统（v4）── */
+  themeDir: "主题",              // 主题文件放在 库/主题/
+  activeTheme: "",               // 当前套用的主题名（空 = 用散项）
+  autoApplyTheme: true,          // 启动时自动套用 activeTheme
+  projectName: "日记",
+  projectCarryLayout: true,   /* 切项目时连视觉（主题/皮肤/边框/底色）一起换 */
+  projectLayouts: {},         /* 每个项目记住自己的一套视觉 */           // 当前项目名（多项目由 themeDir 下的项目文件管理）
+  /* 底色（主题组 bg） */
+  bgMode: "color",               // color | gradient | image | texture
+  bgColor: "",
+  bgGradient: "",
+  bgImage: "",
+  bgTexture: "none",
+  bgVideo: "",                   // 背景视频（库内路径）
+  bgVideoLoop: true,
+  bgFollowObsidian: false,       // 底色跟随 Obsidian 主题
+  bgFollowBlur: 0,               // 跟随主题时的磨砂
+  /* 字体颜色与字距 */
+  fontColor: "",
+  letterSpacing: 0,
+  /* 线体 */
+  lineColor: "",
+  lineWidth: 1,
+  lineStyle: "solid",
+  /* 目录颜色编号（T-03） */
+  treeColorMode: "numbered",     // numbered | single | palette
+  treeColorSet: "random-a",      // random-a | random-b
+  treeColorOverrides: {},
+  treeColorRing: [],          // 当前生效的色环（空 = 用方案默认）
+  treeRandomSeed: 0,
+  /* 底图月/周节奏（T-04） */
+  bgByMonth: {},
+  bgByWeek: {},
+  bgRhythm: "week",              // week | month | off
+  /* 视频/动图壁纸（T-06） */
+  videoEnabled: false,
+  videoMaxMB: 20,
+  videoMaxSec: 60,
+  /* 轮播壁纸（T-07） */
+  carouselList: [],
+  carouselEvery: "open",         // 30s | 5m | open | day
+  carouselIndex: 0,
+  /* ── 正文排版（Reeden 式纸书感）── */
+  paraIndent: 2,          // 首行缩进，单位 em
+  paraGap: 0.8,           // 段落间距，单位 em
+  paraFontGap: 0.5,       // 字体下方间距，单位 em
+  lineHeight: 1.7,
+  customCss: "",
+  autoCreateToday: true,
+  dailyTemplatePath: "",     // 新建日记时套用自己的 md 文件（旧版功能）
+  headingLevel: 2,           // 旧版「一格 = 一个二级标题」
+  showEmptyHint: true,
+  renderMarkdown: false,
+  mobileOneColumn: true,
+  showSidebar: true,
+  sidebarWidth: 250,
+  timelinePlacement: "right",    // right | left | tab
+  timelineWidth: 260,            // 流线图（右侧栏）宽度
+  timelineSquare: true,          // 流线图条目接近方形，而不是扁长条
+  timelinePreviewAbove: true,    // 点一条 → 预览铺在原文正上方（视觉在上、文字在下）
+  autoSnapshot: true,
+  snapshotsPerDay: 30,
+  snapshotThrottle: 45,          // 秒：同一文件两次自动快照最小间隔
+  pasteMode: "auto",
+  pasteTarget: "replace",
+  pasteFirstLineAsTitle: true,
+  pasteSeparator: "",
+  pasteKeepKeywords: [],         // 只保留含这些词的段落（空 = 不过滤）
+  pasteDropKeywords: [],         // 丢掉含这些词的段落
+  pasteKeepFrom: "",             // 从这个标题之后的内容全保留（例如「今日事件」）
+  pasteFormatFilter: "all",      // all | text | noimage | notable
+  pasteKeepHeadingOnly: false,   // 只保留标题行，正文丢弃
+  templates: [
+    tc("格间六格", ["今日事件", "今日书账", "今日新知", "今日碎记", "今日美食", "今日反思"]),
+    tc("九宫格晨间", ["今天的天气", "昨天最难忘的事", "今天最重要的一件事", "想感谢的人", "今天的情绪", "身体状态", "今天的期待", "今日反思", "明日计划"]),
+    tc("复盘", ["做成了什么", "哪里卡住", "学到了什么", "下次怎么做"]),
+  ],
+  activeTemplate: "格间六格",
+
+  /* ---- v3 新增：九宫格本体 ---- */
+  flow: "vertical",              // vertical | horizontal | paged
+  cellWidth: 260,                // 横向模式下的格子宽度（190–560）
+  flowRows: 3,                   // 横向模式一屏几行（九宫格默认 3 行）
+  pageCols: 3,                   // 翻页模式一屏几列
+  pagedSnap: true,               // 翻页时吸附
+  defaultBorder: "hair",         // 新格子的默认边框
+  coverHeight: 160,              // 封面高度（0 = 不显示）
+  showCover: true,
+  coverFallback: "gradient",     // gradient | firstImage | none
+  centerCell: false,             // 中央格（曼陀罗式）强调
+  showPromptHint: true,          // 空格显示引导问句
+  hoverLift: true,               // 输入时格子轻微抬起
+  showWordTicker: false,         // 格子底部字数进度纹
+  animPlayMode: "always",        // always | hover（动图播放策略）
+  animMaxMB: 8,                  // 大于此值的动图给提示
+  promptSet: "日间",
+  /* ---- v3 新增：悬浮窗 ---- */
+  floatEnabled: true,
+  floatAutoOpen: false,      /* 启动时自动弹出灵感笔记：默认关 */
+  calFloatAutoOpen: false,
+  calFloatWallOnTop: true,   /* 日历浮窗：壁纸只占顶部一条，内容往下排 */
+  tlFloatRect: null,         /* 时间线浮窗上次的位置与大小 */   /* 启动时自动弹出日历浮窗：默认关 */
+  floatRect: null,               // {left, top, width, height}
+  floatSize: "m",                // s | m | l
+  floatEdgeDock: false,          // 贴边半收
+  floatTitle: "灵感笔记",        // 悬浮窗标题（原「格间日记」，改名以区分日历浮窗）
+  /* 日历浮窗外观：用户要「纯色底 + 可调透明度 + 磨砂」 */
+  calFloatBg: "",                // 空 = 跟随主题底色；否则 #rrggbb
+  calFloatOpacity: 0.96,         // 0.4–1
+  calFloatBlur: 0,               // 0–24，磨砂强度
+  calFloatShadow: true,          // 投影（关掉更轻）
+  /* ---- 四层自由布局 ---- */
+  favoriteFiles: [],             // 收藏的日记（相对路径）
+  /* 图标风格（10 种）：none / dot / line / dash / bar / ring / square / number / emoji / icon */
+  /* 图标样式 10 种：dot 圆点 / ring 空心圈 / square 方块 / diamond 菱形 / arrow 箭头 /
+   * check 对勾 / dash 短横 / star 星 / emoji 表情 / icon 图标字体 */
+  treeIconStyle: "dot",
+  treeSlimTop: true,
+  treeFuncBar: true,
+  treeSepStyle: "none",          // 分区分隔符：none / line / dash / dot / wave / star / heart / leaf / sun / arrow
+  treeSepChar: "",               // 自定义分隔符（填了就优先用它）
+  treeSortMode: "date-desc",     // date-desc | date-asc | name | hits | mtime
+  treeFilterMode: "all",         // all | fav | filled | empty
+  treeGroupMode: "smart",        // smart(今天/昨天/前七天/更早) | month | none
+  treeDragMove: true,            // 允许拖拽移动文件 / 文件夹
+  treeDimOnOpen: false,          // 打开过的日记文字变灰
+  treeDimKeys: [],               // 被手动标灰的 key
+  treeCompact: false,            // 紧凑模式：一行一个，不显示摘要
+  treeThumb: true,               // 文件行显示封面缩略图
+  treeShowStats: true,           // 显示篇数 / 字数
+  treeHiddenFolders: [],         // 隐藏的文件夹（相对 root 的路径）
+  treeFolderOrder: [],           // 文件夹手动顺序
+  treeFolderStyles: {},          // 每个文件夹独立外观 { 路径: {color, emoji, icon} }
+  treeShowHidden: false,         // 临时显示被隐藏的文件夹
+  treeFolderColor: "",           // 文件夹主色（空 = 跟随调色板）
+  treeShowOtherFiles: true,
+    treeMonthFold: true,      // 目录里显示非日记文件
+  treeCollapsedByDefault: false, // 月份分组默认折叠
+  treeShowHitCount: true,        // 显示「最近点开次数」
+  treeShowFoot: false,           // 底部时间线/日历/设置（默认去掉）
+  treeHits: {},                  // 目录点击次数（热度）
+  attachFolder: "attachments",   // 图片等附件的独立目录
+  autoFollowCells: true,         // 改一格其他格跟随（默认开）
+  rawFormat: "markdown",         // 原文模式默认视图
+  layers: null,                  // null = 用 DEFAULT_LAYERS
+  layerStep: 5,                  // 推板步长 1 | 5 | 10
+  stageHeight: 220,
+  splitMode: "whole",            // whole 整块铺满 | top 上下分屏 | left 左右分屏
+  splitAt: 58,                   // 分割线位置（百分比）              // 舞台高度
+  showStage: false,
+  avatarCrop: null,        /* 头像的裁剪框（全局，跟头像一起走） */
+  calWallCrop: null,       /* 日历底图的裁剪框 */
+  bgCrop: null,            /* 主题壁纸的裁剪框 */              // 新版封面舞台（关 = 用旧版封面，兼容老视觉）
+  mottoColor: "",                // 空 = 跟随主题
+  mottoOpacity: 1,
+  mottoWeight: 600,
+  mottoShadow: true,             // 描边光晕（浅底深字 / 深底浅字都能读）
+  markRing: "none",              // none | thin | double | glow | dash（五款相框）
+  markName: "",                  // 圆框下方名字
+  markSize: 56,
+  photoFit: "cover",             // cover 居中裁剪 | contain 完整显示 | fill 拉伸 | nine 九宫格
+  nineSlice: 24,                 // 九宫格切片像素
+  mergeBgImg: false,             // 背景层与照片层合并成一层
+  reuseCoverFrom: "",            // 「用某天的封面」暂存
+  /* ---- v3 新增：日历 ---- */
+  calendarMode: "month",         // day | week | month | year
+  calendarPlacement: "tab",      // tab | right
+  showCalendarAxis: true,        // 轴视图
+  /* ---- v3 新增：皮肤按需 ---- */
+  /* ---- v3.2 新增：日历骨架 × 纹理 ---- */
+  calSkeleton: "grid",           // grid | strip | annual | hero | split | dual（默认单月 = grid）
+  calTexture: "paper",           // none | graph | dots | lines | paper | gradient
+  calLunarMode: "major",         // none | major（初一/十五/节日）| full（全部农历日）
+  calShowTerm: true,             // 显示节气
+  calShowFestival: true,
+  calShowHoliday: true,         // 显示节日
+  calWallpaper: "",              // 日历底图（库内图片路径）
+  calWallpaperPos: "left-top",   // left-top | right-bottom | both | full
+  calWallpaperOpacity: 0.85,
+  calWallpaperBlur: 0,           // 0-12，模糊度（铺满时常用）
+  calPanel: "tab",               // tab（标签页）| float（悬浮窗）
+  calFloatRect: null,            // 悬浮日历的位置与尺寸
+  calWeekStart: 1,
+  calDualPick: "",               // 双月骨架里被点中的那一天
+  calMonthDefault: "single",     // single | dual —— 用户要的「默认单月，双月可选」开关
+  calShowGridLines: true,        // 网格线（参考图里淡灰细线）
+  calWideCell: false,            // 单元格放宽（双月时自动开）               // 0 = 周日起，1 = 周一起
+
+  /* ---- v3.1 新增：封面焦点 / 座右铭 / 头像 / 目录 ---- */
+  showCoverPos: true,            // 允许拖动调整封面取景位置
+  showMotto: false,              // 封面右侧座右铭框（默认关，设置里可开）
+  motto: "",                     // 座右铭文本（可被单篇覆盖）
+  mottoAlign: "left",            // left | center | right
+  mottoSize: 15,                 // 座右铭字号
+  showAvatar: false,             // 封面左下角头像/标志
+  avatar: "",                    // 头像图片路径
+  avatarText: "",                // 没图时的文字标记（留空则不显示）
+  avatarSize: 44,                // 头像直径
+  treeTwoPane: true,             // 目录：上文件夹 / 下文件 双面板
+  treePaneRatio: 0.42,           // 上方面板占比
+  treeIconFolder: "folder",      // 文件夹图标
+  treeIconFolderOpen: "folder-open",
+  treeIconFile: "file-text",
+  treeIconDaily: "calendar-days",
+  treeShowBadge: true,           // 文件夹右侧数量徽标
+  glassEnabled: false,           // 毛玻璃默认关（用户：谁用谁开）
+  globalTableSnippet: false,     // 是否生成 .obsidian/snippets 片段
+
+  // 以下为旧版 1.3.0 已有的设置，保留字段以便旧 data.json 原样迁移
+  fontWeight: 400,
+  background: "",
+  splitRatio: 0.6,
+  listLineStyle: "polyline",
+  skipPermanentConfirm: false,
+  fontDataUrl: "",
+  fontFileName: "",
+  fontDirFile: "",
+  showRecentFiles: true,
+  showTreeLines: true,
+  treeDefaultOpen: true,
+  treeSort: "folders",
+  iconFile: "",
+  iconFolder: "",
+  iconFolderOpen: "",
+  rightDockWidth: 0,
+  activePreset: "",
+  layoutPresets: [
+    { name: "紧凑", columns: 2, rowHeight: 200, gap: 14, pad: 18, fontSize: 15, radius: 14 },
+    { name: "宽松", columns: 2, rowHeight: 240, gap: 26, pad: 44, fontSize: 17, radius: 18 },
+  ],
+};
+
+/* ============ 选本地文件 ============
+ * 历史教训（2026-11-08）：
+ *   1. createElement 后不 appendChild 就 click()，Chromium 不弹框 → 已修。
+ *   2. 只有 change 监听、没有 cancel 结算 → 用户一取消，Promise 永远 pending；
+ *      而 Obsidian 的 ButtonComponent 会 await 回调、期间一直挂着 mod-loading 转圈。
+ *      「批量封面」和「日历底图」两处一模一样的转圈，根因就是这条链。
+ *   3. 现在优先走 Electron 原生对话框（window.electron.remote.dialog，Obsidian 桌面版自带），
+ *      拿不到再退回 input。两条路都会结算，绝不悬挂。 */
+
+function nodeRequire(name) {
+  try {
+    if (typeof window === "undefined" || !window.require) return null;
+    return window.require(name);
+  } catch (e) { return null; }
+}
+
+/* accept 字符串 → 扩展名数组。image/* 这类去掉，只留能确定的 */
+function extsFromAccept(accept) {
+  const out = [];
+  const seen = new Set();
+  const push = (x) => { const v = String(x || "").toLowerCase().replace(/^\./, ""); if (v && !v.includes("*") && !seen.has(v)) { seen.add(v); out.push(v); } };
+  const s = String(accept || "");
+  for (const tok of s.split(",")) {
+    const x = tok.trim().toLowerCase();
+    if (!x) continue;
+    if (x.startsWith(".")) push(x);
+    else if (x.includes("/")) {
+      const sub = x.split("/")[1];
+      if (!sub || sub === "*") continue;
+      push(sub.replace("jpeg", "jpg"));
+    }
+  }
+  return out;
+}
+
+/* 原生对话框：返回绝对路径数组；不可用返回 null（交给 input 兜底） */
+function nativeOpenSync(opts) {
+  const o = opts || {};
+  let dlg = null;
+  try { dlg = window.electron && window.electron.remote && window.electron.remote.dialog; } catch (e) { dlg = null; }
+  if (!dlg || typeof dlg.showOpenDialogSync !== "function") return null;
+  const exts = extsFromAccept(o.accept);
+  const props = ["openFile", "dontAddToRecent"];
+  if (o.multiple) props.push("multiSelections");
+  const args = { title: o.title || "选文件", properties: props };
+  if (exts.length) args.filters = [{ name: "可选文件", extensions: exts }];
+  try {
+    const res = dlg.showOpenDialogSync(args);
+    if (!res || !res.length) return [];
+    return Array.prototype.slice.call(res);
+  } catch (e) {
+    console.warn("[格间日记] 原生选文件失败，改用浏览器选择：", e);
+    return null;
+  }
+}
+
+/* 绝对路径 → 便于上层直接使用的「类 File」对象（name / size / arrayBuffer） */
+function fileInfoFromPath(p) {
+  const fsMod = nodeRequire("node:original-fs") || nodeRequire("fs");
+  const pathMod = nodeRequire("node:path");
+  if (!fsMod || !pathMod) return null;
+  try {
+    const buf = fsMod.readFileSync(p);
+    const name = pathMod.basename(p);
+    const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    return {
+      name,
+      path: p,
+      size: buf.byteLength,
+      type: "",
+      arrayBuffer: () => Promise.resolve(ab),
+    };
+  } catch (e) { return null; }
+}
+
+function chooseLocalFile(opts) {
+  const o = opts || {};
+  const native = nativeOpenSync({
+    accept: o.accept, multiple: o.multiple,
+    title: o.title || (o.multiple ? "选文件（可多选）" : "选文件"),
+  });
+  if (native) {
+    const list = native.map(fileInfoFromPath).filter(Boolean);
+    return Promise.resolve(o.multiple ? list : (list[0] || null));
+  }
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    if (o.accept) input.accept = o.accept;
+    else input.removeAttribute("accept");
+    if (o.multiple) input.multiple = true;
+    input.style.position = "fixed";
+    input.style.left = "-9999px";
+    input.style.top = "0";
+    input.style.width = "1px";
+    input.style.height = "1px";
+    input.style.opacity = "0";
+    let done = false;
+    let timer = null;   /* 必须声明在 cleanup 之前，否则同步失败时读它会撞 TDZ */
+    const cleanup = () => {
+      if (done) return;
+      done = true;
+      try { input.remove(); } catch (e) { }
+      if (timer) { clearTimeout(timer); timer = null; }
+    };
+    const finish = (val) => { cleanup(); resolve(val); };
+    input.addEventListener("change", () => {
+      const files = input.files ? Array.from(input.files) : [];
+      finish(o.multiple ? files : (files[0] || null));
+    });
+    /* Chromium 113+ 的文件框取消事件：不接这一条，用户一取消就永久转圈 */
+    input.addEventListener("cancel", () => finish(o.multiple ? [] : null));
+    document.body.appendChild(input);
+    try { input.click(); } catch (e) { finish(o.multiple ? [] : null); return; }
+    /* 最后一道保险：极小概率两条事件都不来（例如被别的插件拦了），60 秒后结算掉 */
+    timer = setTimeout(() => finish(o.multiple ? [] : null), 60000);
+    if (timer && typeof timer.unref === "function") timer.unref();
+  });
+}
+
+function pad2(n) { return String(n).padStart(2, "0"); }
+function fmtDate(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+function todayStr() { return fmtDate(new Date()); }
+function parseDate(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || "");
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date();
+}
+function shiftDate(s, delta) {
+  const d = parseDate(s);
+  d.setDate(d.getDate() + delta);
+  return fmtDate(d);
+}
+function shiftMonth(s, delta) {
+  const d = parseDate(s);
+  const y = d.getFullYear(), m = d.getMonth() + delta;
+  const ny = y + Math.floor(m / 12), nm = ((m % 12) + 12) % 12;
+  const last = new Date(ny, nm + 1, 0).getDate();
+  const day = Math.min(d.getDate(), last);
+  return fmtDate(new Date(ny, nm, day));
+}
+function weekdayCN(s) { return "周" + WEEK_CN[parseDate(s).getDay()]; }
+/* 年份写成汉字：「2026」→「二〇二六」 */
+function cnYearLabel(y) {
+  const map = ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+  const s = String(y || "").replace(/[^0-9]/g, "");
+  if (s.length !== 4) return "";
+  let out = "";
+  for (const ch of s) out += map[Number(ch)];
+  return out + "年";
+}
+function dateCN(s) { const d = parseDate(s); return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`; }
+function dateShort(s) { const d = parseDate(s); return `${d.getMonth() + 1}月${d.getDate()}日`; }
+function monthKey(s) { return (s || "").slice(0, 7); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, Number(n) || lo)); }
+function truncate(s, n) { const t = String(s || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n) + "…" : t; }
+function slug(s) { return String(s || "auto").replace(/[\\/:*?"<>|\s]+/g, "-").slice(0, 40); }
+/* ---- 旧版「同一天多篇」：壹 贰 叁 … 拾壹 … 最多 99 篇 ----
+ * 磁盘上就是 2026-10-18壹.md 这种文件名，必须原样认得、排序、续写。 */
+const CN_DIGITS = ["壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖"];
+const CN_TEN = "拾";
+const CN_SUFFIX_RE = /^[壹贰叁肆伍陆柒捌玖拾]+$/;
+function cnNumber(n) {
+  if (!Number.isInteger(n) || n < 1 || n > 99) return "";
+  if (n < 10) return CN_DIGITS[n - 1];
+  const tens = Math.floor(n / 10), ones = n % 10;
+  const head = tens === 1 ? CN_TEN : CN_DIGITS[tens - 1] + CN_TEN;
+  return ones ? head + CN_DIGITS[ones - 1] : head;
+}
+function cnValue(s) {
+  if (!s) return 0;
+  if (!CN_SUFFIX_RE.test(s)) return Infinity;
+  const idx = (ch) => CN_DIGITS.indexOf(ch) + 1;
+  const p = s.indexOf(CN_TEN);
+  if (p < 0) return idx(s) || Infinity;
+  const tens = p === 0 ? 1 : idx(s.slice(0, p));
+  const ones = p === s.length - 1 ? 0 : idx(s.slice(p + 1));
+  if (tens < 1 || (p + 1 < s.length && ones < 1)) return Infinity;
+  return tens * 10 + ones;
+}
+function nextCnSuffix(used) {
+  const set = new Set(used);
+  for (let i = 1; i <= 99; i++) { const s = cnNumber(i); if (s && !set.has(s)) return s; }
+  return "";
+}
+function splitDayKey(key) {
+  const m = /^(\d{4}-\d{2}-\d{2})([壹贰叁肆伍陆柒捌玖拾]+)?$/.exec(key || "");
+  return m ? { date: m[1], suffix: m[2] || "" } : { date: (key || "").slice(0, 10), suffix: "" };
+}
+/* 新建日记时对自己写的 md 模板做纯文本替换（旧版 applyVars 等价实现） */
+function fmtPattern(pattern, d) {
+  const map = {
+    YYYY: String(d.getFullYear()), MM: pad2(d.getMonth() + 1), DD: pad2(d.getDate()),
+    HH: pad2(d.getHours()), mm: pad2(d.getMinutes()), ss: pad2(d.getSeconds()),
+  };
+  return String(pattern).replace(/YYYY|MM|DD|HH|mm|ss/g, (k) => map[k]);
+}
+function applyVars(text, key, dateStr) {
+  const d = parseDate(dateStr), now = new Date();
+  return String(text || "").replace(/\{\{\s*(date|time|title)\s*(?::([^}]*))?\}\}/g, (_m, k, p) => {
+    if (k === "title") return key;
+    const pat = String(p || "").trim() || (k === "time" ? "HH:mm" : "YYYY-MM-DD");
+    return fmtPattern(pat, k === "date" ? d : now);
+  });
+}
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+function uid() { return "c" + Math.random().toString(36).slice(2, 9); }
+function debounce(fn, ms) {
+  let t = null;
+  const f = function () {
+    const args = arguments, ctx = this;
+    if (t) clearTimeout(t);
+    t = setTimeout(() => { t = null; fn.apply(ctx, args); }, ms);
+  };
+  f.cancel = () => { if (t) { clearTimeout(t); t = null; } };
+  return f;
+}
+/* 手机上的 click/contextmenu 没有可靠的鼠标坐标，菜单改为贴着触发按钮弹出 */
+function showMenuAt(menu, evt) {
+  if (IS_MOBILE) {
+    const t = evt.currentTarget || evt.target;
+    const r = t && t.getBoundingClientRect ? t.getBoundingClientRect() : null;
+    try { menu.showAtPosition({ x: r ? r.left : 80, y: r ? Math.min(r.bottom + 4, window.innerHeight - 60) : 120 }); return; }
+    catch (e) { /* 老版本退回鼠标定位 */ }
+  }
+  menu.showAtMouseEvent(evt);
+}
+function mergeDefaults(saved, defaults) {
+  const out = deepClone(defaults);
+  if (!saved || typeof saved !== "object") return out;
+  for (const k of Object.keys(saved)) {
+    if (saved[k] === undefined || saved[k] === null) continue;
+    out[k] = saved[k];
+  }
+  return out;
+}
+/* 把 v1.x / v2.x 的 data.json 迁移到 v3 字段。
+ * 关键点：v1 的实际观感是「手账纸感」（cardOpacity 0.3 + 楷体 + 纸纹），
+ * 旧配置里没有 theme 字段，所以迁移时必须显式写成 paper，否则会被
+ * mergeDefaults 填成 card，用户升级后主题会「莫名其妙变白」。 */
+function migrateSettings(saved) {
+  const s = mergeDefaults(saved, DEFAULT_SETTINGS);
+  if (!saved || typeof saved !== "object") return s;
+  const v = Number(saved.version) || 1;
+  if (v >= 3) return s;
+
+  const fromV1 = v < 2;
+  if (fromV1) {
+    /* v1 → v3：主题按实际观感补成纸感；字号小、页边距小、列少 */
+    s.theme = saved.theme || "paper";
+    if (saved.columns) s.columns = clamp(saved.columns, 1, 6);
+    if (saved.cellHeight) s.rowHeight = clamp(saved.cellHeight, 80, 600);
+    if (saved.gridGap) s.gap = clamp(saved.gridGap, 0, 48);
+    if (saved.contentPad) s.pad = clamp(saved.contentPad, 4, 64);
+    if (saved.pluginFontSize) s.fontSize = clamp(saved.pluginFontSize, 10, 26);
+    if (saved.fontFamily) s.fontFamily = saved.fontFamily;
+    if (saved.customCss) s.customCss = saved.customCss;
+    if (saved.leftWidth) s.sidebarWidth = clamp(saved.leftWidth, 160, 420);
+    if (saved.showLeftPanel === false) s.showSidebar = false;
+    if (Array.isArray(saved.templates)) {
+      s.templates = saved.templates.map((t) => ({
+        name: t.name || "未命名模板",
+        cells: Array.isArray(t.cells) ? t.cells : (t.titles || []).map((title) => ({ title, cs: 1, rs: 1, h: 0, accent: "" })),
+      }));
+    }
+    s.activeTemplate = saved.defaultTemplate || saved.activeTemplate || s.templates[0].name;
+  } else {
+    /* v2 → v3：主题已是明确字段，原样保留 */
+    if (saved.theme) s.theme = saved.theme;
+  }
+  s.version = 3;
+  return s;
+}
+
+
+/* ---- 02-lunar.js ---- */
+/* ============ 农历 / 节气 / 节日（零依赖，1900–2100） ============
+ * 为什么不直接引 lunar-javascript：那个库压缩后 419KB，而且是 UMD 包装，
+ * 在 Obsidian 手机端的 CommonJS 环境下加载不可靠。
+ * 这里只保留真正要用的两块数据（农历月规模 + 节气日期），合计约 6KB。
+ *
+ * 农历编码（每年一个整数）：
+ *   bits 0-3  : 闰月是几月（0 = 这年没闰月）
+ *   bit  16   : 闰月是 30 天（不置位 = 29 天）
+ *   bits 4-15 : 正月..腊月的天数，1 = 30 天，0 = 29 天
+ * ================================================================= */
+
+const LUNAR_START_YEAR = 1900;
+const LUNAR_END_YEAR = 2100;
+/* 1900-01-31 是农历 1900 年正月初一，所有换算从这里起算 */
+const LUNAR_EPOCH = Date.UTC(1900, 0, 31);
+
+const LUNAR_TABLE = [
+  "bd28", "7520", "ea50", "b2a5", "64b0", "a9b0", "1aa64", "56a0", "b590", "baa2",
+  "7520", "da56", "b250", "a4b0", "1a4b5", "2ad0", "56b0", "5b52", "da90", "1e927",
+  "e920", "d250", "d2d5", "a560", "2b60", "1ad54", "6d40", "ea90", "f4a2", "e920",
+  "6a66", "52b0", "a570", "19565", "b5a0", "6d40", "17613", "7490", "1b137", "a930",
+  "52b0", "151b6", "aad0", "56a0", "1da54", "ba40", "b490", "d4b2", "a950", "aad7",
+  "5360", "aad0", "1aca5", "5b20", "da50", "1ea23", "d4a0", "5958", "a970", "5560",
+  "5756", "ad50", "6d20", "7554", "ea50", "64a0", "64f3", "a9b0", "ada7", "56a0",
+  "b690", "bb25", "b520", "b250", "b2b4", "a4b0", "aab8", "2ad0", "56d0", "15a96",
+  "da90", "d920", "e954", "d250", "e4da", "a560", "2b60", "2f56", "6d50", "ea90",
+  "f525", "e920", "d260", "52e3", "a570", "ad68", "35a0", "6d50", "b695", "7490",
+  "6930", "a9b4", "52b0", "a5b0", "aae2", "56a0", "dd57", "ba40", "b490", "d535",
+  "a950", "52d0", "55d4", "ab50", "baa9", "5d20", "da50", "1e8a6", "d4a0", "c950",
+  "a9e4", "5560", "ab50", "ada2", "6d20", "7656", "7250", "64b0", "6575", "cab0",
+  "55a0", "56e3", "b690", "f52b", "b520", "b250", "1d0b6", "a4b0", "4ab0", "2bb5",
+  "5ad0", "b6a0", "daa2", "d920", "ea57", "d250", "a550", "1a4d5", "4b60", "5b50",
+  "16d23", "ec90", "f928", "e920", "d260", "15166", "a570", "4d60", "13654", "7550",
+  "7490", "74b3", "6930", "aab7", "52b0", "a5b0", "aba5", "56a0", "b650", "baa4",
+  "b4a0", "d958", "a950", "52d0", "56d6", "ab50", "5aa0", "5d54", "da50", "d4a0",
+  "e4d3", "c960", "cce7", "5560", "ab50", "1ad25", "6d20", "ea50", "72a4", "68b0",
+  "6978", "4ab0", "55b0", "15566", "b6a0", "7520", "b954", "b450", "a8b0", "a4f2",
+  "4ab0",
+].map((h) => parseInt(h, 16));
+
+/* 节气表：每年 24 个字符，位置 i 对应公历 floor(i/2)+1 月。
+ * 字符是 36 进制（0-9a-z → 0-35），表示那一天是几号。
+ * 顺序：小寒 大寒 立春 雨水 惊蛰 春分 清明 谷雨 立夏 小满 芒种 夏至
+ *       小暑 大暑 立秋 处暑 白露 秋分 寒露 霜降 立冬 小雪 大雪 冬至 */
+const TERM_NAMES = [
+  "小寒", "大寒", "立春", "雨水", "惊蛰", "春分",
+  "清明", "谷雨", "立夏", "小满", "芒种", "夏至",
+  "小暑", "大暑", "立秋", "处暑", "白露", "秋分",
+  "寒露", "霜降", "立冬", "小雪", "大雪", "冬至",
+];
+const TERM_TABLE = [
+  "6k4j6l5k6l6m7n8n8n9o8n7m", "6l4j6l5l6m6m8n8o8o9o8n8m",
+  "6l5j6l6l6m7m8o8o8o9o8n8n", "6l5k7m6l7m7m8o9o9o9o8n8n",
+  "7l5k6l5k6l6m7n8n8n9o8n7m", "6l4j6l5l6m6m8n8o8o9o8n8m",
+  "6l5j6l6l6m6m8o8o8o9o8n8n", "6l5k7m6l7m7m8o9o9o9o8n8n",
+  "7l5k6l5k6l6m7n8n8n9o8n7m", "6l4j6l5l6m6m8n8o8o9o8n8m",
+  "6l5j6l6l6m6m8o8o8o9o8n8n", "6l5k7m6l7m7m8o9o9o9o8n8n",
+  "7l5k6l5k6l6m7n8n8n9o8m7m", "6k4j6l5l6m6m8n8o8n9o8n8m",
+  "6l4j6l5l6m6m8o8o8o9o8n8n", "6l5k6m6l6m7m8o8o9o9o8n8n",
+  "6l5k6l5k6l6m7n8n8n8o8m7m", "6k4j6l5l6l6m8n8o8n9o8n8m",
+  "6l4j6l5l6m6m8o8o8o9o8n8m", "6l5k6m6l6m7m8o8o9o9o8n8n",
+  "6l5k6l5k6l6m7n8n8n8o8m7m", "6k4j6l5k6l6m8n8o8n9o8n7m",
+  "6l4j6l5l6m6m8o8o8o9o8n8m", "6l5j6l6l6m7m8o8o9o9o8n8n",
+  "6l5k6l5k6l6m7n8n8n8o8m7m", "6k4j6l5k6l6m8n8o8n9o8n7m",
+  "6l4j6l5l6m6m8n8o8o9o8n8m", "6l5j6l6l6m7m8o8o9o9o8n8n",
+  "6l5k6l5k6l6m7n8n8n8n7m7m", "6k4j6l5k6l6m7n8n8n9o8n7m",
+  "6l4j6l5l6m6m8n8o8o9o8n8m", "6l5j6l6l6m7m8o8o8o9o8n8n",
+  "6l5k6l5k6l6l7n8n8n8n7m7m", "6k4j6l5k6l6m7n8n8n9o8n7m",
+  "6l4j6l5l6m6m8n8o8o9o8n8m", "6l5j6l6l6m6m8o8o8o9o8n8n",
+  "6l5k6l5k6l6l7n8n8n8n7m7m", "6k4j6l5k6l6m7n8n8n9o8n7m",
+  "6l4j6l5l6m6m8n8o8o9o8n8m", "6l5j6l6l6m6m8o8o8o9o8n8n",
+  "6l5k6l5k6l6l7n8n8n8n7m7m", "6k4j6l5k6l6m7n8n8n9o8n7m",
+  "6l4j6l5l6m6m8n8o8o9o8n8m", "6l5j6l6l6m6m8o8o8o9o8n8n",
+  "6l5k6l5k5l6l7n8n8n8n7m7m", "6k4j6l5k6l6m7n8n8n8o8m7m",
+  "6k4j6l5l6m6m8n8o8n9o8n8m", "6l4j6l5l6m6m8o8o8o9o8n8n",
+  "6l5k5l5k5l6l7n7n8n8n7m7m", "5k4j6l5k6l6m7n8n8n8o8m7m",
+  "6k4j6l5k6l6m8n8o8n9o8n8m", "6l4j6l5l6m6m8o8o8o9o8n8n",
+  "6l5k5l5k5l6l7n7n8n8n7m7m", "5k4j6l5k6l6m7n8n8n8o8m7m",
+  "6k4j6l5k6l6m8n8o8n9o8n7m", "6l4j6l5l6m6m8n8o8o9o8n8m",
+  "6l5k5k5k5l6l7n7n8n8n7m7m", "5k4j6l5k6l6m7n8n8n8o8m7m",
+  "6k4j6l5k6l6m7n8n8n9o8n7m", "6l4j6l5l6m6m8n8o8o9o8n8m",
+  "6l5j5k5k5l6l7n7n7n8n7m7m", "5k4j6l5k6l6l7n8n8n8n7m7m",
+  "6k4j6l5k6l6m7n8n8n9o8n7m", "6l4j6l5l6m6m8n8o8o9o8n8m",
+  "6l5j5k5k5l6l7n7n7n8n7m7m", "5k4j6l5k6l6l7n8n8n8n7m7m",
+  "6k4j6l5k6l6m7n8n8n9o8n7m", "6l4j6l5l6m6m8n8o8o9o8n8m",
+  "6l5j5k5k5l5l7n7n7n8n7m7m", "5k4j6l5k6l6l7n8n8n8n7m7m",
+  "6k4j6l5k6l6m7n8n8n9o8n7m", "6l4j6l5l6m6m8n8o8o9o8n8m",
+  "6l5j5k5k5l5l7n7n7n8n7m7m", "5k4j6l5k5l6l7n8n8n8n7m7m",
+  "6k4j6l5k6l6m7n8n8n9o8n7m", "6l4j6l5l6m6m8n8o8n9o8n8m",
+  "6l5j5k4k5l5l7n7n7n8n7m7m", "5k4j6l5k5l6l7n7n8n8n7m7m",
+  "6k4j6l5k6l6m7n8n8n8o8n7m", "6k4j6l5l6l6m8n8o8n9o8n8m",
+  "6l5j5k4k5l5l7n7n7n8n7m7m", "5k4j6l5k5l6l7n7n8n8n7m7m",
+  "6k4j6l5k6l6m7n8n8n8o8m7m", "6k4j6l5k6l6m8n8o8n9o8n8m",
+  "6l4j5k4k5l5l7m7n7n8n7m7m", "5k4j5l5k5l6l7n7n8n8n7m7m",
+  "5k4j6l5k6l6m7n8n8n8o8m7m", "6k4j6l5k6l6m7n8o8n9o8n7m",
+  "6l4j5k4k5l5l7m7n7n8n7m7l", "5k4j5k5k5l6l7n7n7n8n7m7m",
+  "5k4j6l5k6l6l7n8n8n8o8m7m", "6k4j6l5k6l6m7n8n8n9o8n7m",
+  "6l4j5k4k5l5l7m7n7n8n7m7l", "5k4i5k5k5l6l7n7n7n8n7m7m",
+  "5k4j6l5k6l6l7n8n8n8n7m7m", "6k4j6l5k6l6m7n8n8n9o8n7m",
+  "6l4j5k4k5l5l7m7n7n8n7m7l", "5k4i5k5k5l5l7n7n7n8n7m7m",
+  "5k4j6l5k6l6l7n8n8n8n7m7m", "6k4j6l5k6l6m7n8n8n9o8n7m",
+  "6l4j5k4k5l5l7m7n7n8n7m7l", "5k4i5k5k5l5l7n7n7n8n7m7m",
+  "5k4j6l5k6l6l7n8n8n8n7m7m", "6k4j6l5k6l6m7n8n8n9o8n7m",
+  "6l4j5k4k5l5l7m7n7n8n7m7l", "5k4i5k5k5l5l7n7n7n8n7m7m",
+  "5k4j6l5k5l6l7n7n8n8n7m7m", "6k4j6l5k6l6m7n8n8n9o8n7m",
+  "6l4j5k4k5l5l7m7n7m8n7m7l", "5k4i5k4k5l5l7n7n7n8n7m7m",
+  "5k4j6l5k5l6l7n7n8n8n7m7m", "6k4j6l5k6l6m7n8n8n8o8n7m",
+  "6l4j5k4k5k5l7m7n7m8n7m7l", "5k4i5k4k5l5l7m7n7n8n7m7m",
+  "5k4j6l5k5l6l7n7n8n8n7m7m", "6k4j6l5k6l6m7n8n8n8o8m7m",
+  "6k4j5k4j5k5l7m7n7m8n7m7l", "5k3i5k4k5l5l7m7n7n8n7m7m",
+  "5k4j5l5k5l6l7n7n8n8n7m7m", "5k4j6l5k6l6l7n8n8n8o8m7m",
+  "6k4j5k4j5k5l6m7m7m8n7m7l", "5k3i5k4k5l5l7m7n7n8n7m7l",
+  "5k4j5k5k5l6l7n7n7n8n7m7m", "5k4j6l5k6l6l7n8n8n8o8m7m",
+  "6k4j5k4j5k5l6m7m7m8n7m6l", "5k3i5k4k5l5l7m7n7n8n7m7l",
+  "5k4i5k5k5l5l7n7n7n8n7m7m", "5k4j6l5k6l6l7n8n8n8n7m7m",
+  "6k4j5k4j5k5l6m7m7m8n7m6l", "5k3i5k4k5l5l7m7n7n8n7m7l",
+  "5k4i5k5k5l5l7n7n7n8n7m7m", "5k4j6l5k6l6l7n8n8n8n7m7m",
+  "6k4j5k4j5k5l6m7m7m8n7m6l", "5k3i5k4k5l5l7m7n7n8n7m7l",
+  "5k4i5k5k5l5l7n7n7n8n7m7m", "5k4j6l5k5l6l7n7n8n8n7m7m",
+  "6k4j5k4j5k5l6m7m7m8n7m6l", "5k3i5k4k5l5l7m7n7n8n7m7l",
+  "5k4i5k5k5l5l7n7n7n8n7m7m", "5k4j6l5k5l6l7n7n8n8n7m7m",
+  "6k4j5k4j5k5l6m7m7m8n7m6l", "5k3i5k4k5k5l7m7n7m8n7m7l",
+  "5k4i5k4k5l5l7n7n7n8n7m7m", "5k4j6l5k5l6l7n7n8n8n7m7m",
+  "6k4j5k4j5k5l6m7m7m7n7m6l", "5k3i5k4j5k5l7m7n7m8n7m7l",
+  "5k4i5k4k5l5l7m7n7n8n7m7m", "5k4j6l5k5l6l7n7n8n8n7m7m",
+  "6k4j5k4j5k5k6m7m7m7n7l6l", "5j3i5k4j5k5l6m7m7m8n7m7l",
+  "5k3i5k4k5l5l7m7n7n8n7m7m", "5k4j5k5k5l6l7n7n7n8n7m7m",
+  "5k4j5k4j5k5k6m7m7m7n7l6l", "5j3i5k4j5k5l6m7m7m8n7m7l",
+  "5k3i5k4k5l5l7m7n7n8n7m7m", "5k4j5k5k5l5l7n7n7n8n7m7m",
+  "5k4j5k4j5k5k6m7m7m7n7l6l", "5j3i5k4j5k5l6m7m7m8n7m6l",
+  "5k3i5k4k5l5l7m7n7n8n7m7l", "5k4j5k5k5l5l7n7n7n8n7m7m",
+  "5k4j5k4j5k5k6m7m7m7m6l6l", "5j3i5k4j5k5l6m7m7m8n7m6l",
+  "5k3i5k4k5l5l7m7n7n8n7m7l", "5k4i5k5k5l5l7n7n7n8n7m7m",
+  "5k4j5k4j5k5k6m7m7m7m6l6l", "5j3i5k4j5k5l6m7m7m8n7m6l",
+  "5k3i5k4k5l5l7m7n7n8n7m7l", "5k4i5k5k5l5l7n7n7n8n7m7m",
+  "5k4j5k4j4k5k6m6m7m7m6l6l", "5j3i5k4j5k5l6m7m7m8n7m6l",
+  "5k3i5k4k5k5l7m7n7m8n7m7l", "5k4i5k5k5l5l7n7n7n8n7m7m",
+  "5k4j5k4j4k5k6m6m7m7m6l6l", "5j3i5k4j5k5l6m7m7m7n7m6l",
+  "5k3i5k4k5k5l7m7n7m8n7m7l", "5k4i5k4k5l5l7m7n7n8n7m7m",
+  "5k4j5k4j4k5k6m6m7m7m6l6l", "5j3i5k4j5k5l6m7m7m7n7m6l",
+  "5k3i5k4j5k5l6m7n7m8n7m7l", "5k4i5k4k5l5l7m7n7n8n7m7m",
+  "5k4j5k4j4k5k6m6m7m7m6l6l", "5j3i5k4j5k5k6m7m7m7n7l6l",
+  "5k3i5k4j5k5l6m7m7m8n7m7l", "5k3i5k4k5l5l7m7n7n8n7m7m",
+  "5k4j4j4j4k5k6m6m6m7m6l6l", "4j3i5k4j5k5k6m7m7m7n7l6l",
+  "5j3i5k4j5k5l6m7m7m8n7m7l", "5k3i5k4k5l5l7m7n7n8n7m7m",
+  "5k4j4j4j4k4k6m6m6m7m6l6l", "4j3i5k4j5k5k6m7m7m7n7l6l",
+  "5j3i5k4j5k5l6m7m7m8n7m6l", "5k3i5k4k5l5l7m7n7n8n7m7l",
+  "5k4j4j4j4k4k6m6m6m7m6l6l", "4j3i5k4j5k5k6m7m7m7m6l6l",
+  "5j3i5k4j5k5l6m7m7m8n7m6l", "5k3i5k4k5l5l7m7n7n8n7m7l",
+  "5k4i4j4j4k4k6m6m6m7m6l6l", "4j3i5k4j5k5k6m6m7m7m6l6l",
+  "5j3i5k4j5k5l6m7m7m8n7m6l", "5k3i5k4k5l5l7m7n7n8n7m7l",
+  "5k4i5k5k5l5l7n7n7n8n7m7m",
+];
+const B36 = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+const LUNAR_MONTH_CN = ["正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "冬", "腊"];
+const LUNAR_DAY_CN = [
+  "", "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
+  "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
+  "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十",
+];
+const GAN = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+const ZHI = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+
+/* 农历节日：键是 "月-日"，闰月不放假（民间习惯） */
+const LUNAR_FESTIVALS = {
+  "1-1": "春节", "1-15": "元宵节", "2-2": "龙抬头",
+  "5-5": "端午节", "7-7": "七夕", "7-15": "中元节",
+  "8-15": "中秋节", "9-9": "重阳节", "10-1": "寒衣节",
+  "10-15": "下元节", "12-8": "腊八节", "12-23": "小年",
+};
+/* 公历节日 */
+const SOLAR_FESTIVALS = {
+  "01-01": "元旦", "02-14": "情人节", "03-08": "妇女节", "03-12": "植树节",
+  "04-01": "愚人节", "05-01": "劳动节", "05-04": "青年节", "06-01": "儿童节",
+  "07-01": "建党节", "08-01": "建军节", "09-10": "教师节", "10-01": "国庆节",
+  "12-24": "平安夜", "12-25": "圣诞节",
+};
+
+/* 取某个农历年的总天数 */
+function lunarYearDays(ly) {
+  const info = LUNAR_TABLE[ly - LUNAR_START_YEAR];
+  if (info == null) return 0;
+  let total = 0;
+  for (let m = 1; m <= 12; m++) total += info & (1 << (m + 3)) ? 30 : 29;
+  const leap = info & 0xf;
+  if (leap) total += info & 0x10000 ? 30 : 29;
+  return total;
+}
+
+/* 取某农历月天数；leap=true 取闰月 */
+function lunarMonthDays(ly, m, leap) {
+  const info = LUNAR_TABLE[ly - LUNAR_START_YEAR];
+  if (info == null) return 29;
+  if (leap) return info & 0x10000 ? 30 : 29;
+  return info & (1 << (m + 3)) ? 30 : 29;
+}
+
+/* 公历 "YYYY-MM-DD" → 农历对象 */
+function lunarOf(dateStr) {
+  const p = String(dateStr || "").split("-").map(Number);
+  if (p.length < 3 || !p[0]) return null;
+  const [y, mo, d] = p;
+  let offset = Math.round((Date.UTC(y, mo - 1, d) - LUNAR_EPOCH) / 86400000);
+  if (offset < 0 || y > LUNAR_END_YEAR) return null;
+
+  let ly = LUNAR_START_YEAR;
+  while (ly <= LUNAR_END_YEAR) {
+    const yd = lunarYearDays(ly);
+    if (offset < yd) break;
+    offset -= yd;
+    ly++;
+  }
+  const info = LUNAR_TABLE[ly - LUNAR_START_YEAR];
+  const leapMonth = info & 0xf;
+  let lm = 1, isLeap = false;
+  for (lm = 1; lm <= 12; lm++) {
+    const md = lunarMonthDays(ly, lm, false);
+    if (offset < md) break;
+    offset -= md;
+    if (leapMonth === lm) {
+      const ld = lunarMonthDays(ly, lm, true);
+      if (offset < ld) { isLeap = true; break; }
+      offset -= ld;
+    }
+  }
+  const ld = offset + 1;
+  return {
+    ly, lm, ld, isLeap, monthDays: lunarMonthDays(ly, lm, isLeap),
+    monthName: (isLeap ? "闰" : "") + LUNAR_MONTH_CN[lm - 1] + "月",
+    dayName: LUNAR_DAY_CN[ld] || String(ld),
+    ganzhi: GAN[(ly - 4) % 10] + ZHI[(ly - 4) % 12],
+  };
+}
+
+/* 公历 "YYYY-MM-DD" 当天的节气名（没有则空） */
+function termOf(dateStr) {
+  const p = String(dateStr || "").split("-").map(Number);
+  if (p.length < 3 || !p[0]) return "";
+  const row = TERM_TABLE[p[0] - LUNAR_START_YEAR];
+  if (!row) return "";
+  const d = p[2], month = p[1];
+  for (let k = 0; k < 2; k++) {
+    const i = (month - 1) * 2 + k;
+    if (B36.indexOf(row[i]) === d) return TERM_NAMES[i];
+  }
+  return "";
+}
+
+/* 当天最该显示的那一句：农历节日 > 公历节日 > 节气 */
+function festivalOf(dateStr) {
+  const p = String(dateStr || "").split("-");
+  if (p.length < 3) return "";
+  const solar = SOLAR_FESTIVALS[p[1] + "-" + p[2]];
+  const ln = lunarOf(dateStr);
+  let lunar = "";
+  if (ln && !ln.isLeap) {
+    lunar = LUNAR_FESTIVALS[ln.lm + "-" + ln.ld] || "";
+    /* 除夕：腊月最后一天 */
+    if (!lunar && ln.lm === 12 && ln.ld === ln.monthDays) lunar = "除夕";
+  }
+  return lunar || solar || termOf(dateStr) || "";
+}
+
+/* 日历格子里那行小字：节日优先，其次节气，再看农历日（初一显示月名，十五显示「十五」） */
+function lunarLabel(dateStr, granularity) {
+  const fest = festivalOf(dateStr);
+  if (fest) return fest;
+  const ln = lunarOf(dateStr);
+  if (!ln) return "";
+  const g = granularity || "major";
+  if (g === "full") return ln.dayName;
+  if (ln.ld === 1) {
+    /* 初一时显示月名更有信息量，但「正月」和「一月」重名，加「月」字区分 */
+    return ln.isLeap ? "闰" + LUNAR_MONTH_CN[ln.lm - 1] + "月" : LUNAR_MONTH_CN[ln.lm - 1] + "月";
+  }
+  if (ln.ld === 15) return "十五";
+  if (g === "major") return "";
+  return ln.dayName;
+}
+
+/* 节气是否落在某天 */
+function isTermDay(dateStr) { return !!termOf(dateStr); }
+
+
+/* ---- 02-parser.js ---- */
+/* ============ 日记文件 ⇄ 格子模型 · 纯文本粘贴解析 ============
+ * 磁盘格式与 v1 完全兼容：frontmatter + # 日期 + ## 格子标题 + 正文
+ * 布局元数据写在结尾的 gd-layout 注释里，普通 Markdown 阅读器会自动忽略，
+ * 且会跟着 md 文件一起同步到手机，不会像外部 json 那样丢配置。
+ * ============================================================ */
+
+function splitFrontmatter(text) {
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text || "");
+  return m ? { fm: m[1], body: text.slice(m[0].length) } : { fm: "", body: text || "" };
+}
+function readLayout(body) {
+  const m = LAYOUT_RE.exec(body);
+  if (!m) return null;
+  try { return JSON.parse(m[1].trim()); } catch (e) { return null; }
+}
+function stripLayout(body) { return body.replace(LAYOUT_RE, "").trim(); }
+
+function parseDay(text, level) {
+  const lv = clamp(level || 2, 2, 4);
+  const sp = splitFrontmatter(text);
+  const layout = readLayout(sp.body);
+  let body = stripLayout(sp.body).replace(/\r\n?/g, "\n");
+  let h1 = "";
+  const m = /^#\s+(.+)\n/.exec(body);
+  if (m) { h1 = m[1].trim(); body = body.slice(m[0].length); }
+
+  const cells = [];
+  const re = new RegExp(`^#{${lv}}\\s+(.+?)\\s*$`, "gm");
+  const marks = [];
+  let hit;
+  while ((hit = re.exec(body)) !== null) marks.push({ title: hit[1].trim(), start: hit.index, end: re.lastIndex });
+
+  if (!marks.length) {
+    cells.push({ title: "日记", content: body.trim() });
+  } else {
+    const pre = body.slice(0, marks[0].start).trim();
+    if (pre) cells.push({ title: "前言", content: pre });
+    for (let i = 0; i < marks.length; i++) {
+      const seg = body.slice(marks[i].end, i + 1 < marks.length ? marks[i + 1].start : body.length).trim();
+      cells.push({ title: marks[i].title, content: seg });
+    }
+  }
+  return { fm: sp.fm, h1, cells, layout };
+}
+
+/* 把磁盘格子与布局元数据合并成运行期格子对象 */
+function normalizeCells(cells, layout, settings) {
+  const defs = (layout && Array.isArray(layout.cells)) ? layout.cells : [];
+  const maxCols = settings.mobileOneColumn && IS_MOBILE ? 1 : clamp(settings.columns, 1, 6);
+  const defBorder = (layout && layout.border) || settings.defaultBorder || "hair";
+  return cells.map((c, i) => {
+    const d = defs[i] || {};
+    return {
+      id: uid(),
+      title: c.title || `格子 ${i + 1}`,
+      content: c.content || "",
+      cs: clamp(d.cs || 1, 1, maxCols),
+      rs: clamp(d.rs || 1, 1, 6),
+      h: clamp(d.h || 0, 0, 1200),
+      accent: d.accent || "",
+      collapsed: !!d.collapsed,
+      border: d.border || defBorder,
+      sticker: d.sticker || "",
+    };
+  });
+}
+
+/* v3 布局元数据：在 v2 基础上增加整篇的皮肤/封面/贴纸，以及单格的边框与贴纸。
+ * 全部塞进同一条 HTML 注释里 —— 普通 Markdown 阅读器会忽略它，
+ * 而且它跟着 md 文件走，同步到手机不会丢。 */
+function normalizeLayout(layout, settings) {
+  const l = layout || {};
+  return {
+    skin: l.skin || settings.skin || "zebra",
+    border: l.border || settings.defaultBorder || "hair",
+    cover: l.cover || "",
+    coverHeight: Number.isFinite(l.coverHeight) ? clamp(l.coverHeight, 0, 320) : clamp(settings.coverHeight || 160, 0, 320),
+    stickers: Array.isArray(l.stickers) ? l.stickers.filter((x) => typeof x === "string").slice(0, 5) : [],
+    coverPos: typeof l.coverPos === "string" ? l.coverPos : "",
+    motto: typeof l.motto === "string" ? l.motto : "",
+    avatar: typeof l.avatar === "string" ? l.avatar : "",
+    photo: typeof l.photo === "string" ? l.photo : "",
+    layers: normalizeLayers(l.layers, l, settings),
+    crops: normalizeCrops(l.crops),
+  };
+}
+
+/* 裁剪框：{ cover:{x,y,w,h}, photo:{...} } 都是原图百分比 */
+function normalizeCrop(c) {
+  if (!c || typeof c !== "object") return null;
+  const w = clamp(Number(c.w) || 0, 1, 100);
+  const h = clamp(Number(c.h) || 0, 1, 100);
+  if (!(w > 0) || !(h > 0)) return null;
+  return {
+    x: clamp(Number(c.x) || 0, 0, 100 - w),
+    y: clamp(Number(c.y) || 0, 0, 100 - h),
+    w: Math.round(w * 10) / 10,
+    h: Math.round(h * 10) / 10,
+  };
+}
+
+function normalizeCrops(raw) {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const out = {};
+  for (const k of ["cover", "photo", "bg"]) {
+    const c = normalizeCrop(src[k]);
+    if (c) out[k] = c;
+  }
+  return out;
+}
+
+/* 把四层坐标夹到 0–100，缺层用默认值补
+ * 老格式没有 layers 时：cover 有图 → bg 开；座右铭有字 → text 开；avatar 有值 → mark 开 */
+function normalizeLayers(raw, lay, settings) {
+  const out = {};
+  const src = raw && typeof raw === "object" ? raw : null;
+  for (const k of LAYER_KEYS) {
+    const d = DEFAULT_LAYERS[k];
+    const v = (src && src[k]) || null;
+    const o = {
+      x: clamp(Number.isFinite(v && v.x) ? v.x : d.x, 0, 100),
+      y: clamp(Number.isFinite(v && v.y) ? v.y : d.y, 0, 100),
+      w: clamp(Number.isFinite(v && v.w) ? v.w : d.w, 2, 100),
+      h: clamp(Number.isFinite(v && v.h) ? v.h : d.h, 2, 100),
+      on: v && typeof v.on === "boolean" ? v.on : d.on,
+    };
+    out[k] = o;
+  }
+  if (!src) {
+    /* 老日记折算：不改变视觉，只是把原来的摆位翻译成四层 */
+    const l2 = lay || {};
+    out.bg.on = !!l2.cover || (settings && settings.showCover !== false);
+    out.text.on = !!(l2.motto || (settings && settings.showMotto));
+    out.mark.on = !!(l2.avatar || (settings && settings.showAvatar));
+    out.img.on = false;
+  }
+  return out;
+}
+
+function serializeDay(date, cells, state) {
+  const fm = state.fm || "";
+  const extra = fm.split(/\r?\n/).filter((l) => l.trim() && !/^\s*(date|source)\s*:/i.test(l));
+  const lay = state.layout || {};
+  /* 先算好整篇边框：cells.map 会在 layout 赋值前执行，直接读 layout.border 会撞 TDZ */
+  const baseBorder = lay.border || state.border || "hair";
+  const layout = {
+    v: 3,
+    cols: state.columns,
+    skin: lay.skin || state.skin || "zebra",
+    border: baseBorder,
+    cover: lay.cover || state.cover || "",
+    coverHeight: clamp(lay.coverHeight != null ? lay.coverHeight : (state.coverHeight != null ? state.coverHeight : 160), 0, 320),
+    stickers: (lay.stickers || state.stickers || []).slice(0, 5),
+    coverPos: lay.coverPos || "",
+    motto: lay.motto || "",
+    avatar: lay.avatar || "",
+    photo: lay.photo || "",
+    layers: lay.layers || state.layers || null,
+    crops: (function () {
+      const src = lay.crops || state.crops || null;
+      const out = {};
+      if (src && typeof src === "object") {
+        for (const k of ["cover", "photo", "bg"]) {
+          if (src[k] && src[k].w > 0) out[k] = src[k];
+        }
+      }
+      return Object.keys(out).length ? out : null;
+    })(),
+    cells: cells.map((c) => {
+      const o = { cs: c.cs, rs: c.rs, h: c.h, accent: c.accent || "", collapsed: !!c.collapsed };
+      if (c.border && c.border !== baseBorder) o.border = c.border;
+      if (c.sticker) o.sticker = c.sticker;
+      return o;
+    }),
+  };
+  if (!layout.coverPos) delete layout.coverPos;
+  if (!layout.motto) delete layout.motto;
+  if (!layout.avatar) delete layout.avatar;
+  if (!layout.photo) delete layout.photo;
+  if (!layout.layers) delete layout.layers;
+  if (!layout.crops) delete layout.crops;
+  const mark = "#".repeat(clamp(state.level || 2, 2, 4));
+  const out = ["---", `date: ${date}`, "source: 格间日记", ...extra, "---", "", `# ${state.h1 || date}`, ""];
+  for (const c of cells) {
+    out.push(`${mark} ${String(c.title || "未命名").trim()}`, "");
+    const body = String(c.content || "").trim();
+    if (body) out.push(body, "");
+  }
+  out.push(`<!-- gd-layout ${JSON.stringify(layout)} -->`, "");
+  return out.join("\n");
+}
+
+/* 用自己的 md 文件当模板（旧版 dailyTemplatePath 的行为）：
+ * 只做 {{date}} / {{date:格式}} / {{time}} / {{time:格式}} / {{title}} 纯文本替换，
+ * 其余内容原样写入，不改写用户的模板。 */
+function buildFromMdTemplate(key, date, text) {
+  return applyVars(text, key, date).replace(/\s*$/, "") + "\n";
+}
+
+/* 用模板生成一篇新日记 */
+function buildFromTemplate(date, template, level, opts) {
+  const o = opts || {};
+  const mark = "#".repeat(clamp(level || 2, 2, 4));
+  const tplCells = template.cells || [];
+  const cells = tplCells.map((c) => ({
+    id: uid(), title: c.title,
+    /* 模板可以只存骨架（mode=titles），也可以连内容一起存（mode=content）。
+     * o.blank = true 时不带内容（"只保留标题"）。 */
+    content: (template.mode === "content" && !o.blank && typeof c.content === "string") ? c.content : "",
+    cs: clamp(c.cs || 1, 1, 6), rs: clamp(c.rs || 1, 1, 6),
+    h: c.h || 0, accent: c.accent || "", collapsed: false,
+    border: c.border || "", sticker: c.sticker || "",
+  }));
+  const md = [
+    "---", `date: ${date}`, "source: 格间日记", "---", "", `# ${date}`, "",
+    ...cells.flatMap((c) => [`${mark} ${c.title}`, "", ...(c.content ? [c.content, ""] : [])]),
+    `<!-- gd-layout ${JSON.stringify({ v: 2, cells: cells.map((c) => ({ cs: c.cs, rs: c.rs, h: c.h, accent: c.accent })) })} -->`, "",
+  ].join("\n");
+  return { cells, md };
+}
+
+/* 从当前这篇的格子提取一个模板（用户要求："根据已有内容提取模板"） */
+function extractTemplate(name, cells, withContent) {
+  return {
+    name,
+    mode: withContent ? "content" : "titles",
+    cells: (cells || []).map((c) => {
+      const o = {
+        title: c.title, cs: c.cs || 1, rs: c.rs || 1,
+        h: c.h || 0, accent: c.accent || "",
+      };
+      if (c.border) o.border = c.border;
+      if (c.sticker) o.sticker = c.sticker;
+      if (withContent) o.content = c.content || "";
+      return o;
+    }),
+  };
+}
+
+/* ---------- 纯文本 → 分段 ---------- */
+
+const HEADING_PATTERNS = [
+  /* 「13:24 今日事件」——时间戳开头 + 短标题。
+   * 有些 AI / 手写模板会把每个小标题前面加上吐司时间，这种不能算正文。 */
+  { family: "time", re: /^(\d{1,2}[:：]\d{2})\s+(\S.{0,23})$/ },
+  { family: "md", re: /^#{1,6}\s+(.+?)\s*#*\s*$/ },
+  { family: "bracket2", re: /^【(.+?)】\s*$/ },
+  { family: "bracket1", re: /^\[(.+?)\]\s*$/ },
+  { family: "colon", re: /^(.{1,22}?)\s*[：:]\s*(.*)$/ },
+];
+function matchHeading(line) {
+  const t = String(line || "").trim();
+  if (!t) return null;
+  for (const p of HEADING_PATTERNS) {
+    const m = p.re.exec(t);
+    if (!m) continue;
+    /* time 家族：第 1 组是时间戳，第 2 组才是标题；时间戳稍后并回正文 */
+    const title = String((p.family === "time" ? m[2] : m[1]) || "").trim();
+    if (!title || title.length > 24) continue;
+    if (p.family === "time" && /[。！？，,；;]/.test(title)) continue;
+    if (/[。！？，,；;]/.test(title) || /^https?$/i.test(title) || title.includes("//")) continue;
+    /* 「今天做了三件事：」这种是引导句不是标题：
+     * 冒号家族额外要求标题里不能有空格、不能以数字/列表符号开头，
+     * 且原文冒号后不能紧跟长段落（那种更像「名词：解释」）。 */
+    if (p.family === "colon") {
+      if (/^[\d\-*+·•\s]/.test(title)) continue;
+      if (/\s/.test(title)) continue;
+      const after = String(m[2] || "");
+      if (after.length > 60) continue;
+    }
+    const inline = p.family === "colon" ? String(m[2] || "").trim() : "";
+    return { title, inline, family: p.family, stamp: p.family === "time" ? String(m[1] || "") : "" };
+  }
+  return null;
+}
+
+function parseTable(src) {
+  const lines = src.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("|") && l.endsWith("|"));
+  if (lines.length < 2) return [];
+  const rows = lines.map((l) => l.slice(1, -1).split("|").map((s) => s.trim()));
+  const data = rows.filter((r) => !r.every((c) => /^:?-{2,}:?$/.test(c)));
+  if (data.length < 2) return [];
+  const head = data[0], body = data.slice(1);
+  return head.map((h, i) => ({
+    title: h || `第 ${i + 1} 列`,
+    content: body.map((r) => (i === 0 ? (r[0] || "") : `${r[0] || ""}：${r[i] || ""}`)).filter(Boolean).join("\n"),
+  }));
+}
+
+/* 标题归一化：用来判断"两个标题是不是同一个"。
+ * 会去掉开头的时间戳（13:24 / 22:15）、编号（1、/ 一、）、markdown 记号与首尾空白。
+ * 只用于比对与合并，落盘的标题仍是原文。 */
+function normHeadKey(title) {
+  let s = String(title || "").trim();
+  s = s.replace(/^\d{1,2}[:：]\d{2}\s*/, "");          // 13:24 今日事件
+  s = s.replace(/^[\[【(（]?\d{1,2}[:：]\d{2}[\]】)）]?\s*/, "");
+  s = s.replace(/^[0-9０-９]+[.、)\s]+/, "");              // 1. / 1、 / 1)
+  s = s.replace(/^[（(][一二三四五六七八九十\d]+[）)]\s*/, ""); // （一）
+  s = s.replace(/^第[一二三四五六七八九十\d]+[格篇节部分]\s*/, "");
+  s = s.replace(/[*_#\s\u3000]/g, "");
+  return s.toLowerCase();
+}
+
+/* 同名合并：把被切碎的同名标题合回一格（用户报的"同一个标题没写完就新增一个"）
+ * 保留第一次出现的顺序与原始标题，后面的内容按出现顺序接到后面。 */
+function mergeByTitle(cells) {
+  const out = [];
+  const map = new Map();
+  for (const c of cells) {
+    const key = normHeadKey(c.title);
+    if (key && map.has(key)) {
+      const host = map.get(key);
+      const add = String(c.content || "").trim();
+      if (add) host.content = host.content ? host.content.replace(/\s+$/, "") + "\n\n" + add : add;
+      continue;
+    }
+    const cell = { title: c.title, content: String(c.content || "").trim() };
+    out.push(cell);
+    if (key) map.set(key, cell);
+  }
+  return out;
+}
+
+function parseHeadings(src) {
+  const lines = src.split("\n");
+  /* 先扫一遍看哪种写法出现得最多：用户写了 ## 就只按 ## 切，
+   * 正文里偶然出现的「名词：解释」不该再被当标题切开。 */
+  const tally = {};
+  for (const line of lines) {
+    const h = matchHeading(line);
+    if (h) tally[h.family] = (tally[h.family] || 0) + 1;
+  }
+  let dominant = "";
+  let best = 0;
+  for (const [f, n] of Object.entries(tally)) if (n > best) { best = n; dominant = f; }
+
+  const out = [];
+  let cur = null;
+  for (const line of lines) {
+    const h = matchHeading(line);
+    const isHeading = h && (!dominant || h.family === dominant);
+    if (isHeading) {
+      /* 时间戳不丢：它并回正文第一行（用户写「13:24 今日事件」时那个时间是有效信息） */
+      const head = [];
+      if (h.stamp) head.push(h.stamp);
+      if (h.inline) head.push(h.inline);
+      cur = { title: h.title, content: head };
+      out.push(cur);
+    } else if (cur) {
+      cur.content.push(line);
+    } else if (line.trim()) {
+      cur = { title: "开头", content: [line] };
+      out.push(cur);
+    }
+  }
+  /* 时间戳单独占一行太难看了（"13:24\n\n数学两个重要极限"），
+   * 并到它下面第一条非空内容的行首："13:24 数学两个重要极限" */
+  const cells = out.map((c) => ({ title: c.title, content: c.content.join("\n").trim() }));
+  for (const c of cells) {
+    c.content = c.content.replace(/^(\d{1,2}[:：]\d{2})\s*\n+\s*(?=\S)/, "$1 ");
+  }
+  return mergeByTitle(cells);
+}
+
+function parseBlank(src, firstLineAsTitle) {
+  const chunks = src.split(/\n\s*\n+/).map((s) => s.trim()).filter(Boolean);
+  const cells = chunks.map((chunk, i) => {
+    const lines = chunk.split("\n");
+    const first = lines[0].trim();
+    const useAsTitle = firstLineAsTitle && lines.length > 1 && first.length <= 24 && !/[。！？.!?]$/.test(first) && !matchHeading(first);
+    return {
+      title: useAsTitle ? first : `片段 ${i + 1}`,
+      content: useAsTitle ? lines.slice(1).join("\n").trim() : chunk,
+    };
+  });
+  return mergeByTitle(cells);
+}
+
+function escapeRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function parseSeparator(src, sep, firstLineAsTitle) {
+  if (!sep) return [];
+  const pattern = "^\\s*" + escapeRe(sep) + "\\s*$";
+  const parts = src.split(new RegExp(pattern, "m")).map((s) => s.trim()).filter(Boolean);
+  return parts.length >= 2 ? parseBlank(parts.join("\n\n"), firstLineAsTitle) : [];
+}
+
+/* ============ 粘贴过滤（A5）============
+ * 用户在设置里可以：
+ *   pasteKeepFrom      : 从这一行开始才算内容（"今日事件"以下全保留）
+ *   pasteKeepKeywords  : 只保留含这些词的分段（空 = 不启用）
+ *   pasteDropKeywords  : 丢掉含这些词的分段
+ *   pasteFormatFilter  : all / text（去 Markdown 记号）/ plain（去图片与链接）
+ *   pasteKeepHeadingOnly: 只留标题行，正文丢掉（做模板骨架用）
+ * ======================================== */
+function applyPasteFilters(text, opts) {
+  let s = String(text == null ? "" : text);
+  const o = opts || {};
+
+  /* 从某一行开始截取 */
+  const from = String(o.pasteKeepFrom || "").trim();
+  if (from) {
+    const lines = s.split(/\r?\n/);
+    let hit = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].indexOf(from) >= 0) { hit = i; break; }
+    }
+    if (hit >= 0) s = lines.slice(hit).join("\n");
+  }
+
+  /* 格式过滤 */
+  const fmt = o.pasteFormatFilter || "all";
+  if (fmt === "text") {
+    s = s
+      .replace(/!\[\[([^\]|#]+?)(?:\|[^\]]*)?\]\]/g, "$1")
+      .replace(/!\[[^\]]*\]\(([^)\s]+)\)/g, "$1")
+      .replace(/\[\[([^\]|#]+?)(?:\|[^\]]*)?\]\]/g, "$1")
+      .replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, "$1")
+      .replace(/[*_~]{1,3}([^*_~]+)[*_~]{1,3}/g, "$1")
+      .replace(/^\s{0,3}#{1,6}\s+/gm, "");
+  } else if (fmt === "plain") {
+    s = s
+      .replace(/!\[\[[^\]]*\]\]/g, "")
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+      .replace(/\[\[[^\]]*\]\]/g, "")
+      .replace(/https?:\/\/\S+/g, "");
+  }
+
+  /* 只留标题行 */
+  if (o.pasteKeepHeadingOnly) {
+    const kept = [];
+    for (const line of s.split(/\r?\n/)) {
+      if (matchHeading(line)) kept.push(line);
+    }
+    if (kept.length) s = kept.join("\n");
+  }
+
+  /* 关键词保留 / 丢弃（按分段） */
+  const keep = (o.pasteKeepKeywords || []).map((x) => String(x).trim()).filter(Boolean);
+  const drop = (o.pasteDropKeywords || []).map((x) => String(x).trim()).filter(Boolean);
+  if (keep.length || drop.length) {
+    const segs = s.split(/\n{2,}/);
+    const out = [];
+    for (const seg of segs) {
+      if (!seg.trim()) continue;
+      if (keep.length && !keep.some((k) => seg.indexOf(k) >= 0)) continue;
+      if (drop.length && drop.some((k) => seg.indexOf(k) >= 0)) continue;
+      out.push(seg);
+    }
+    if (out.length) s = out.join("\n\n");
+  }
+  return s;
+}
+
+function parsePaste(text, mode, opts) {
+  text = applyPasteFilters(text, opts);
+  const o = opts || {};
+  const src = String(text || "").replace(/\r\n?/g, "\n").trim();
+  if (!src) return [];
+  const m = mode || "auto";
+  if (m === "raw") return [{ title: "粘贴内容", content: src }];
+  if (m === "table") return parseTable(src);
+  if (m === "headings") return parseHeadings(src);
+  if (m === "blank") return parseBlank(src, o.pasteFirstLineAsTitle !== false);
+
+  /* auto：标题优先。
+   * 之前用「谁分出的块多谁赢」打分，结果只要有空行，parseBlank 就能刷出
+   * 一堆「片段 N」把标题方案顶掉——用户明明写了 ## 标题，却得到碎片。
+   * 现在：认出 ≥2 个标题就直接按标题切；只有 1 个标题且全文都在它下面也照办。 */
+  const byHeading = parseHeadings(src);
+  const realHeadings = byHeading.filter((c) => c.title && c.title !== "开头");
+  if (realHeadings.length >= 2) return byHeading;
+  if (realHeadings.length === 1 && byHeading.length === 1) return byHeading;
+
+  const byTable = parseTable(src);
+  if (byTable.length >= 2) return byTable;
+  const bySep = parseSeparator(src, o.pasteSeparator, o.pasteFirstLineAsTitle !== false);
+  if (bySep.length >= 2) return bySep;
+  const byBlank = parseBlank(src, o.pasteFirstLineAsTitle !== false);
+  return byBlank.length ? byBlank : [{ title: "粘贴内容", content: src }];
+}
+
+/* 旧版 images-to-html / images-to-wiki 命令的纯文本内核。
+ * 关键修正：只认图片后缀。日记目录里确实有 .epub 附件，旧版会把它错转成 <img>。 */
+const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i;
+function convertImageText(data, toHtml, folder) {
+  let count = 0;
+  const text = String(data || "").replace(/<img\b[^>]*>|!\[\[[^\]]+\]\]/gi, (all) => {
+    if (toHtml) {
+      const m = /^!\[\[([^\]|#]+?)(?:\|(\d+))?\]\]$/.exec(all);
+      if (!m) return all;
+      const n = m[1].trim();
+      if (!IMAGE_EXT_RE.test(n)) return all;
+      count++;
+      const src = normalizePath(`${folder || "日记"}/attachments/${n}`);
+      return `<img src="${src}"${m[2] ? ` width="${m[2]}"` : ""}>`;
+    }
+    const s = /\bsrc="([^"]+)"/i.exec(all);
+    if (!s) return all;
+    const w = /\bwidth="(\d+)"/i.exec(all);
+    const base = s[1].split("/").pop();
+    if (!IMAGE_EXT_RE.test(base)) return all;
+    count++;
+    return `![[${base}${w ? `|${w[1]}` : ""}]]`;
+  });
+  return { text, count };
+}
+
+function applyPaste(cells, segments, target) {
+  const picked = segments.filter((s) => !s.__skip).map((s) => ({
+    id: uid(), title: String(s.title || "未命名").trim(), content: String(s.content || ""),
+    cs: 1, rs: 1, h: 0, accent: "", collapsed: false,
+  }));
+  if (target === "append") return cells.concat(picked);
+  if (target === "merge") {
+    const out = cells.slice();
+    for (const p of picked) {
+      const i = out.findIndex((c) => c.title === p.title);
+      if (i >= 0) out[i] = { ...out[i], content: (out[i].content ? out[i].content.trim() + "\n\n" : "") + p.content };
+      else out.push(p);
+    }
+    return out;
+  }
+  return picked;
+}
+
+
+/* ---- 03-history.js ---- */
+/* ============ 版本快照 · 撤销 / 重做 ============
+ * 快照就是当时那份 md 的原文，存在插件自己的 history/ 目录里。
+ * 时间线里的「恢复」、命令里的「撤销」、误删文件都靠它兜底。
+ * ================================================ */
+
+class HistoryManager {
+  constructor(plugin) {
+    this.plugin = plugin;
+    this.app = plugin.app;
+    this.undoStack = [];
+    this.redoStack = [];
+    this.lastSnap = new Map();
+    this.deleted = [];   // 旧版「恢复最近删除的一条」
+  }
+  get adapter() { return this.app.vault.adapter; }
+  base() { return `.obsidian/plugins/${PLUGIN_ID}/history`; }
+  dirFor(file) { return `${this.base()}/${file.basename}`; }
+
+  async ensureFolder(path) {
+    let cur = "";
+    for (const part of path.split("/")) {
+      cur = cur ? `${cur}/${part}` : part;
+      if (!(await this.adapter.exists(cur))) {
+        try { await this.adapter.mkdir(cur); } catch (e) { /* 已存在则忽略 */ }
+      }
+    }
+  }
+  async snapshot(file, label, force) {
+    if (!file) return null;
+    const s = this.plugin.settings;
+    if (!force && s.autoSnapshot !== true) {
+      // 手动快照仍然写，自动快照受节流限制
+      if (label === "自动") return null;
+    }
+    if (!force && label === "自动") {
+      const now = Date.now();
+      const last = this.lastSnap.get(file.path) || 0;
+      if (now - last < (s.snapshotThrottle || 45) * 1000) return null;
+      this.lastSnap.set(file.path, now);
+    }
+    try {
+      const content = await this.app.vault.read(file);
+      const d = new Date();
+      const stamp = `${fmtDate(d)}-${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}-${String(d.getMilliseconds()).padStart(3, "0")}`;
+      const folder = this.dirFor(file);
+      await this.ensureFolder(folder);
+      const path = `${folder}/${stamp}__${slug(label || "手动")}.md`;
+      await this.adapter.write(path, content);
+      await this.prune(file);
+      return path;
+    } catch (e) {
+      console.error("[格间日记] 快照失败", e);
+      return null;
+    }
+  }
+  async list(file) {
+    const folder = this.dirFor(file);
+    if (!(await this.adapter.exists(folder))) return [];
+    const res = await this.adapter.list(folder);
+    return (res.files || []).filter((p) => p.endsWith(".md")).map((p) => {
+      const name = p.split("/").pop();
+      const m = /^(\d{4}-\d{2}-\d{2})-(\d{6})-\d+__(.*)\.md$/.exec(name);
+      return {
+        path: p, name,
+        time: m ? `${m[1]} ${m[2].slice(0, 2)}:${m[2].slice(2, 4)}:${m[2].slice(4, 6)}` : name,
+        label: m ? m[3].replace(/-/g, " ") : "快照",
+      };
+    }).sort((a, b) => b.name.localeCompare(a.name));
+  }
+  async prune(file) {
+    const keep = clamp(this.plugin.settings.snapshotsPerDay || 30, 3, 300);
+    const all = await this.list(file);
+    for (const item of all.slice(keep)) {
+      try { await this.adapter.remove(item.path); } catch (e) { /* ignore */ }
+    }
+  }
+  pushUndo(file, content, label) {
+    this.undoStack.push({ path: file.path, content, label: label || "编辑", time: Date.now() });
+    if (this.undoStack.length > 50) this.undoStack.shift();
+    this.redoStack.length = 0;
+  }
+  async undo() {
+    const e = this.undoStack.pop();
+    if (!e) { new Notice("没有可撤销的操作"); return false; }
+    const f = this.app.vault.getAbstractFileByPath(e.path);
+    const current = f instanceof TFile ? await this.app.vault.read(f) : "";
+    this.redoStack.push({ path: e.path, content: current, label: e.label, time: Date.now() });
+    try {
+      if (f instanceof TFile) await this.app.vault.modify(f, e.content);
+      else await this.app.vault.create(e.path, e.content);
+      new Notice(`已撤销：${e.label}`);
+      this.plugin.refreshAll(true);
+      return true;
+    } catch (err) { new Notice("撤销失败：" + err.message); return false; }
+  }
+  async redo() {
+    const e = this.redoStack.pop();
+    if (!e) { new Notice("没有可重做的操作"); return false; }
+    const f = this.app.vault.getAbstractFileByPath(e.path);
+    if (!(f instanceof TFile)) { new Notice("文件不存在，无法重做"); return false; }
+    const current = await this.app.vault.read(f);
+    this.undoStack.push({ path: e.path, content: current, label: e.label, time: Date.now() });
+    await this.app.vault.modify(f, e.content);
+    new Notice(`已重做：${e.label}`);
+    this.plugin.refreshAll(true);
+    return true;
+  }
+  async restore(file, snapPath) {
+    const content = await this.adapter.read(snapPath);
+    const current = await this.app.vault.read(file);
+    this.pushUndo(file, current, "恢复快照前");
+    await this.snapshot(file, "恢复前自动备份", true);
+    await this.app.vault.modify(file, content);
+    new Notice("已恢复到该版本（恢复前的内容也存了快照）");
+    this.plugin.refreshAll(true);
+  }
+  recordDelete(file, content) {
+    this.deleted.push({ path: file.path, content, time: Date.now() });
+    if (this.deleted.length > 20) this.deleted.shift();
+  }
+  async restoreLastDeleted() {
+    const e = this.deleted.pop();
+    if (!e) { new Notice("没有可恢复的删除记录"); return false; }
+    try {
+      const parts = e.path.split("/");
+      await this.ensureFolder(parts.slice(0, -1).join("/"));
+      if (await this.app.vault.adapter.exists(e.path)) { new Notice("这个文件已经存在了"); return false; }
+      await this.app.vault.create(e.path, e.content);
+      new Notice(`已恢复 ${parts.pop()}`);
+      this.plugin.refreshAll(true);
+      return true;
+    } catch (err) { new Notice("恢复失败：" + err.message); return false; }
+  }
+  async backupAll() {
+    const files = this.plugin.dayFiles();
+    let n = 0;
+    for (const f of files) { if (await this.snapshot(f, "手动全量备份", true)) n++; }
+    new Notice(`已备份 ${n} 篇日记`);
+    return n;
+  }
+  async clearAll() {
+    const base = this.base();
+    if (!(await this.adapter.exists(base))) return 0;
+    const res = await this.adapter.list(base);
+    let n = 0;
+    for (const dir of res.folders || []) {
+      const sub = await this.adapter.list(dir);
+      for (const p of sub.files || []) {
+        try { await this.adapter.remove(p); n++; } catch (e) { /* ignore */ }
+      }
+      try { await this.adapter.rmdir(dir, false); } catch (e) { /* ignore */ }
+    }
+    return n;
+  }
+}
+
+/* ---------- 小对话框 ---------- */
+
+class ConfirmModal extends Modal {
+  constructor(app, title, body, onYes, yesLabel, noLabel, onNo) {
+    super(app);
+    this.titleText = title; this.bodyText = body; this.onYes = onYes;
+    this.yesLabel = yesLabel || "确定";
+    this.noLabel = noLabel || "取消";
+    this.onNo = onNo || null;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gd-modal");
+    contentEl.createEl("h3", { text: this.titleText });
+    contentEl.createEl("p", { text: this.bodyText, cls: "gd-modal-desc" });
+    const row = contentEl.createDiv({ cls: "gd-modal-actions" });
+    const no = row.createEl("button", { text: this.noLabel });
+    no.onclick = () => { this.close(); if (this.onNo) this.onNo(); };
+    const ok = row.createEl("button", { text: this.yesLabel, cls: "mod-cta" });
+    ok.onclick = () => { this.close(); this.onYes(); };
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
+class SnapshotModal extends Modal {
+  constructor(app, plugin, file) {
+    super(app);
+    this.plugin = plugin; this.file = file;
+  }
+  async onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gd-modal"); contentEl.addClass("gd-snapshot-modal");
+    if (this.modalEl) this.modalEl.style.width = "min(720px, 92vw)";
+    contentEl.createEl("h3", { text: `版本历史 · ${this.file.basename}` });
+    contentEl.createEl("p", { text: "每次改动前自动留一份原文。恢复前也会先把当前内容存成快照，不会丢东西。", cls: "gd-modal-desc" });
+    const list = contentEl.createDiv({ cls: "gd-snap-list" });
+    const snaps = await this.plugin.history.list(this.file);
+    if (!snaps.length) { list.createEl("p", { text: "还没有快照。", cls: "gd-empty" }); return; }
+    const current = await this.app.vault.read(this.file);
+    for (const s of snaps) {
+      const row = list.createDiv({ cls: "gd-snap-row" });
+      const info = row.createDiv({ cls: "gd-snap-info" });
+      info.createEl("strong", { text: s.time });
+      info.createEl("span", { text: s.label });
+      const size = row.createEl("span", { text: "查看", cls: "gd-snap-view" });
+      size.onclick = async () => {
+        const txt = await this.app.vault.adapter.read(s.path);
+        preview.empty();
+        preview.createEl("div", { text: `版本 ${s.time}（${txt.length} 字）` , cls: "gd-snap-preview-h"});
+        preview.createEl("pre", { text: txt.length > 4000 ? txt.slice(0, 4000) + "\n…" : txt, cls: "gd-snap-preview" });
+      };
+      const btn = row.createEl("button", { text: "恢复", cls: "gd-mini-btn" });
+      btn.onclick = async () => {
+        this.close();
+        await this.plugin.history.restore(this.file, s.path);
+      };
+    }
+    const preview = contentEl.createDiv({ cls: "gd-snap-preview-wrap" });
+    preview.createEl("div", { text: `当前文件 ${current.length} 字 · 点击「查看」可对比内容`, cls: "gd-snap-preview-h" });
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
+
+/* ---- 04-crop.js ---- */
+/* ============ 裁剪对话框（类似微信头像的居中裁剪）============
+ * 用户要的是「选完图之后再点进去调」，所以这里不拦在选图流程里，
+ * 而是给每个图层一个「裁剪」入口。
+ *
+ * 存法：不剪原图，只把「框在图的哪个位置、多大」存成百分比。
+ *   crop = { x, y, w, h }   都是相对原图的百分比（0–100）
+ * 这样随时能改回来，原图一直完好。
+ *
+ * 渲染：cropCss(crop) 把它翻译成 background-size / background-position。
+ * ============================================================ */
+
+/* 把 crop 换成背景的 size / position */
+function cropCss(crop) {
+  if (!crop || !(crop.w > 0) || !(crop.h > 0)) return null;
+  const w = clamp(Number(crop.w) || 100, 1, 100);
+  const h = clamp(Number(crop.h) || 100, 1, 100);
+  const x = clamp(Number(crop.x) || 0, 0, 100 - w);
+  const y = clamp(Number(crop.y) || 0, 0, 100 - h);
+  /* 宽高都给死：裁剪框和容器的宽高比是同一个，所以不会拉变形 */
+  const size = (10000 / w).toFixed(2) + "% " + (10000 / h).toFixed(2) + "%";
+  const px = w >= 99.9 ? 0 : (x / (100 - w)) * 100;
+  const py = h >= 99.9 ? 0 : (y / (100 - h)) * 100;
+  return { size, position: px.toFixed(2) + "% " + py.toFixed(2) + "%" };
+}
+
+/* 把 crop 应用到某个元素的背景上；crop 为空就退回 cover / 取景位置 */
+function applyCrop(el, crop, fallbackPos) {
+  const c = cropCss(crop);
+  if (c) {
+    el.style.backgroundSize = c.size;
+    el.style.backgroundPosition = c.position;
+    return true;
+  }
+  el.style.backgroundSize = "cover";
+  el.style.backgroundPosition = fallbackPos || "50% 50%";
+  return false;
+}
+
+class CropModal extends Modal {
+  /**
+   * opts = {
+   *   url,           图片地址（resource 路径）
+   *   ratio,         裁剪框宽高比，0 = 自由
+   *   crop,          已有的 crop
+   *   title,         标题
+   *   onOk(crop)     确定回调，传 null 表示「不裁剪，整张铺」
+   * }
+   */
+  constructor(app, opts) {
+    super(app);
+    this.o = opts || {};
+    this.ratio = Number(this.o.ratio) || 0;
+    this.zoom = 1;
+    this.ox = 0;
+    this.oy = 0;
+    this.nw = 0;
+    this.nh = 0;
+    this.ready = false;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gd-modal");
+    contentEl.addClass("gd-crop-modal");
+    contentEl.createEl("h3", { text: this.o.title || "裁剪图片" });
+
+    const tip = contentEl.createDiv({ cls: "gd-crop-tip" });
+    tip.setText("拖动图片挪位置，滚轮或双指缩放。框外的部分会被切掉。");
+
+    const stage = contentEl.createDiv({ cls: "gd-crop-stage" });
+    /* 框的尺寸：按比例算，最长边不超过 420 */
+    const R = this.ratio > 0 ? this.ratio : 1.75;
+    let bw = 420, bh = Math.round(bw / R);
+    if (bh > 320) { bh = 320; bw = Math.round(bh * R); }
+    if (bh < 120) { bh = 120; bw = Math.round(bh * R); }
+    stage.style.width = bw + "px";
+    stage.style.height = bh + "px";
+    this.bw = bw; this.bh = bh;
+
+    this.img = stage.createEl("img", { cls: "gd-crop-img" });
+    this.img.src = this.o.url || "";
+    this.img.draggable = false;
+    this.img.onload = () => {
+      this.nw = this.img.naturalWidth || this.bw;
+      this.nh = this.img.naturalHeight || this.bh;
+      this.ready = true;
+      /* 有旧 crop 就从它推回来，没有就居中铺满 */
+      if (this.o.crop && this.o.crop.w > 0) this.applyCropInit(this.o.crop);
+      this.paint();
+    };
+    this.img.onerror = () => { tip.setText("这张图加载不出来，可能路径失效了。"); };
+
+    /* 框：用超大 box-shadow 压暗外面 */
+    stage.createDiv({ cls: "gd-crop-frame" });
+
+    /* 交互 */
+    let dragging = false, sx = 0, sy = 0, ox0 = 0, oy0 = 0;
+    stage.addEventListener("pointerdown", (e) => {
+      if (!this.ready) return;
+      dragging = true; sx = e.clientX; sy = e.clientY; ox0 = this.ox; oy0 = this.oy;
+      stage.setPointerCapture && stage.setPointerCapture(e.pointerId);
+      stage.addClass("is-drag");
+      e.preventDefault();
+    });
+    stage.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      this.ox = ox0 + (e.clientX - sx);
+      this.oy = oy0 + (e.clientY - sy);
+      this.paint();
+    });
+    const stop = () => { dragging = false; stage.removeClass("is-drag"); };
+    stage.addEventListener("pointerup", stop);
+    stage.addEventListener("pointercancel", stop);
+    stage.addEventListener("wheel", (e) => {
+      if (!this.ready) return;
+      e.preventDefault();
+      this.setZoom(this.zoom * (e.deltaY > 0 ? 0.94 : 1.06));
+    }, { passive: false });
+
+    const zoomRow = contentEl.createDiv({ cls: "gd-crop-zoom" });
+    const zl = zoomRow.createEl("button", { cls: "gd-mini-btn", text: "－" });
+    zl.onclick = () => this.setZoom(this.zoom / 1.15);
+    this.zLabel = zoomRow.createSpan({ cls: "gd-crop-zval", text: "100%" });
+    const zr = zoomRow.createEl("button", { cls: "gd-mini-btn", text: "＋" });
+    zr.onclick = () => this.setZoom(this.zoom * 1.15);
+
+    const acts = contentEl.createDiv({ cls: "gd-modal-actions" });
+    const bCenter = acts.createEl("button", { text: "居中" });
+    bCenter.onclick = () => { this.ox = 0; this.oy = 0; this.zoom = 1; this.paint(); };
+    const bFull = acts.createEl("button", { text: "不裁剪" });
+    bFull.onclick = () => { this.close(); if (this.o.onOk) this.o.onOk(null); };
+    const bCancel = acts.createEl("button", { text: "取消" });
+    bCancel.onclick = () => this.close();
+    const bOk = acts.createEl("button", { text: "确定", cls: "mod-cta" });
+    bOk.onclick = () => { this.close(); if (this.o.onOk) this.o.onOk(this.result()); };
+  }
+
+  onClose() { this.contentEl.empty(); }
+
+  /* 从已有 crop 反推 zoom / 偏移 */
+  applyCropInit(c) {
+    const w = clamp(Number(c.w) || 100, 1, 100);
+    /* crop 占图宽的 w%，框宽 bw ⇒ 图宽 = bw * 100 / w */
+    const imgW = this.bw * (100 / w);
+    const baseScale = Math.max(this.bw / this.nw, this.bh / this.nh);
+    this.zoom = clamp(imgW / (this.nw * baseScale), 1, 8);
+    const scale = baseScale * this.zoom;
+    const fullW = this.nw * scale;
+    const fullH = this.nh * scale;
+    /* 让 crop 左上角落在框左上角 */
+    const targetX = -(Number(c.x) || 0) / 100 * fullW;
+    const targetY = -(Number(c.y) || 0) / 100 * fullH;
+    this.ox = targetX - (this.bw - fullW) / 2;
+    this.oy = targetY - (this.bh - fullH) / 2;
+  }
+
+  setZoom(z) {
+    const old = this.zoom;
+    this.zoom = clamp(z, 1, 8);
+    const k = this.zoom / old;
+    this.ox *= k; this.oy *= k;
+    this.paint();
+  }
+
+  /* 算出当前图的位置，写进样式，并夹住不让框露白 */
+  paint() {
+    if (!this.ready) return;
+    const baseScale = Math.max(this.bw / this.nw, this.bh / this.nh);
+    const scale = baseScale * this.zoom;
+    const fullW = this.nw * scale;
+    const fullH = this.nh * scale;
+    /* 居中 + 偏移，然后夹住 */
+    let x = (this.bw - fullW) / 2 + this.ox;
+    let y = (this.bh - fullH) / 2 + this.oy;
+    x = clamp(x, this.bw - fullW, 0);
+    y = clamp(y, this.bh - fullH, 0);
+    this._x = x; this._y = y; this._fullW = fullW; this._fullH = fullH;
+    this.img.style.width = fullW + "px";
+    this.img.style.height = fullH + "px";
+    this.img.style.left = x + "px";
+    this.img.style.top = y + "px";
+    if (this.zLabel) this.zLabel.setText(Math.round(this.zoom * 100) + "%");
+  }
+
+  /* 当前可见框对应的 crop（原图百分比） */
+  result() {
+    if (!this.ready || !this._fullW) return null;
+    return {
+      x: Math.round((-this._x / this._fullW) * 1000) / 10,
+      y: Math.round((-this._y / this._fullH) * 1000) / 10,
+      w: Math.round((this.bw / this._fullW) * 1000) / 10,
+      h: Math.round((this.bh / this._fullH) * 1000) / 10,
+    };
+  }
+}
+
+/* 打开裁剪框的快捷方式：传 view 或 plugin 都行 */
+function openCrop(app, opts) {
+  new CropModal(app, opts).open();
+}
+
+
+/* ---- 04-modals.js ---- */
+/* ============ 粘贴生成对话框 · 模板 · 输入 ============ */
+
+
+/* ============ 批量封面：一次给很多天设同一张壁纸 ============
+ * 用户的原话是「图片壁纸只能一个个设计，无法批量选中」。
+ * 这里做成：选一张图 → 勾选要套用的日期（默认全选）→ 一次写入所有 layout。 */
+class BatchCoverModal extends Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+    this.picked = "";              // 已选的图片路径
+    this.dates = new Set();        // 勾选的日期
+    this.mode = "set";             // set | clear
+    this.height = 160;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gd-modal"); contentEl.addClass("gd-batch-cover");
+    if (this.modalEl) this.modalEl.style.width = "min(720px, 92vw)";
+    contentEl.createEl("h3", { text: "批量封面" });
+    contentEl.createEl("p", {
+      text: "选一张图，勾上要套用的日子，一次全部写好。已有的格子内容一个字都不会动。",
+      cls: "gd-modal-desc",
+    });
+
+    /* 选图 */
+    const pickRow = contentEl.createDiv({ cls: "gd-batch-pick" });
+    this.pickRow = pickRow;
+    const pickBtn = pickRow.createEl("button", { text: "选择图片…", cls: "mod-cta" });
+    this.pickLabel = pickRow.createSpan({ cls: "gd-batch-pickname", text: "还没有选图" });
+    pickBtn.onclick = () => this.pickImage();
+
+    /* 从库里挑已有图片 */
+    const libBtn = pickRow.createEl("button", { text: "从库里的图片挑" });
+    libBtn.onclick = () => this.pickFromVault();
+
+    /* 高度 */
+    const hRow = contentEl.createDiv({ cls: "gd-batch-row" });
+    hRow.createSpan({ text: "封面高度" });
+    const hInput = hRow.createEl("input", { attr: { type: "range", min: "60", max: "320", step: "10", value: String(this.height) }, cls: "gd-batch-range" });
+    const hVal = hRow.createSpan({ text: this.height + "px", cls: "gd-batch-hval" });
+    hInput.oninput = () => { this.height = parseInt(hInput.value, 10) || 160; hVal.textContent = this.height + "px"; };
+
+    /* 日期清单 */
+    const listHead = contentEl.createDiv({ cls: "gd-batch-row" });
+    listHead.createSpan({ text: "要套用的日期" });
+    const ops = listHead.createDiv({ cls: "gd-batch-ops" });
+    const allBtn = ops.createEl("button", { text: "全选" });
+    const noneBtn = ops.createEl("button", { text: "全不选" });
+    const recentBtn = ops.createEl("button", { text: "最近 30 天" });
+
+    this.listEl = contentEl.createDiv({ cls: "gd-batch-list" });
+    const files = this.plugin.dayFiles();
+    for (const f of files) {
+      const key = f.basename;
+      const row = this.listEl.createDiv({ cls: "gd-batch-item" });
+      const cb = row.createEl("input", { attr: { type: "checkbox" } });
+      cb.checked = true;
+      this.dates.add(key);
+      cb.onchange = () => { if (cb.checked) this.dates.add(key); else this.dates.delete(key); this.updateCount(); };
+      row.createSpan({ text: dateShort(key) + "  " + weekdayCN(key), cls: "gd-batch-date" });
+      const suf = splitDayKey(key).suffix;
+      if (suf) row.createSpan({ text: "第 " + suf + " 篇", cls: "gd-batch-tag" });
+      row.onclick = (e) => { if (e.target !== cb) { cb.checked = !cb.checked; cb.onchange(); } };
+    }
+    allBtn.onclick = () => { this.listEl.querySelectorAll("input").forEach((c) => { c.checked = true; }); this.dates = new Set(files.map((f) => f.basename)); this.updateCount(); };
+    noneBtn.onclick = () => { this.listEl.querySelectorAll("input").forEach((c) => { c.checked = false; }); this.dates.clear(); this.updateCount(); };
+    recentBtn.onclick = () => {
+      const cut = shiftDate(todayStr(), -30);
+      this.dates.clear();
+      this.listEl.querySelectorAll(".gd-batch-item").forEach((row, i) => {
+        const key = files[i] && files[i].basename;
+        const on = !!key && key >= cut;
+        const cb = row.querySelector("input");
+        if (cb) cb.checked = on;
+        if (on && key) this.dates.add(key);
+      });
+      this.updateCount();
+    };
+
+    this.countEl = contentEl.createDiv({ cls: "gd-batch-count" });
+    this.updateCount();
+
+    const foot = contentEl.createDiv({ cls: "gd-modal-actions" });
+    const clearBtn = foot.createEl("button", { text: "只清除封面" });
+    clearBtn.onclick = () => this.commit("clear");
+    foot.createEl("button", { text: "取消" }).onclick = () => this.close();
+    const go = foot.createEl("button", { text: "套用到选中的日期", cls: "mod-cta" });
+    go.onclick = () => this.commit("set");
+  }
+  updateCount() {
+    if (!this.countEl) return;
+    this.countEl.textContent = `已选 ${this.dates.size} 天` + (this.picked ? `　图片：${this.picked.split("/").pop()}` : "　还没选图");
+  }
+  async pickImage() {
+    const f = await chooseLocalFile({ accept: "image/*", title: "选一张封面图" });
+    if (!f) return;
+    try {
+      const folder = this.plugin.attachDir();
+      await this.plugin.ensureFolder(folder);
+      const safe = String(f.name || "cover.png").replace(/[\\/:*?"<>|]/g, "_");
+      let path = `${folder}/${safe}`;
+      if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+      const buf = await f.arrayBuffer();
+      await this.app.vault.adapter.writeBinary(path, buf);
+      if (!(await this.app.vault.adapter.exists(path))) { new Notice("图片写不进去：" + path); return; }
+      this.picked = path;
+      this.updateCount();
+      this.showThumb(path);
+      new Notice("已选好：" + safe + "（" + Math.round((buf.byteLength || 0) / 1024) + " KB）");
+    } catch (e) {
+      new Notice("保存图片失败：" + (e && e.message ? e.message : e));
+      console.error("[格间日记] BatchCoverModal.pickImage", e);
+    }
+  }
+  /* 选完给用户看得到的东西：缩略图，而不是只有一行字 */
+  showThumb(path) {
+    if (!this.pickRow) return;
+    if (this.thumbEl) { this.thumbEl.remove(); this.thumbEl = null; }
+    const res = this.plugin.thumbUrl ? this.plugin.thumbUrl(path) : "";
+    if (!res) return;
+    const img = document.createElement("img");
+    img.addClass("gd-batch-thumb");
+    img.src = res;
+    this.thumbEl = img;
+    this.pickRow.appendChild(img);
+  }
+  pickFromVault() {
+    const imgs = this.app.vault.getFiles().filter((f) => /^(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(f.extension));
+    if (!imgs.length) { new Notice("库里还没有图片"); return; }
+    const m = new Menu();
+    for (const f of imgs.slice(-30).reverse()) {
+      m.addItem((i) => i.setTitle(f.basename).setIcon("image").onClick(() => {
+        this.picked = f.path;
+        this.updateCount();
+      }));
+    }
+    showMenuAt(m, { clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 });
+  }
+  async commit(mode) {
+    if (!this.dates.size) { new Notice("先勾选要套用的日期"); return; }
+    if (mode === "set" && !this.picked) { new Notice("先选一张图"); return; }
+    const folder = normalizePath(this.plugin.settings.rootFolder || "日记");
+    const errors = [];
+    let ok = 0, fail = 0;
+    for (const key of this.dates) {
+      try {
+        const path = `${folder}/${key}.md`;
+        const file = this.app.vault.getAbstractFileByPath(path);
+        if (!(file instanceof TFile)) { fail++; errors.push(key + "：文件不在 " + path); continue; }
+        const raw = await this.app.vault.read(file);
+        const parsed = parseDay(raw, this.plugin.settings.headingLevel);
+        const lay = normalizeLayout(parsed.layout, this.plugin.settings);
+        if (mode === "clear") {
+          lay.cover = "";
+          lay.coverHeight = 0;
+          if (lay.layers && lay.layers.bg) lay.layers.bg.on = false;
+        } else {
+          lay.cover = this.picked;
+          lay.coverHeight = this.height;
+          lay.coverPos = "";
+          /* 关键：舞台模式下背景层不打开，设了封面也看不见 —— 这正是"批量换壁纸没反应"的真因之一 */
+          if (!lay.layers) lay.layers = normalizeLayers(null, lay, this.plugin.settings);
+          lay.layers.bg.on = true;
+          if (!this.plugin.settings.showStage) {
+            /* 不在舞台模式时，老封面框也得能看见 */
+            if (!lay.coverHeight || lay.coverHeight < 60) lay.coverHeight = this.height;
+          }
+        }
+        const cells = normalizeCells(parsed.cells, lay, this.plugin.settings);
+        const md = serializeDay(splitDayKey(key).date, cells, {
+          fm: parsed.fm, h1: parsed.h1,
+          columns: lay.cols || (parsed.layout && parsed.layout.cols) || this.plugin.settings.columns,
+          level: this.plugin.settings.headingLevel,
+          layout: lay,
+        });
+        await this.app.vault.modify(file, md);
+        ok++;
+      } catch (e) {
+        fail++;
+        errors.push(key + "：" + ((e && e.message) || String(e)));
+        console.error("[格间日记] 批量封面失败", key, e);
+      }
+    }
+    const head = mode === "clear" ? `已清除 ${ok} 天的封面` : `已给 ${ok} 天套上封面`;
+    new Notice(fail ? `${head}，${fail} 天没成功（详见控制台）` : head, fail ? 8000 : 3000);
+    if (errors.length) {
+      console.warn("[格间日记] 批量封面失败明细：\n" + errors.join("\n"));
+      new Notice(errors.slice(0, 3).join("\n"), 12000);
+    }
+    this.close();
+    this.plugin.refreshAll(true);
+  }
+
+}
+
+class PasteModal extends Modal {
+  constructor(app, plugin, initialText) {
+    super(app);
+    this.plugin = plugin;
+    this.mode = plugin.settings.pasteMode;
+    this.target = plugin.settings.pasteTarget;
+    this.text = initialText || "";
+    this.segments = [];
+    this.reparse = debounce(() => this.renderSegments(), 180);
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gd-modal"); contentEl.addClass("gd-paste-modal");
+    if (this.modalEl) this.modalEl.style.width = "min(880px, 92vw)";
+    contentEl.createEl("h3", { text: "粘贴生成格子" });
+    contentEl.createEl("p", {
+      text: "把任意纯文本贴进来，自动拆成格子；右侧可以改标题、调顺序、去掉不要的段落，确认后一次写入。",
+      cls: "gd-modal-desc",
+    });
+
+    const bar = contentEl.createDiv({ cls: "gd-paste-bar" });
+    new Setting(bar).setName("识别方式").addDropdown((d) => {
+      for (const [v, n] of PASTE_MODES) d.addOption(v, n);
+      d.setValue(this.mode).onChange((v) => { this.mode = v; this.renderSegments(); });
+    });
+    new Setting(bar).setName("写入方式").addDropdown((d) => {
+      for (const [v, n] of PASTE_TARGETS) d.addOption(v, n);
+      d.setValue(this.target).onChange((v) => { this.target = v; });
+    });
+
+    const body = contentEl.createDiv({ cls: "gd-paste-body" });
+    const left = body.createDiv({ cls: "gd-paste-left" });
+    left.createEl("label", { text: "原文", cls: "gd-field-label" });
+    this.input = left.createEl("textarea", { cls: "gd-paste-input", attr: { placeholder: "例如：\n\n今日事件\n今天去看了展\n\n今日新知\n原来纸张会随时间变黄\n\n或者 ## 标题 / 标题：内容 / | 表格 |" } });
+    this.input.value = this.text;
+    this.input.addEventListener("input", () => { this.text = this.input.value; this.reparse(); });
+
+    const right = body.createDiv({ cls: "gd-paste-right" });
+    const rh = right.createDiv({ cls: "gd-paste-rhead" });
+    rh.createEl("label", { text: "识别结果", cls: "gd-field-label" });
+    this.countEl = rh.createSpan({ cls: "gd-paste-count" });
+    this.listEl = right.createDiv({ cls: "gd-seg-list" });
+
+    const foot = contentEl.createDiv({ cls: "gd-modal-actions" });
+    const clip = foot.createEl("button", { text: "读取剪贴板" });
+    clip.onclick = async () => {
+      try {
+        const t = await navigator.clipboard.readText();
+        this.input.value = t; this.text = t; this.renderSegments();
+      } catch (e) { new Notice("读取剪贴板失败，请直接粘贴到左侧文本框"); }
+    };
+    foot.createEl("button", { text: "取消" }).onclick = () => this.close();
+    const go = foot.createEl("button", { text: "生成格子", cls: "mod-cta" });
+    go.onclick = () => this.commit();
+
+    this.renderSegments();
+    setTimeout(() => { if (!this.text) this.input.focus(); }, 60);
+  }
+  renderSegments() {
+    const opts = {
+      pasteFirstLineAsTitle: this.plugin.settings.pasteFirstLineAsTitle,
+      pasteSeparator: this.plugin.settings.pasteSeparator,
+    };
+    const parsed = parsePaste(this.text, this.mode, opts);
+    // 保留用户对已识别分段的手动修改
+    const old = this.segments || [];
+    this.segments = parsed.map((p, i) => ({
+      title: (old[i] && old[i].__dirty) ? old[i].title : p.title,
+      content: p.content,
+      __skip: (old[i] && old[i].__skip) || false,
+      __dirty: (old[i] && old[i].__dirty) || false,
+    }));
+    /* 对齐当前模板：标题写法统一、模板里没写到的格子补空 */
+    const tpl = (this.plugin.settings.templates || []).find((x) => x.name === this.plugin.settings.activeTemplate)
+      || (this.plugin.settings.templates || [])[0];
+    const tplTitles = tpl && Array.isArray(tpl.cells) ? tpl.cells.map((c) => c.title) : [];
+    if (tplTitles.length) {
+      const norm = (s) => String(s || "").replace(/[\s　:：*_#]/g, "").toLowerCase();
+      const tplMap = new Map(tplTitles.map((x) => [norm(x), x]));
+      for (const seg of this.segments) {
+        if (seg.__dirty) continue;
+        const hit = tplMap.get(norm(seg.title));
+        if (hit) seg.title = hit;
+      }
+      /* 按模板顺序重排，并把模板里缺的补进来（空内容，用户可在右侧删掉） */
+      const byTitle = new Map(this.segments.map((s) => [norm(s.title), s]));
+      const ordered = [];
+      for (const title of tplTitles) {
+        const hit = byTitle.get(norm(title));
+        if (hit) { ordered.push(hit); byTitle.delete(norm(title)); }
+        else ordered.push({ title, content: "", __skip: true, __dirty: false, __fill: true });
+      }
+      for (const rest of byTitle.values()) ordered.push(rest);
+      this.segments = ordered;
+    }
+
+    const n = this.segments.length;
+    this.countEl.textContent = n ? `${n} 个格子` : "等待输入";
+    this.listEl.empty();
+    if (!n) { this.listEl.createEl("p", { text: "左侧贴入内容后，这里会实时显示拆分结果。", cls: "gd-empty" }); return; }
+    this.segments.forEach((seg, i) => {
+      const row = this.listEl.createDiv({ cls: "gd-seg-row" + (seg.__skip ? " is-off" : "") });
+      const check = row.createEl("input", { attr: { type: "checkbox", title: "保留这一段" }, cls: "gd-seg-check" });
+      check.checked = !seg.__skip;
+      check.onchange = () => { seg.__skip = !check.checked; row.toggleClass("is-off", seg.__skip); };
+      const mid = row.createDiv({ cls: "gd-seg-mid" });
+      const ti = mid.createEl("input", { cls: "gd-seg-title", attr: { placeholder: "格子标题" } });
+      ti.value = seg.title;
+      ti.oninput = () => { seg.title = ti.value; seg.__dirty = true; };
+      if (seg.__fill) mid.createEl("div", { text: "（这一格没写，保留为空）", cls: "gd-seg-preview gd-seg-fill" });
+      else mid.createEl("div", { text: truncate(seg.content, 90) || "（空）", cls: "gd-seg-preview" });
+      const ops = row.createDiv({ cls: "gd-seg-ops" });
+      const up = ops.createEl("button", { text: "↑", cls: "gd-mini-btn", attr: { title: "上移" } });
+      up.onclick = () => { if (i > 0) { const t = this.segments[i - 1]; this.segments[i - 1] = seg; this.segments[i] = t; this.renderSegments(); } };
+      const dn = ops.createEl("button", { text: "↓", cls: "gd-mini-btn", attr: { title: "下移" } });
+      dn.onclick = () => { if (i < this.segments.length - 1) { const t = this.segments[i + 1]; this.segments[i + 1] = seg; this.segments[i] = t; this.renderSegments(); } };
+    });
+  }
+  async commit() {
+    const view = this.plugin.gridView();
+    if (!view) { new Notice("请先打开格间日记视图"); return; }
+    const picked = this.segments.filter((s) => !s.__skip);
+    if (!picked.length) { new Notice("没有选中任何段落"); return; }
+    await view.saveNow(); // 先把输入框里还没落盘的内容写进去，避免被覆盖
+    const before = await this.app.vault.read(view.file);
+    this.plugin.history.pushUndo(view.file, before, "粘贴生成格子");
+    await this.plugin.history.snapshot(view.file, "粘贴前", true);
+    view.cells = applyPaste(view.cells, this.segments, this.target);
+    await view.save(true);
+    this.plugin.settings.pasteMode = this.mode;
+    this.plugin.settings.pasteTarget = this.target;
+    await this.plugin.saveSettings();
+    this.close();
+    new Notice(`已生成 ${picked.length} 个格子`);
+  }
+  onClose() { this.reparse.cancel(); this.contentEl.empty(); }
+}
+
+class PromptModal extends Modal {
+  constructor(app, title, label, value, onOk) {
+    super(app);
+    this.t = title; this.l = label; this.v = value || ""; this.onOk = onOk;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gd-modal");
+    contentEl.createEl("h3", { text: this.t });
+    new Setting(contentEl).setName(this.l).addText((t) => {
+      t.setValue(this.v).onChange((v) => { this.v = v; });
+      t.inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { this.close(); this.onOk(this.v); } });
+      setTimeout(() => t.inputEl.focus(), 50);
+    });
+    const row = contentEl.createDiv({ cls: "gd-modal-actions" });
+    row.createEl("button", { text: "取消" }).onclick = () => this.close();
+    row.createEl("button", { text: "确定", cls: "mod-cta" }).onclick = () => { this.close(); this.onOk(this.v); };
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
+/* 保存模板：可选只存标题骨架，还是标题 + 内容一起存 */
+class TemplateSaveModal extends Modal {
+  constructor(app, plugin, cells, defaultName) {
+    super(app);
+    this.plugin = plugin;
+    this.cells = cells || [];
+    this.name = defaultName || "";
+    this.withContent = false;
+    this.kind = "grid";
+    this.picked = this.cells.map(() => true);
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gd-modal");
+    contentEl.createEl("h3", { text: "存成模板" });
+    contentEl.createEl("p", {
+      cls: "gd-modal-desc",
+      text: "「只存标题」是空的骨架，下次套用是一张白纸；「连内容一起存」会把现在写的东西也存进去，当范文或重复的固定格式用。",
+    });
+
+    new Setting(contentEl).setName("模板名字").addText((tx) => {
+      tx.setValue(this.name).setPlaceholder("比如：九宫格晨间");
+      tx.oninput = () => { this.name = tx.value.trim(); };
+    });
+
+    new Setting(contentEl).setName("模板种类")
+      .setDesc("分类只影响模板列表怎么分组，不影响格子的行为。排序为：主页 → 目录 → 日历 → 悬浮窗 → 格子 → 表格。")
+      .addDropdown((d) => {
+        for (const [v, n] of TEMPLATE_KINDS) d.addOption(v, n);
+        d.setValue("grid").onChange((v) => { this.kind = v; });
+      });
+
+    new Setting(contentEl).setName("存什么").setDesc("连内容一起存，下次套用会把这些字也带过来。").addDropdown((d) => {
+      d.addOption("titles", "只存标题（空骨架）");
+      d.addOption("content", "标题 + 内容一起存");
+      d.setValue("titles").onChange((v) => { this.withContent = v === "content"; });
+    });
+
+    contentEl.createEl("h4", { text: "包含哪些格" });
+    const list = contentEl.createDiv({ cls: "gd-tpl-pick" });
+    this.cells.forEach((c, i) => {
+      const row = list.createDiv({ cls: "gd-tpl-pick-row" });
+      const cb = row.createEl("input", { attr: { type: "checkbox" } });
+      cb.checked = true;
+      cb.onchange = () => { this.picked[i] = cb.checked; };
+      row.createSpan({ text: ` ${c.title || "（未命名）"}　${truncate(String(c.content || "").replace(/\s+/g, " "), 30) || "（空）"}`, cls: "gd-tpl-pick-txt" });
+    });
+
+    const foot = contentEl.createDiv({ cls: "gd-modal-actions" });
+    foot.createEl("button", { text: "全选" }).onclick = () => {
+      this.picked = this.picked.map(() => true);
+      list.querySelectorAll("input").forEach((x) => { x.checked = true; });
+    };
+    foot.createEl("button", { text: "全不选" }).onclick = () => {
+      this.picked = this.picked.map(() => false);
+      list.querySelectorAll("input").forEach((x) => { x.checked = false; });
+    };
+    foot.createEl("button", { text: "取消" }).onclick = () => this.close();
+    foot.createEl("button", { text: "保存", cls: "mod-cta" }).onclick = async () => {
+      const name = (this.name || "").trim();
+      if (!name) { new Notice("先给模板起个名字"); return; }
+      const picked = this.cells.filter((c, i) => this.picked[i]);
+      if (!picked.length) { new Notice("至少要选一个格"); return; }
+      const tpl = extractTemplate(name, picked, this.withContent);
+      tpl.kind = this.kind || "grid";
+      const arr = this.plugin.settings.templates;
+      const idx = arr.findIndex((x) => x.name === name);
+      if (idx >= 0) {
+        new ConfirmModal(this.app, "重名了", `已经有叫「${name}」的模板，覆盖它？`, async () => {
+          tpl.kind = this.kind || (arr[idx] && arr[idx].kind) || "grid";
+          arr[idx] = tpl;
+          this.plugin.settings.activeTemplate = name;
+          await this.plugin.saveSettings();
+          new Notice(`已覆盖模板「${name}」`);
+          this.close();
+        }).open();
+        return;
+      }
+      arr.push(tpl);
+      this.plugin.settings.activeTemplate = name;
+      await this.plugin.saveSettings();
+      new Notice(`已保存模板「${name}」·${picked.length} 格${this.withContent ? "·含内容" : ""}`);
+      this.close();
+    };
+  }
+
+  onClose() { this.contentEl.empty(); }
+}
+
+class TemplateModal extends Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gd-modal");
+    contentEl.createEl("h3", { text: "套用格子模板" });
+    contentEl.createEl("p", { text: "会替换当前这篇的格子结构，替换前自动存一份快照，可在时间线里恢复。", cls: "gd-modal-desc" });
+    let keepMine = true;
+    new Setting(contentEl).setName("保留我现在写的内容")
+      .setDesc("开着：只换格子的标题和排布，已经写下的字按标题对上去保留。关掉：完全用模板的（模板带内容时会把内容也覆盖掉）。")
+      .addToggle((tg) => tg.setValue(true).onChange((v) => { keepMine = v; }));
+    const list = contentEl.createDiv({ cls: "gd-tpl-list" });
+    const nameOfKind = (k) => (TEMPLATE_KINDS.find((x) => x[0] === k) || ["", "格子"])[1];
+    let lastKind = "";
+    for (const tpl of sortTemplates(this.plugin.settings.templates)) {
+      const k = templateKind(tpl);
+      if (k !== lastKind) {
+        lastKind = k;
+        const kh = list.createDiv({ cls: "gd-tpl-kind" });
+        kh.createSpan({ text: nameOfKind(k) });
+      }
+      const row = list.createDiv({ cls: "gd-tpl-row" });
+      const info = row.createDiv();
+      info.createEl("strong", { text: tpl.name });
+      info.createEl("span", { text: " " + nameOfKind(k), cls: "gd-tpl-kind-badge" });
+      info.createEl("div", { text: `${(tpl.cells || []).length} 格${tpl.mode === "content" ? " · 含内容" : ""} · ${truncate((tpl.cells || []).map((c) => c.title).join(" / "), 70)}`, cls: "gd-tpl-sub" });
+      row.createEl("button", { text: "套用", cls: "gd-mini-btn" }).onclick = async () => {
+        this.close();
+        const view = this.plugin.gridView();
+        if (!view) return;
+        await view.saveNow();
+        const before = await this.app.vault.read(view.file);
+        this.plugin.history.pushUndo(view.file, before, "套用模板前");
+        await this.plugin.history.snapshot(view.file, "套用模板前", true);
+        const built = buildFromTemplate(view.date, tpl, view.plugin.settings.headingLevel, { blank: false });
+        if (keepMine) {
+          /* 按归一化标题把我现在写的内容接回新骨架，避免"换个模板字全没了" */
+          const mine = new Map();
+          for (const c of view.cells) {
+            const k = normHeadKey(c.title);
+            if (!mine.has(k)) mine.set(k, c);
+          }
+          for (const c of built.cells) {
+            const old = mine.get(normHeadKey(c.title));
+            if (old && old.content) c.content = old.content;
+          }
+        }
+        view.cells = built.cells;
+        await view.save(true);
+        new Notice(`已套用「${tpl.name}」`);
+      };
+    }
+    const foot = contentEl.createDiv({ cls: "gd-modal-actions" });
+    foot.createEl("button", { text: "关闭" }).onclick = () => this.close();
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
+
+/* ---- 04-theme.js ---- */
+/* ═══════════════════════════════════════════════════════════
+ * 主题系统（v4）
+ * -----------------------------------------------------------
+ * 一个主题 = 一个 JSON 文件，放在 库/主题/<名字>.json
+ * 文件里带 version / note / updatedAt / changes（修改记录）
+ * 每次保存自动留一份到 库/主题/.history/<名字>@<时间戳>.json
+ *
+ * 设计目标（按用户要求）：
+ *   1. 主题单独存一份文件，方便备份 / 跨设备迁移
+ *   2. 带版本号和备注，回滚时看得清哪次改了什么
+ *   3. 一个主题管多个项目，切项目自动套
+ *   4. 新建项目时能选预设
+ * ═══════════════════════════════════════════════════════════ */
+
+const THEME_DEFAULT_DIR = "主题";
+const THEME_HISTORY_DIR = ".history";
+const THEME_SCHEMA = 4;
+
+/* 主题里能存哪些 token。分组只为设置页好排，落盘是平的。 */
+const THEME_GROUPS = [
+  ["bg", "底色", [
+    ["bgMode", "底色形态", "color|gradient|image|texture", "color"],
+    ["bgColor", "底色", "color", "#ffffff"],
+    ["bgGradient", "渐变", "text", ""],
+    ["bgImage", "底图", "text", ""],
+    ["bgTexture", "纹理", "texture", "none"],
+  ]],
+  ["font", "字体", [
+    ["fontFamily", "字族", "text", ""],
+    ["fontSize", "字号", "number", 15],
+    ["fontColor", "字色", "color", ""],
+    ["lineHeight", "行高", "number", 1.7],
+    ["letterSpacing", "字距", "number", 0],
+    ["fontWeight", "字重", "number", 400],
+  ]],
+  ["line", "线体", [
+    ["lineColor", "线色", "color", ""],
+    ["lineWidth", "线宽", "number", 1],
+    ["lineStyle", "线型", "lineStyle", "solid"],
+  ]],
+  ["icon", "图标", [
+    ["iconStyle", "图标风格", "iconStyle", "dot"],
+  ]],
+  ["cell", "格子", [
+    ["skin", "风格", "theme", "card"],
+    ["border", "边框", "border", "none"],
+    ["radius", "圆角", "number", 14],
+    ["gap", "间距", "number", 14],
+    ["pad", "内边距", "number", 20],
+    ["accent", "强调色", "color", "#c2704f"],
+    ["cardOpacity", "不透明度", "number", 1],
+  ]],
+  ["type", "排版", [
+    ["paraIndent", "首行缩进", "number", 2],
+    ["paraGap", "段落间距", "number", 0.8],
+    ["paraFontGap", "标题下距", "number", 0.5],
+  ]],
+  ["motion", "动效", [
+    ["hoverLift", "悬停抬起", "bool", true],
+  ]],
+];
+
+/* 扁平化：{ bgMode: {...}, fontFamily: {...} } */
+const THEME_SPEC = {};
+for (const [, , list] of THEME_GROUPS) {
+  for (const [key, label, type, def] of list) THEME_SPEC[key] = { label, type, def };
+}
+
+/* 六套内置预设（用户批准的草案名） */
+/* 用户要的三套补充强调色（黑白灰 / dsh 蓝 / claude 橙） */
+const ACCENT_PRESETS = [
+  ["accent-mono", "黑白灰", "#4a4a4a"],
+  ["accent-dsh", "dsh 蓝", "#4d6bfe"],
+  ["accent-claude", "claude 橙", "#d97757"],
+];
+
+const THEME_PRESETS = [
+  {
+    id: "xuanzhi", name: "宣纸", note: "米黄底色 + 楷体，最像纸质手账",
+    tokens: { bgMode: "color", bgColor: "#f7f3ea", fontFamily: '"LXGW WenKai","Kaiti SC","STKaiti",楷体,serif"',
+      fontSize: 16, lineHeight: 1.9, fontColor: "#3b342c", lineColor: "#c9bda8", lineWidth: 1,
+      skin: "paper", border: "none", radius: 10, gap: 16, pad: 22, accent: "#a8744a",
+      paraIndent: 2, paraGap: 0.9, paraFontGap: 0.6, hoverLift: true, iconStyle: "dot" },
+  },
+  {
+    id: "minimal", name: "极简白", note: "纯白无装饰，字最清楚",
+    tokens: { bgMode: "color", bgColor: "#ffffff", fontFamily: "", fontSize: 15, lineHeight: 1.75,
+      fontColor: "", lineColor: "#e6e6e6", lineWidth: 1, skin: "mono", border: "hair", radius: 6,
+      gap: 12, pad: 18, accent: "#333333", paraIndent: 2, paraGap: 0.8, paraFontGap: 0.5,
+      hoverLift: false, iconStyle: "dot" },
+  },
+  {
+    id: "yehang", name: "夜航", note: "深蓝底浅字，晚上看不刺眼",
+    tokens: { bgMode: "color", bgColor: "#1c2230", fontFamily: "", fontSize: 15, lineHeight: 1.85,
+      fontColor: "#d9dee8", lineColor: "#333c4e", lineWidth: 1, skin: "card", border: "none",
+      radius: 12, gap: 14, pad: 20, accent: "#7aa2d6", paraIndent: 2, paraGap: 0.85,
+      paraFontGap: 0.55, hoverLift: true, iconStyle: "dot" },
+  },
+  {
+    id: "shouzhang", name: "手账", note: "方格纸 + 便当格，格子有边界",
+    tokens: { bgMode: "texture", bgColor: "#fffdf7", bgTexture: "graph", fontFamily: "",
+      fontSize: 15, lineHeight: 1.8, fontColor: "#2f2a24", lineColor: "#ddd2c0", lineWidth: 1,
+      skin: "bento", border: "hair", radius: 16, gap: 18, pad: 22, accent: "#e08a5f",
+      paraIndent: 2, paraGap: 0.8, paraFontGap: 0.5, hoverLift: true, iconStyle: "emoji" },
+  },
+  {
+    id: "zazhi", name: "杂志", note: "大留白 + 大日期，适合配图",
+    tokens: { bgMode: "color", bgColor: "#fbfbf9", fontFamily: "", fontSize: 15, lineHeight: 1.7,
+      fontColor: "#1f1f1f", lineColor: "#e8e8e4", lineWidth: 1, skin: "magazine", border: "none",
+      radius: 4, gap: 20, pad: 28, accent: "#2b2b2b", paraIndent: 0, paraGap: 1,
+      paraFontGap: 0.6, hoverLift: false, iconStyle: "none" },
+  },
+  {
+    id: "biandang", name: "便当", note: "圆角卡片 + 彩色强调，格子分明",
+    tokens: { bgMode: "gradient", bgColor: "#f4f6f9",
+      bgGradient: "linear-gradient(160deg,#f4f6f9 0%,#eef2f7 100%)", fontFamily: "", fontSize: 15,
+      lineHeight: 1.72, fontColor: "", lineColor: "#dfe4ec", lineWidth: 1, skin: "bento",
+      border: "none", radius: 20, gap: 16, pad: 20, accent: "#5b8def", paraIndent: 2,
+      paraGap: 0.8, paraFontGap: 0.5, hoverLift: true, iconStyle: "dot" },
+  },
+];
+
+function themeStamp(d) {
+  const x = d || new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${x.getFullYear()}${p(x.getMonth() + 1)}${p(x.getDate())}-${p(x.getHours())}${p(x.getMinutes())}${p(x.getSeconds())}`;
+}
+
+function themeSafeName(s) {
+  return String(s || "未命名").replace(/[\\/:*?"<>|#^[\]]/g, "_").slice(0, 40) || "未命名";
+}
+
+class ThemeManager {
+  constructor(plugin) {
+    this.plugin = plugin;
+    this.cache = new Map();
+  }
+  get app() { return this.plugin.app; }
+  get vault() { return this.app.vault; }
+  get s() { return this.plugin.settings; }
+
+  get dir() {
+    return normalizePath(String(this.s.themeDir || THEME_DEFAULT_DIR).replace(/^\/+|\/+$/g, ""));
+  }
+  get historyDir() { return normalizePath(this.dir + "/" + THEME_HISTORY_DIR); }
+
+  path(name) { return normalizePath(this.dir + "/" + themeSafeName(name) + ".json"); }
+
+  async ensureDir() {
+    await this.plugin.ensureFolder(this.dir);
+    await this.plugin.ensureFolder(this.historyDir);
+  }
+
+  /* 读一个主题文件；不存在返回 null */
+  async read(name) {
+    const p = this.path(name);
+    try {
+      const f = this.vault.getAbstractFileByPath(p);
+      if (!f) return null;
+      const text = await this.vault.read(f);
+      const j = JSON.parse(text);
+      if (!j || typeof j !== "object") return null;
+      return this.normalize(j, name);
+    } catch (e) {
+      console.warn("[格间日记] 读主题失败", name, e);
+      return null;
+    }
+  }
+
+  /* 补全缺字段，保证老文件也能用 */
+  normalize(j, fallbackName) {
+    const t = Object.assign({}, j);
+    t.id = t.id || themeSafeName(fallbackName);
+    t.name = t.name || fallbackName || "未命名";
+    t.version = Number(t.version) || 1;
+    t.note = t.note || "";
+    t.updatedAt = t.updatedAt || "";
+    if (!Array.isArray(t.changes)) t.changes = [];
+    const tok = Object.assign({}, t.tokens || {});
+    for (const key of Object.keys(THEME_SPEC)) {
+      if (tok[key] === undefined || tok[key] === null || tok[key] === "") {
+        if (tok[key] === undefined) tok[key] = THEME_SPEC[key].def;
+      }
+    }
+    t.tokens = tok;
+    return t;
+  }
+
+  /* 列出全部主题（按名字排序） */
+  async list() {
+    const out = [];
+    try {
+      const folder = this.vault.getAbstractFileByPath(this.dir);
+      if (!folder || !folder.children) return out;
+      for (const ch of folder.children) {
+        if (!ch || ch.extension !== "json") continue;
+        const t = await this.read(ch.basename);
+        if (t) out.push(t);
+      }
+    } catch (e) { console.warn("[格间日记] 列主题失败", e); }
+    out.sort((a, b) => String(a.name).localeCompare(String(b.name), "zh"));
+    return out;
+  }
+
+  /* 保存（自动 +1 版本，写 changes，留历史） */
+  async save(name, tokens, note) {
+    await this.ensureDir();
+    const old = (await this.read(name)) || { version: 0, changes: [] };
+    const now = new Date();
+    const merged = Object.assign({}, tokens || {});
+    const next = {
+      id: themeSafeName(name),
+      name: name,
+      version: (Number(old.version) || 0) + 1,
+      note: note || "",
+      updatedAt: now.toISOString().slice(0, 19),
+      changes: (old.changes || []).concat([{
+        rev: (Number(old.version) || 0) + 1,
+        at: now.toISOString().slice(0, 19),
+        note: note || "保存",
+      }]).slice(-50),
+      tokens: Object.assign({}, old.tokens || {}, merged),
+    };
+    /* 先留历史（拿的是「改之前」的版本） */
+    if (old.version) await this.snapshot(old);
+
+    const p = this.path(name);
+    const text = JSON.stringify(next, null, 2);
+    const f = this.vault.getAbstractFileByPath(p);
+    if (f) await this.vault.modify(f, text);
+    else await this.vault.create(p, text);
+    this.cache.set(name, next);
+    return next;
+  }
+
+  async snapshot(t) {
+    try {
+      await this.ensureDir();
+      const p = normalizePath(this.historyDir + "/" + themeSafeName(t.name) + "@" + themeStamp() + ".json");
+      if (this.vault.getAbstractFileByPath(p)) return;
+      await this.vault.create(p, JSON.stringify(t, null, 2));
+    } catch (e) { console.warn("[格间日记] 主题历史写入失败", e); }
+  }
+
+  /* 某主题的历史版本列表（新→旧） */
+  async history(name) {
+    const out = [];
+    try {
+      const folder = this.vault.getAbstractFileByPath(this.historyDir);
+      if (!folder || !folder.children) return out;
+      const prefix = themeSafeName(name) + "@";
+      for (const ch of folder.children) {
+        if (!ch || ch.extension !== "json") continue;
+        if (!ch.basename.startsWith(prefix)) continue;
+        const stamp = ch.basename.slice(prefix.length);
+        let rev = 0, note = "";
+        try {
+          const j = JSON.parse(await this.vault.read(ch));
+          rev = Number(j.version) || 0;
+          note = j.note || "";
+        } catch (e) { /* 坏文件跳过 */ }
+        out.push({ path: ch.path, name: ch.basename, stamp, rev, note });
+      }
+    } catch (e) { console.warn("[格间日记] 列主题历史失败", e); }
+    out.sort((a, b) => (a.stamp < b.stamp ? 1 : -1));
+    return out;
+  }
+
+  /* 回滚：把某个历史快照重新写回主题文件（本身也记一条 change） */
+  async rollback(name, histPath) {
+    const f = this.vault.getAbstractFileByPath(normalizePath(histPath));
+    if (!f) { new Notice("找不到那个历史版本"); return null; }
+    let j;
+    try { j = JSON.parse(await this.vault.read(f)); }
+    catch (e) { new Notice("历史文件损坏：" + e.message); return null; }
+    const cur = (await this.read(name)) || { version: 0, changes: [] };
+    /* 先把当前存一份，免得回滚后想反悔 */
+    await this.snapshot(cur);
+    const now = new Date();
+    const next = {
+      id: themeSafeName(name),
+      name: name,
+      version: (Number(cur.version) || 0) + 1,
+      note: "回滚到 " + (j.version || "?") + " 版",
+      updatedAt: now.toISOString().slice(0, 19),
+      changes: (cur.changes || []).concat([{
+        rev: (Number(cur.version) || 0) + 1,
+        at: now.toISOString().slice(0, 19),
+        note: "回滚到 " + (j.version || "?") + " 版（" + (j.note || "无备注") + "）",
+      }]).slice(-50),
+      tokens: Object.assign({}, j.tokens || {}),
+    };
+    const p = this.path(name);
+    const text = JSON.stringify(next, null, 2);
+    const cur_file = this.vault.getAbstractFileByPath(p);
+    if (cur_file) await this.vault.modify(cur_file, text);
+    else await this.vault.create(p, text);
+    this.cache.set(name, next);
+    return next;
+  }
+
+  /* 把主题的 tokens 套进 settings，并立即生效 */
+  async apply(name, silent) {
+    const t = await this.read(name);
+    if (!t) { if (!silent) new Notice("主题「" + name + "」不存在"); return null; }
+    Object.assign(this.s, tokensToSettings(t.tokens));
+    this.s.activeTheme = name;
+    await this.plugin.saveSettings();
+    this.plugin.applyAllTheme?.();
+    if (!silent) new Notice("已套用主题：" + t.name);
+    return t;
+  }
+
+  /* 从当前 settings 抓一份 tokens */
+  grab() {
+    const out = {};
+    for (const key of Object.keys(THEME_SPEC)) {
+      if (this.s[key] !== undefined) out[key] = this.s[key];
+    }
+    return out;
+  }
+
+  /* 把预设写成文件（只在文件不存在时创建，不覆盖用户改过的） */
+  async installPresets() {
+    await this.ensureDir();
+    let n = 0;
+    for (const p of THEME_PRESETS) {
+      const f = this.vault.getAbstractFileByPath(this.path(p.name));
+      if (f) continue;
+      const now = new Date().toISOString().slice(0, 19);
+      const body = {
+        id: p.id, name: p.name, version: 1, note: p.note, updatedAt: now,
+        changes: [{ rev: 1, at: now, note: "内置预设" }],
+        tokens: Object.assign({}, THEME_SPEC_DEFAULTS(), p.tokens),
+      };
+      await this.vault.create(this.path(p.name), JSON.stringify(body, null, 2));
+      n++;
+    }
+    return n;
+  }
+}
+
+/* 主题默认值表（给预设补全用） */
+function THEME_SPEC_DEFAULTS() {
+  const out = {};
+  for (const key of Object.keys(THEME_SPEC)) out[key] = THEME_SPEC[key].def;
+  return out;
+}
+
+/* tokens → settings 片段（只映射主题管得着的键） */
+function tokensToSettings(tok) {
+  const out = {};
+  const map = {
+    skin: "skin", border: "defaultBorder", radius: "radius", gap: "gap", pad: "pad",
+    accent: "accent", cardOpacity: "cardOpacity",
+    fontFamily: "fontFamily", fontSize: "fontSize", fontColor: "fontColor",
+    lineHeight: "lineHeight", letterSpacing: "letterSpacing", fontWeight: "fontWeight",
+    lineColor: "lineColor", lineWidth: "lineWidth", lineStyle: "lineStyle",
+    iconStyle: "treeIconStyle",
+    paraIndent: "paraIndent", paraGap: "paraGap", paraFontGap: "paraFontGap",
+    hoverLift: "hoverLift",
+    bgMode: "bgMode", bgColor: "bgColor", bgGradient: "bgGradient",
+    bgImage: "bgImage", bgTexture: "bgTexture",
+  };
+  for (const k of Object.keys(tok)) {
+    const sk = map[k];
+    if (sk) out[sk] = tok[k];
+  }
+  return out;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * 主题版本历史（用户要求：回滚时看得清哪次改了什么，
+ * 也方便对着编号沟通）
+ * ═══════════════════════════════════════════════════════════ */
+class ThemeHistoryModal extends Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+    this.picked = plugin.settings.activeTheme || "";
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gd-root");
+    contentEl.addClass("gd-modal");
+    contentEl.createEl("h3", { text: "主题版本历史" });
+
+    const all = contentEl.createDiv({ cls: "gd-set-row" });
+    all.createSpan({ cls: "gd-set-name", text: "主题" });
+    const sel = all.createEl("select", { cls: "dropdown" });
+    this.plugin.themes.list().then((list) => {
+      sel.empty?.();
+      for (const t of list) {
+        const o = sel.createEl("option", { text: t.name + "（当前 v" + t.version + "）" });
+        o.value = t.name;
+        if (t.name === this.picked) o.selected = true;
+      }
+      if (!list.length) sel.createEl("option", { text: "（没有主题文件）" });
+      this.drawList();
+    });
+    sel.onchange = () => { this.picked = sel.value; this.drawList(); };
+
+    this.listEl = contentEl.createDiv({ cls: "gd-theme-hist" });
+    const foot = contentEl.createDiv({ cls: "gd-modal-btns" });
+    const closeBtn = foot.createEl("button", { text: "关闭", cls: "gd-btn" });
+    closeBtn.onclick = () => this.close();
+  }
+
+  async drawList() {
+    const el = this.listEl;
+    if (!el) return;
+    el.empty();
+    if (!this.picked) {
+      el.createDiv({ cls: "gd-set-hint", text: "还没有主题，先在格子里「⋯ → 主题」存一个。" });
+      return;
+    }
+    const cur = await this.plugin.themes.read(this.picked);
+    const curBox = el.createDiv({ cls: "gd-theme-now" });
+    curBox.createSpan({ cls: "gd-theme-badge", text: "当前 v" + (cur ? cur.version : "?") });
+    curBox.createSpan({ cls: "gd-theme-note", text: cur ? (cur.note || "（无备注）") : "" });
+    if (cur) curBox.createSpan({ cls: "gd-theme-time", text: cur.updatedAt || "" });
+
+    const hist = await this.plugin.themes.history(this.picked);
+    if (!hist.length) {
+      el.createDiv({ cls: "gd-set-hint", text: "还没有历史版本。每次「把当前改动存回主题」都会自动留一份。" });
+    }
+
+    /* 主文件自己的修改记录（changes） */
+    if (cur && Array.isArray(cur.changes) && cur.changes.length) {
+      el.createEl("h4", { text: "改动记录（最近的在上）" });
+      const box = el.createDiv({ cls: "gd-theme-changes" });
+      for (const c of cur.changes.slice().reverse()) {
+        const row = box.createDiv({ cls: "gd-theme-change" });
+        row.createSpan({ cls: "gd-theme-badge", text: "#" + String(c.rev).padStart(2, "0") });
+        row.createSpan({ cls: "gd-theme-time", text: c.at || "" });
+        row.createSpan({ cls: "gd-theme-note", text: c.note || "" });
+      }
+    }
+
+    if (hist.length) {
+      el.createEl("h4", { text: "可以回滚的快照" });
+      for (const h of hist) {
+        const row = el.createDiv({ cls: "gd-theme-hist-row" });
+        row.createSpan({ cls: "gd-theme-badge", text: "v" + (h.rev || "?") });
+        row.createSpan({ cls: "gd-theme-time", text: h.stamp.replace(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/, "$1-$2-$3 $4:$5:$6") });
+        row.createSpan({ cls: "gd-theme-note", text: h.note || "" });
+        const btn = row.createEl("button", { cls: "gd-mini-btn", text: "回滚到这个" });
+        btn.onclick = async () => {
+          const ok = await confirmModal(this.app, "回滚主题",
+            "把「" + this.picked + "」回滚到 v" + (h.rev || "?") + "？\n当前版本会先存一份，回滚后也能反悔。");
+          if (!ok) return;
+          const r = await this.plugin.themes.rollback(this.picked, h.path);
+          if (r) {
+            await this.plugin.themes.apply(this.picked, true);
+            this.plugin.applyAllTheme();
+            new Notice("已回滚，现在是 v" + r.version);
+            this.drawList();
+          }
+        };
+      }
+    }
+  }
+
+  onClose() { this.contentEl.empty(); }
+}
+
+/* 简易确认框（返回 Promise<boolean>），复用已有 ConfirmModal 思路 */
+function confirmModal(app, title, body) {
+  return new Promise((resolve) => {
+    const m = new Modal(app);
+    m.onOpen = () => {
+      const el = m.contentEl;
+      el.addClass("gd-root");
+      el.createEl("h3", { text: title });
+      el.createEl("p", { text: body });
+      const foot = el.createDiv({ cls: "gd-modal-btns" });
+      const no = foot.createEl("button", { text: "取消", cls: "gd-btn" });
+      no.onclick = () => { m.close(); resolve(false); };
+      const yes = foot.createEl("button", { text: "确定", cls: "gd-btn mod-cta" });
+      yes.onclick = () => { m.close(); resolve(true); };
+    };
+    m.onClose = () => m.contentEl.empty();
+    m.open();
+  });
+}
+
+
+/* ---- 05-stage.js ---- */
+/* ============================================================
+ * 封面舞台：四层自由布局
+ * 用户要求（m01776）：「图片的拉扯只限于图片，不是拉扯表格框框；
+ *   文本框的拉扯只限于文本框；背景的拉扯也只限于背景。彼此独立，互不影响。」
+ * 所以这里不是「一个框装一张图」，而是一块舞台 + 四个各自独立的层。
+ * ============================================================ */
+class GDStage {
+  constructor(view) {
+    this.view = view;
+    this.plugin = view.plugin;
+    this.sx = view.sx;
+    this.el = view.stageEl;
+    this.sel = "bg";
+    this.drag = null;
+    this.barOpen = false;   // 推板默认收起，只留画面外一个 ⋯
+  }
+
+  layers() {
+    const v = this.view;
+    if (!v.layout.layers) v.layout.layers = deepClone(DEFAULT_LAYERS);
+    return v.layout.layers;
+  }
+
+  render() {
+    const el = this.el, s = this.sx;
+    if (!el) return;
+    const on = !!s.showStage;
+    el.toggleClass("is-hidden", !on);
+    if (this.view.coverWrapEl) this.view.coverWrapEl.toggleClass("is-hidden", on);
+    if (!on) return;
+
+    el.empty();
+    el.style.height = clamp(s.stageHeight || 220, 120, 520) + "px";
+    const lay = this.layers();
+    const box = el.createDiv({ cls: "gd-stage-box" });
+
+    for (const k of LAYER_KEYS) {
+      const L = lay[k];
+      if (!L || !L.on) continue;
+      const d = box.createDiv({ cls: `gd-layer gd-layer-${k}` + (this.sel === k ? " is-sel" : "") });
+      d.style.left = L.x + "%";
+      d.style.top = L.y + "%";
+      d.style.width = L.w + "%";
+      d.style.height = L.h + "%";
+      d.style.zIndex = String(k === "bg" ? 1 : k === "img" ? 2 : k === "text" ? 3 : 4);
+      this.fillLayer(d, k);
+      d.onpointerdown = (e) => this.onLayerDown(e, k, d);
+      d.oncontextmenu = (e) => { e.preventDefault(); this.layerMenu(e, k); };
+    }
+
+    /* 分屏时的分割线（上下 / 左右），可拖 */
+    const sm = s.splitMode || "whole";
+    if (sm !== "whole") {
+      const line = box.createDiv({ cls: "gd-split-line " + (sm === "top" ? "is-h" : "is-v") });
+      const at = clamp(Number(s.splitAt) || 58, 20, 80);
+      if (sm === "top") line.style.top = at + "%"; else line.style.left = at + "%";
+      line.setAttr("title", "拖动这条线调整分屏比例");
+    }
+
+    /* 推板搬到画面外（用户要求：按钮不许压在图上） */
+    const foot = el.createDiv({ cls: "gd-stage-foot" });
+    this.renderBar(foot);
+  }
+
+  fillLayer(d, k) {
+    const s = this.sx, lay = this.view.layout;
+
+    /* B4：把「背景」和「照片」合成一层——只画一张图，不再两层叠着出重影 */
+    if (s.mergeBgImg) {
+      if (k === "bg") {
+        const src =
+          (lay.layers && lay.layers.bg && lay.layers.bg.src) ||
+          lay.cover || lay.photo || "";
+        const url = src ? (this.view.avatarUrl ? this.view.avatarUrl(src) : "") : "";
+        d.addClass("is-gradient");
+        if (url) {
+          if (isVideoSrc(src)) {
+            const v = d.createEl("video", { cls: "gd-layer-video" });
+            v.src = url; v.autoplay = true; v.muted = true;
+            if (s.bgVideoLoop !== false) v.loop = true;
+            v.playsInline = true;
+            v.setAttribute("playsinline", ""); v.setAttribute("muted", "");
+            /* 视频不是背景图，取景位置要用 object-position，不是 background-position */
+            v.style.objectPosition = lay.coverPos || "50% 50%";
+            d.addClass("is-video");
+          } else {
+            d.style.backgroundImage = `url("${url}")`;
+            d.removeClass("is-gradient");
+            this.applyFit(d, s);
+          }
+        }
+        applyCrop(d, (lay.crops && lay.crops.bg) || (lay.crops && lay.crops.cover) || null, lay.coverPos || "50% 50%");
+        return;
+      }
+      if (k === "img") { d.style.display = "none"; return; }
+    }
+
+    if (k === "bg") {
+      const src = this.view.coverSrc();
+      d.addClass("is-gradient");
+      if (src && src.path) {
+        const url = this.view.coverUrl ? this.view.coverUrl(src) : "";
+        if (url) { d.style.backgroundImage = `url("${url}")`; d.removeClass("is-gradient"); this.applyFit(d, s); }
+      }
+      applyCrop(d, (lay.crops && lay.crops.bg) || null, lay.coverPos || "50% 50%");
+      return;
+    }
+    if (k === "img") {
+      const p = lay.photo || "";
+      if (p) {
+        const url = this.view.avatarUrl ? this.view.avatarUrl(p) : "";
+        if (url && isVideoSrc(p)) {
+          /* 视频壁纸：CSS background-image 放不了视频，必须叠一个 <video> */
+          const v = d.createEl("video", { cls: "gd-layer-video" });
+          v.src = url;
+          v.autoplay = true;
+          v.muted = true;
+          v.loop = true;
+          v.playsInline = true;
+          v.setAttribute("playsinline", "");
+          v.setAttribute("muted", "");
+          v.setAttribute("disablepictureinpicture", "");
+          v.style.objectPosition = lay.coverPos || "50% 50%";
+          v.onerror = () => { d.addClass("is-video-err"); };
+          d.addClass("is-video");
+        } else if (url) {
+          d.style.backgroundImage = `url("${url}")`;
+          this.applyFit(d, s);
+          applyCrop(d, (lay.crops && lay.crops.photo) || null, lay.coverPos || "50% 50%");
+          if (isAnimSrc(p)) d.addClass("is-anim");
+        }
+      }
+      if (!d.style.backgroundImage && !d.hasClass?.("is-video") && !d.querySelector?.("video")) {
+        d.createSpan({ cls: "gd-layer-tip", text: "点这里放一张照片" });
+        d.onclick = () => this.view.pickPhoto();
+      }
+      d.addClass("gd-layer-frame");
+      return;
+    }
+    if (k === "text") {
+      const text = lay.motto || s.motto || "";
+      const t = d.createDiv({ cls: "gd-layer-motto" + (text ? "" : " is-empty") });
+      t.style.fontSize = clamp(s.mottoSize || 15, 11, 34) + "px";
+      t.style.fontWeight = String(clamp(s.mottoWeight || 600, 300, 900));
+      t.style.opacity = String(clamp(s.mottoOpacity == null ? 1 : s.mottoOpacity, 0.2, 1));
+      t.style.textAlign = s.mottoAlign || "left";
+      if (s.mottoColor) t.style.color = s.mottoColor;
+      d.toggleClass("is-shadow", s.mottoShadow !== false);
+      t.setText(text || "点这里写一句座右铭…");
+      t.setAttribute("title", "双击编辑");
+      t.ondblclick = (e) => { e.stopPropagation(); this.view.editMotto(); };
+      return;
+    }
+    if (k === "mark") {
+      const size = clamp(s.markSize || 56, 24, 140);
+      const ring = s.markRing || "none";
+      const av = d.createDiv({ cls: `gd-avatar gd-ring-${ring}` });
+      av.style.width = av.style.height = size + "px";
+      const url = this.view.avatarUrl(lay.avatar || s.avatar || "");
+      if (url) av.style.backgroundImage = `url("${url}")`;
+      else av.setText(String(s.avatarText || (this.view.h1 || this.view.date || "").slice(0, 1)).slice(0, 2));
+      const nm = s.markName || lay.motto || "";
+      if (nm) d.createDiv({ cls: "gd-mark-name", text: String(nm).slice(0, 12) });
+      return;
+    }
+  }
+
+  onLayerDown(e, k, d) {
+    if (e.button !== 0) return;
+    this.sel = k;
+    if (this.el) {
+      for (const n of this.el.querySelectorAll(".gd-layer")) n.removeClass("is-sel");
+      d.addClass("is-sel");
+    }
+    const box = this.el.querySelector(".gd-stage-box");
+    if (!box) return;
+    const br = box.getBoundingClientRect();
+    const s = this.sx;
+    if (k === "bg") {
+      /* 背景拖的是取景位置，不改坐标 */
+      const pos = this.view.layout.coverPos || "50% 50%";
+      const [px, py] = pos.split(/\s+/).map((x) => parseFloat(x) || 50);
+      this.drag = { mode: "pan", k, sx: e.clientX, sy: e.clientY, px, py, w: br.width, h: br.height };
+    } else {
+      const L = this.layers()[k];
+      this.drag = { mode: "move", k, sx: e.clientX, sy: e.clientY, x: L.x, y: L.y, o: { ...L }, w: br.width, h: br.height };
+    }
+    d.setPointerCapture && d.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    e.stopPropagation();
+    const move = (ev) => this.onLayerMove(ev);
+    const up = (ev) => {
+      window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("pointerup", up, true);
+      this.onLayerUp(ev);
+    };
+    window.addEventListener("pointermove", move, true);
+    window.addEventListener("pointerup", up, true);
+  }
+
+  onLayerMove(ev) {
+    const g = this.drag;
+    if (!g) return;
+    const dx = ev.clientX - g.sx;
+    const dy = ev.clientY - g.sy;
+    if (g.mode === "pan") {
+      const px = clamp(Math.round(g.px - (dx / Math.max(1, g.w)) * 100), 0, 100);
+      const py = clamp(Math.round(g.py - (dy / Math.max(1, g.h)) * 100), 0, 100);
+      const d = this.el.querySelector(".gd-layer-bg");
+      if (d) {
+        d.style.backgroundPosition = `${px}% ${py}%`;
+        /* 视频壁纸：背景位置对它无效，要改 <video> 的 object-position */
+        const v = d.querySelector("video");
+        if (v) v.style.objectPosition = `${px}% ${py}%`;
+      }
+      this.drag.next = `${px}% ${py}%`;
+      return;
+    }
+    const L = this.layers()[g.k];
+    const nx = clamp(Math.round((g.x + (dx / Math.max(1, g.w)) * 100) * 10) / 10, 0, 100 - L.w);
+    const ny = clamp(Math.round((g.y + (dy / Math.max(1, g.h)) * 100) * 10) / 10, 0, 100 - L.h);
+    L.x = nx; L.y = ny;
+    const d = this.el.querySelector(`.gd-layer-${g.k}`);
+    if (d) { d.style.left = nx + "%"; d.style.top = ny + "%"; }
+  }
+
+  onLayerUp() {
+    const g = this.drag;
+    this.drag = null;
+    if (!g) return;
+    if (g.mode === "pan") {
+      if (g.next) { this.view.layout.coverPos = g.next; this.view.scheduleSave(); }
+      return;
+    }
+    this.view.scheduleSave();
+  }
+
+  /* ---------- 推板（画面外，默认收成一个 ⋯）---------- */
+  /* B2：图片四种填充 —— 居中裁剪 / 完整显示 / 拉伸 / 九宫格 */
+  applyFit(d, s) {
+    const fit = s.photoFit || "cover";
+    d.removeClass("fit-cover"); d.removeClass("fit-contain"); d.removeClass("fit-fill"); d.removeClass("fit-nine");
+    d.addClass("fit-" + fit);
+    if (fit === "nine") {
+      const n = clamp(s.nineSlice || 24, 4, 120);
+      d.style.setProperty("--gd-nine", n + "px");
+    } else {
+      d.style.removeProperty("--gd-nine");
+    }
+  }
+
+  renderBar(foot) {
+    const s = this.sx, lay = this.layers();
+    foot.empty();
+
+    const row = foot.createDiv({ cls: "gd-stage-foot-row" });
+    const toggle = row.createEl("button", {
+      cls: "gd-stage-more" + (this.barOpen ? " is-on" : ""),
+      text: this.barOpen ? "收起" : "⋯",
+      attr: { title: "封面设置：换图 / 座右铭 / 分屏 / 摆放" },
+    });
+    toggle.onclick = (e) => { e.stopPropagation(); this.barOpen = !this.barOpen; this.render(); };
+
+    /* 当前选中层的名字，给个一眼可见的提示，不占画面 */
+    const hint = row.createDiv({ cls: "gd-stage-hint" });
+    hint.setText("正在调：" + LAYER_NAMES[this.sel] + (lay[this.sel].on ? "" : "（已隐藏）"));
+
+    if (!this.barOpen) return;
+
+    const bar = foot.createDiv({ cls: "gd-stage-bar" });
+
+    const chips = bar.createDiv({ cls: "gd-stage-chips" });
+    for (const k of LAYER_KEYS) {
+      const b = chips.createEl("button", {
+        cls: "gd-chip" + (this.sel === k ? " is-on" : "") + (lay[k].on ? " has" : ""),
+        text: LAYER_NAMES[k],
+        attr: { title: "选中「" + LAYER_NAMES[k] + "」；右键可开关" },
+      });
+      b.onclick = (e) => { e.stopPropagation(); this.sel = k; this.render(); };
+      b.oncontextmenu = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        lay[k].on = !lay[k].on;
+        this.view.scheduleSave();
+        this.render();
+      };
+    }
+
+    const step = bar.createDiv({ cls: "gd-stage-step" });
+    for (const v of LAYER_STEPS) {
+      const b = step.createEl("button", { cls: "gd-step" + ((s.layerStep || 5) === v ? " is-on" : ""), text: String(v) });
+      b.onclick = async (e) => {
+        e.stopPropagation();
+        this.sx.layerStep = v;
+        await this.plugin.saveSettings();
+        this.render();
+      };
+    }
+
+    const pad = bar.createDiv({ cls: "gd-stage-pad" });
+    const mv = (dx, dy) => {
+      const L = this.layers()[this.sel];
+      if (this.sel === "bg") return;
+      const st = s.layerStep || 5;
+      L.x = clamp(Math.round((L.x + dx * st) * 10) / 10, 0, 100 - L.w);
+      L.y = clamp(Math.round((L.y + dy * st) * 10) / 10, 0, 100 - L.h);
+      this.view.scheduleSave();
+      this.render();
+    };
+    const mk = (txt, tip, fn) => {
+      const b = pad.createEl("button", { cls: "gd-padbtn", text: txt, attr: { title: tip } });
+      b.onclick = (e) => { e.stopPropagation(); fn(); };
+    };
+    mk("↑", "上移", () => mv(0, -1));
+    mk("←", "左移", () => mv(-1, 0));
+    mk("→", "右移", () => mv(1, 0));
+    mk("↓", "下移", () => mv(0, 1));
+
+    const wh = bar.createDiv({ cls: "gd-stage-wh" });
+    const size = (dw, dh) => {
+      const L = this.layers()[this.sel];
+      if (this.sel === "bg") return;
+      const st = s.layerStep || 5;
+      L.w = clamp(Math.round((L.w + dw * st) * 10) / 10, 4, 100 - L.x);
+      L.h = clamp(Math.round((L.h + dh * st) * 10) / 10, 4, 100 - L.y);
+      this.view.scheduleSave();
+      this.render();
+    };
+    for (const [txt, tip, dw, dh] of [["窄", "变窄", -1, 0], ["宽", "变宽", 1, 0], ["矮", "变矮", 0, -1], ["高", "变高", 0, 1]]) {
+      const b = wh.createEl("button", { cls: "gd-padbtn", text: txt, attr: { title: tip } });
+      b.onclick = (e) => { e.stopPropagation(); size(dw, dh); };
+    }
+
+    const al = bar.createDiv({ cls: "gd-stage-align" });
+    const ALIGNS = [["↖", 0, 0], ["↗", 1, 0], ["↙", 0, 1], ["↘", 1, 1]];
+    for (const [txt, fx, fy] of ALIGNS) {
+      const b = al.createEl("button", { cls: "gd-padbtn", text: txt, attr: { title: "贴到这一角" } });
+      b.onclick = (e) => {
+        e.stopPropagation();
+        const L = this.layers()[this.sel];
+        if (this.sel === "bg") return;
+        L.x = fx ? 100 - L.w : 0;
+        L.y = fy ? 100 - L.h : 0;
+        this.view.scheduleSave();
+        this.render();
+      };
+    }
+
+    /* 换图 / 座右铭 / 分屏 —— 用户要的「一个按钮里好几个功能」 */
+    const acts = bar.createDiv({ cls: "gd-stage-acts" });
+    const act = (txt, tip, fn) => {
+      const b = acts.createEl("button", { cls: "gd-padbtn", text: txt, attr: { title: tip } });
+      b.onclick = (e) => { e.stopPropagation(); fn(); };
+    };
+    act("换图", "换背景图 / 照片", () => this.view.pickCover());
+    act("座右铭", "编辑座右铭文字", () => this.view.editMotto());
+    act("分屏", "整块铺满 / 上下分屏 / 左右分屏", () => this.view.showSplitMenu && this.view.showSplitMenu());
+
+    const x = bar.createEl("button", { cls: "gd-stage-x", text: "×", attr: { title: "收起舞台（回到旧版封面）" } });
+    x.onclick = async (e) => {
+      e.stopPropagation();
+      this.sx.showStage = false;
+      await this.plugin.saveSettings();
+      this.view.render();
+    };
+
+    bar.onpointerdown = (e) => e.stopPropagation();
+  }
+
+  layerMenu(e, k) {
+    const lay = this.layers();
+    const m = new Menu();
+    m.addItem((i) => i.setTitle(`${lay[k].on ? "隐藏" : "显示"}${LAYER_NAMES[k]}`).setIcon(lay[k].on ? "eye-off" : "eye").onClick(() => {
+      lay[k].on = !lay[k].on; this.view.scheduleSave(); this.render();
+    }));
+    if (k === "bg") {
+      m.addItem((i) => i.setTitle("换一张背景图").setIcon("image").onClick(() => this.view.pickCover()));
+      m.addItem((i) => i.setTitle("裁剪背景图").setIcon("crop").onClick(() => this.view.cropCover()));
+      m.addItem((i) => i.setTitle("重新取景（拖背景）").setIcon("move").onClick(() => this.view.dragCoverPos()));
+    }
+    if (k === "img") {
+      m.addItem((i) => i.setTitle("换一张照片").setIcon("image").onClick(() => this.view.pickPhoto()));
+      m.addItem((i) => i.setTitle("裁剪这张照片").setIcon("crop").onClick(() => this.view.cropPhoto()));
+      m.addItem((i) => i.setTitle("去掉照片").setIcon("x").onClick(() => {
+        this.view.layout.photo = ""; this.view.scheduleSave(); this.render();
+      }));
+    }
+    if (k === "text") {
+      m.addItem((i) => i.setTitle("编辑座右铭").setIcon("type").onClick(() => this.view.editMotto()));
+    }
+    if (k === "mark") {
+      m.addItem((i) => i.setTitle("上传标志图").setIcon("image").onClick(() => this.view.pickAvatar()));
+      m.addItem((i) => i.setTitle("裁剪标志图").setIcon("crop").onClick(() => this.view.cropAvatar()));
+      m.addItem((i) => i.setTitle("用文字标记").setIcon("type").onClick(() => {
+        new PromptModal(this.plugin.app, "封面标志", "输入 1–2 个字", this.sx.avatarText || "", async (v) => {
+          this.sx.avatarText = String(v || "").trim().slice(0, 2);
+          this.sx.avatar = "";
+          await this.plugin.saveSettings();
+          this.render();
+        }).open();
+      }));
+    }
+    m.addSeparator();
+    for (const [txt, fy] of [["顶对齐", 0], ["垂直居中", 0.5], ["底对齐", 1]]) {
+      m.addItem((i) => i.setTitle(txt).onClick(() => {
+        const L = lay[k];
+        if (k === "bg") return;
+        L.y = clamp(Math.round((fy * (100 - L.h)) * 10) / 10, 0, 100 - L.h);
+        this.view.scheduleSave(); this.render();
+      }));
+    }
+    showMenuAt(m, e);
+  }
+}
+
+
+/* ---- 05-view-grid.js ---- */
+/* ============ 主视图：九宫格 ============
+ * v3 改造要点（对应需求）：
+ *  1. 每格右上角「＋」——就近加格 / 插图 / 加贴纸 / 插入片段
+ *  2. 五种页面风格 + 五种格子边框 + 贴纸 + 封面图
+ *  3. 三种排布：竖向（原状）/ 横向滚动 / 横向翻页 —— 解决"只能上下拉"
+ *  4. 动图（GIF/WebP/APNG）拖入即播，可选「悬停才播」
+ * ============================================================ */
+
+const CELL_PLACEHOLDERS = [
+  "写点什么…",
+  "今天这里发生了什么？",
+  "随手记一句…",
+  "想到了就写下来…",
+  "空着也行，先占个位…",
+];
+const CONTENT_SNIPPETS = [
+  ["分隔线", "\n---\n"],
+  ["待办清单", "\n- [ ] \n- [ ] \n"],
+  ["引用", "\n> \n"],
+  ["代码块", "\n```\n\n```\n"],
+  ["小标题", "\n**小标题**\n"],
+];
+
+function firstImageOf(text) {
+  const wiki = /!\[\[([^\]|#]+?)(?:\|[^\]]*)?\]\]/.exec(text || "");
+  if (wiki) return { kind: "wiki", path: wiki[1].trim() };
+  const md = /!\[[^\]]*\]\(([^)\s]+)/.exec(text || "");
+  if (md) return { kind: "url", path: md[1].trim() };
+  return null;
+}
+function isAnimName(name) {
+  return /\.(gif|webp|apng)$/i.test(String(name || ""));
+}
+
+class GridView extends ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    this.plugin = plugin;
+    this.date = todayStr();
+    this.key = this.date;
+    this.file = null;
+    this.cells = [];
+    this.fm = "";
+    this.h1 = "";
+    this.layout = {};
+    this.layoutCols = plugin.settings.columns;
+    this.gridCols = plugin.settings.columns;
+    this.previewMode = false;
+    this.saving = false;
+    this.cellHist = new Map();      // 旧版「每格独立撤销 / 重做」
+    this._editStart = null;
+    this.statusText = "";
+    this.pageNo = 1;
+    this.pageTotal = 1;
+    this.scheduleSave = debounce(() => this.saveNow(), 700);
+    this._pasteHandler = null;
+    this._scrollHandler = null;
+    this._resize = null;
+    this.rawMode = false;   // 原文（Markdown）模式
+    this._rawText = "";
+    this._rawDirty = false;
+  }
+  get sx() { return this.plugin.settings; }
+  getViewType() { return VIEW_GRID; }
+  getDisplayText() { return this.key ? `格间日记 · ${dateShort(this.key)}` : "格间日记"; }
+  getIcon() { return ICON_GRID; }
+
+  getState() { return { key: this.key }; }
+  async setState(state) {
+    const k = state && state.key;
+    if (k && /^\d{4}-\d{2}-\d{2}/.test(k)) this.pendingKey = k;
+  }
+  async onOpen() {
+    this.build();
+    await this.openDay(this.pendingKey || this.key || todayStr());
+  }
+  onClose() {
+    this.scheduleSave.cancel();
+    this.stopCarouselTimer();
+    if (this._pasteHandler) this.contentEl.removeEventListener("paste", this._pasteHandler, true);
+    if (this._scrollHandler && this.scrollEl) this.scrollEl.removeEventListener("scroll", this._scrollHandler);
+  }
+
+  build() {
+    const el = this.contentEl;
+    el.empty();
+    el.addClass("gd-root"); el.addClass("gd-grid-root");
+    if (IS_MOBILE) el.addClass("is-mobile");
+    this.applyTheme();
+
+    this.scrollEl = el.createDiv({ cls: "gd-scroll" });
+    this.coverWrapEl = this.scrollEl.createDiv({ cls: "gd-cover-wrap is-hidden" });
+    this.coverEl = this.coverWrapEl.createDiv({ cls: "gd-cover" });
+    this.mottoEl = this.coverWrapEl.createDiv({ cls: "gd-motto" });
+    /* 四层舞台（新版封面）：和旧版 coverWrapEl 二选一显示 */
+    this.stageEl = this.scrollEl.createDiv({ cls: "gd-cover-stage is-hidden" });
+    this.stage = new GDStage(this);
+    this.headEl = this.scrollEl.createDiv({ cls: "gd-head" });
+    this.toolbarEl = this.headEl.createDiv({ cls: "gd-toolbar" });
+    this.gridEl = this.scrollEl.createDiv({ cls: "gd-grid" });
+    this.pageBarEl = this.scrollEl.createDiv({ cls: "gd-pagebar" });
+    this.footEl = this.scrollEl.createDiv({ cls: "gd-foot" });
+
+    this._pasteHandler = (evt) => {
+      const t = evt.target;
+      if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT" || t.isContentEditable)) return;
+      const text = evt.clipboardData ? evt.clipboardData.getData("text/plain") : "";
+      if (!text || !text.trim()) return;
+      evt.preventDefault();
+      evt.stopPropagation();
+      new PasteModal(this.app, this.plugin, text).open();
+    };
+    el.addEventListener("paste", this._pasteHandler, true);
+
+    /* 翻页模式：滚动停下时算当前第几页 */
+    this._scrollHandler = debounce(() => this.updatePageIndicator(), 90);
+    this.scrollEl.addEventListener("scroll", this._scrollHandler, { passive: true });
+  }
+
+  /* ---------- 主题 / 变量 ---------- */
+  applyTheme() {
+    const s = this.sx, el = this.contentEl;
+    for (const t of THEMES) el.removeClass(`gd-theme-${t[0]}`);
+    for (const f of GRID_FLOWS) el.removeClass(`gd-flow-${f[0]}`);
+    el.addClass(`gd-theme-${(s.theme || "card")}`);
+    const flow = s.flow || "vertical";
+    el.addClass(`gd-flow-${flow}`);
+    const cols = (s.mobileOneColumn && IS_MOBILE) ? 1 : clamp(this.gridCols || s.columns, 1, 6);
+    el.style.setProperty("--gd-cols", String(cols));
+    el.style.setProperty("--gd-cell-w", `${clamp(s.cellWidth || 260, 190, 560)}px`);
+    el.style.setProperty("--gd-rows", String(clamp(s.flowRows || 3, 1, 6)));
+    el.style.setProperty("--gd-row-h", `${clamp(s.rowHeight, 80, 600)}px`);
+    el.style.setProperty("--gd-gap", `${clamp(s.gap, 0, 48)}px`);
+    el.style.setProperty("--gd-pad", `${clamp(s.pad, 4, 72)}px`);
+    el.style.setProperty("--gd-radius", `${clamp(s.radius, 0, 28)}px`);
+    el.style.setProperty("--gd-accent", s.accent || "#c2704f");
+    el.style.setProperty("--gd-opacity", String(clamp(s.cardOpacity, 0.2, 1)));
+    el.style.setProperty("--gd-line-h", String(clamp(s.lineHeight || 1.7, 1.2, 2.6)));
+    /* 正文排版：首行缩进 / 段距 / 字体下距（单位 em） */
+    el.style.setProperty("--gd-para-indent", (clamp(s.paraIndent == null ? 2 : s.paraIndent, 0, 4)) + "em");
+    el.style.setProperty("--gd-para-gap", (clamp(s.paraGap == null ? 0.8 : s.paraGap, 0, 3)) + "em");
+    el.style.setProperty("--gd-para-font-gap", (clamp(s.paraFontGap == null ? 0.5 : s.paraFontGap, 0, 2)) + "em");
+
+    /* ── 主题系统 v4：字色 / 字距 / 线体 / 底色 ── */
+    el.toggleClass("gd-has-font-color", !!s.fontColor);
+    if (s.fontColor) el.style.setProperty("--gd-ink", s.fontColor);
+    el.style.setProperty("--gd-letter-spacing", (clamp(s.letterSpacing || 0, -1, 6)) + "px");
+
+    el.toggleClass("gd-has-line-color", !!s.lineColor);
+    if (s.lineColor) el.style.setProperty("--gd-line", s.lineColor);
+    el.style.setProperty("--gd-line-w", (clamp(s.lineWidth || 1, 0.5, 4)) + "px");
+    el.style.setProperty("--gd-line-style", s.lineStyle || "solid");
+
+    /* 底色：纯色 / 渐变 / 图片 / 纹理 */
+    const bm = s.bgMode || "color";
+    el.setAttr("data-bg-mode", bm);
+    el.style.removeProperty("--gd-bg-color");
+    el.style.removeProperty("--gd-bg-image");
+    if (bm === "color") {
+      /* 底色优先级：按周/按月的节奏色 > 主题里的固定底色 */
+      let rhythm = "";
+      try { rhythm = bgColorForDate(this.key || todayStr(), s); } catch (e) { rhythm = ""; }
+      const useCol = rhythm || s.bgColor;
+      if (useCol) el.style.setProperty("--gd-bg-color", useCol);
+    }
+    else if (bm === "gradient" && s.bgGradient) el.style.setProperty("--gd-bg-image", s.bgGradient);
+    else if (bm === "image" && s.bgImage) {
+      const u = this.coverUrl ? this.coverUrl(s.bgImage) : "";
+      if (u) el.style.setProperty("--gd-bg-image", 'url("' + u + '")');
+    } else if (bm === "texture" && s.bgTexture && s.bgTexture !== "none") {
+      el.setAttr("data-bg-texture", s.bgTexture);
+    }
+    if (bm !== "texture") el.removeAttribute?.("data-bg-texture");
+    if (s.fontFamily) el.style.setProperty("--gd-font", s.fontFamily);
+    else el.style.removeProperty("--gd-font");
+    el.style.setProperty("--gd-font-size", `${clamp(s.fontSize, 10, 26)}px`);
+    el.style.setProperty("--gd-weight", String(clamp(s.fontWeight || 400, 100, 900)));
+    el.toggleClass("is-hover-lift", !!s.hoverLift);
+    el.toggleClass("is-glass-on", !!s.glassEnabled);
+    el.dataset.skin = s.glassEnabled ? "glass" : (s.skin || "zebra");
+    if (s.background) {
+      try {
+        el.style.setProperty("--gd-bg-image", `url("${this.app.vault.adapter.getResourcePath(normalizePath(s.background))}")`);
+        el.addClass("has-bg");
+      } catch (e) { el.removeClass("has-bg"); el.style.removeProperty("--gd-bg-image"); }
+    } else { el.removeClass("has-bg"); el.style.removeProperty("--gd-bg-image"); }
+
+    /* ── B1：跟随 Obsidian 主题（深色 / 浅色自动切） ── */
+    el.toggleClass("is-follow-obsidian", !!s.bgFollowObsidian);
+    if (s.bgFollowObsidian) {
+      const dark = document.body.classList.contains("theme-dark");
+      el.toggleClass("is-follow-dark", dark);
+      el.style.setProperty("--gd-follow-blur", (clamp(s.bgFollowBlur || 0, 0, 24)) + "px");
+    } else {
+      el.removeClass("is-follow-dark");
+    }
+
+    /* ── B1：背景视频（CSS 背景放不了视频，单独铺一层 <video>） ── */
+    try { this.applyBgVideo(); } catch (e) { /* 视频失败不影响排版 */ }
+  }
+
+  /* 背景视频：挂一个绝对定位的 <video> 铺在最底层 */
+  applyBgVideo() {
+    const el = this.contentEl;
+    const s = this.sx;
+    const old = el.querySelector(".gd-bg-video");
+    if (old) old.remove();
+    if (!s.bgVideo || s.bgMode !== "image" || IS_MOBILE) return;
+    if (!isVideoSrc(s.bgVideo)) return;
+    const u = this.coverUrl ? this.coverUrl(s.bgVideo) : "";
+    if (!u) return;
+    const v = document.createElement("video");
+    v.className = "gd-bg-video";
+    v.src = u;
+    v.autoplay = true;
+    v.muted = true;
+    v.playsInline = true;
+    if (s.bgVideoLoop !== false) v.loop = true;
+    v.setAttribute("playsinline", "");
+    v.setAttribute("muted", "");
+    const wrap = el.querySelector(".gd-scroll") || el;
+    wrap.insertBefore(v, wrap.firstChild);
+  }
+
+  /* B7：一键重置整篇排版（只动 layout，不动正文） */
+  resetLayout() {
+    new ConfirmModal(this.app, "重置这一篇的排版？", "只把封面、层的位置、格子边框、皮肤这些「排版」恢复默认；格子里的文字一个字都不会动。", async () => {
+      const s = this.sx;
+      const keepCells = this.cells;
+      this.layout = {
+        v: 3,
+        cols: s.columns || 2,
+        skin: "",
+        border: s.defaultBorder || "hair",
+        cover: "",
+        coverHeight: s.coverHeight || 160,
+        stickers: [],
+        layers: null,
+      };
+      this.gridCols = clamp(this.layout.cols, 1, 6);
+      this.cells = keepCells;
+      await this.saveNow();
+      this.render();
+      new Notice("排版已重置（文字没动）");
+    }).open();
+  }
+
+  attachDir() { return this.plugin.attachDir(); }
+
+  /* B3：把别的某一天的封面 / 照片搬过来用 */
+  reuseCoverFromDay() {
+    const files = this.plugin.dayFiles().filter((f) => f.basename !== this.key);
+    if (!files.length) { new Notice("还没有别的日记可以复用"); return; }
+    const menu = new Menu();
+    let shown = 0;
+    for (const f of files) {
+      if (shown >= 40) break;
+      menu.addItem((i) => i.setTitle(splitDayKey(f.basename).date || f.basename).setIcon("image")
+        .onClick(async () => {
+          try {
+            const raw = await this.app.vault.cachedRead(f);
+            const parsed = parseDay(raw);
+            const lay = parsed.layout || {};
+            const src = lay.cover || lay.photo || (parsed.fm && parsed.fm.cover) || "";
+            if (!src) { new Notice("这一天没有设过图片"); return; }
+            this.layout.cover = src;
+            this.layout.coverHeight = lay.coverHeight || this.layout.coverHeight;
+            this.layout.coverPos = lay.coverPos || this.layout.coverPos;
+            if (!this.layout.layers) this.layout.layers = normalizeLayers(null, this.layout, this.sx);
+            this.layout.layers.bg.on = true;
+            this.layout.layers.bg.src = src;
+            await this.saveNow();
+            this.render();
+            new Notice("已复用 " + (splitDayKey(f.basename).date || f.basename) + " 的图片");
+          } catch (e) { new Notice("复用失败：" + (e && e.message ? e.message : e)); }
+        }));
+      shown++;
+    }
+    showMenuAt(menu, { clientX: window.innerWidth / 2, clientY: 120 });
+  }
+
+  async openDay(key) {
+    this.scheduleSave.cancel();
+    if (this.rawMode) await this.saveRaw();
+    if (this.file instanceof TFile) await this.saveNow(); // 切走之前先落盘
+    this.key = key || todayStr();
+    const dm = /^(\d{4})-(\d{2})-(\d{2})/.exec(this.key);
+    this.date = dm ? dm[0] : todayStr();
+    const s = this.plugin.settings;
+    const folder = normalizePath(s.rootFolder || "日记");
+    const path = `${folder}/${this.key}.md`;
+    let file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) {
+      if (!s.autoCreateToday) {
+        this.file = null; this.fm = ""; this.h1 = ""; this.cells = []; this.layout = {};
+        this.render();
+        return;
+      }
+      file = await this.plugin.createDayFileFor(this.key);
+    }
+    this.file = file;
+    await this.reload();
+      try { this.maybeRotateCarousel(); this.startCarouselTimer(); } catch (e) { /* 轮播失败不影响打开 */ }
+    if (this.plugin.sidebar) this.plugin.sidebar.setActive(this.key);
+  }
+  async reload() {
+    if (!(this.file instanceof TFile)) return;
+    const parsed = parseDay(await this.app.vault.read(this.file), this.plugin.settings.headingLevel);
+    this.fm = parsed.fm;
+    this.h1 = parsed.h1;
+    this.layout = normalizeLayout(parsed.layout, this.plugin.settings);
+    this.layoutCols = (parsed.layout && parsed.layout.cols) || this.plugin.settings.columns;
+    this.gridCols = clamp(this.layoutCols, 1, 6);
+    this.cells = normalizeCells(parsed.cells, parsed.layout, { ...this.plugin.settings, columns: this.gridCols });
+    this.render();
+  }
+
+  render() {
+    if (!this.gridEl) return;
+    this.applyTheme();
+    this.renderCover();
+    this.renderHead();
+    this.renderStickerBar();
+    if (this.rawMode) { this.renderRaw(); return; }
+    this.gridEl.removeClass("is-raw");
+    const s = this.plugin.settings;
+    const flow = s.flow || "vertical";
+    const cols = (s.mobileOneColumn && IS_MOBILE) ? 1 : clamp(this.gridCols, 1, 6);
+    this.gridEl.empty();
+    if (flow === "vertical") {
+      this.gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+      this.gridEl.style.gridTemplateRows = "";
+      this.gridEl.style.gridAutoFlow = "row";
+      this.gridEl.style.gridAutoColumns = "";
+      this.gridEl.style.width = "";
+    } else {
+      /* 横向 / 翻页：行数固定，列由内容向右自动长出（不再显式定义列，
+       * 否则显式列 + auto-flow:column 会把格子塞进前 cols 列里） */
+      this.gridEl.style.gridTemplateColumns = "";
+      this.gridEl.style.gridTemplateRows = `repeat(var(--gd-rows), minmax(var(--gd-row-h), auto))`;
+      this.gridEl.style.gridAutoFlow = "column";
+      this.gridEl.style.gridAutoColumns = "var(--gd-cell-w)";
+      this.gridEl.style.width = "max-content";
+    }
+    if (!this.cells.length) {
+      this.gridEl.createDiv({ cls: "gd-no-cells", text: "还没有格子。点右上角「＋」加一格，或者直接 Ctrl+V 贴一段文字自动生成。" });
+    }
+    this.cells.forEach((cell, i) => this.renderCell(cell, i));
+    this.renderPageBar();
+    this.footEl.empty();
+    this.footEl.createEl("span", { text: `${dateCN(this.date)} · ${this.cells.length} 格 · ${this.cells.reduce((n, c) => n + c.content.length, 0)} 字` });
+    if (!IS_MOBILE) this.footEl.createEl("span", { text: "提示：空白处 Ctrl+V 把纯文本转成格子；Shift+滚轮 可横向滚动", cls: "gd-foot-tip" });
+  }
+
+  /* ---------- 封面 ---------- */
+  coverSrc() {
+    const s = this.sx;
+    if (!s.showCover || !(s.coverHeight > 0)) return null;
+    if (this.layout && this.layout.cover) return { kind: "path", path: this.layout.cover };
+    const m = /^\s*(?:cover|banner)\s*:\s*(.+)$/im.exec(this.fm || "");
+    if (m) {
+      const v = m[1].trim().replace(/^["']|["']$/g, "").replace(/^!?\[\[|\]\]$/g, "").split("|")[0];
+      if (v) return { kind: "path", path: v };
+    }
+    if (s.coverFallback === "firstImage") {
+      const first = firstImageOf(this.cells.map((c) => c.content).join("\n"));
+      if (first) return first;
+    }
+    return null;
+  }
+  renderCover() {
+    const wrap = this.coverWrapEl;
+    const el = this.coverEl;
+    if (!wrap || !el) return;
+    /* 舞台模式时旧封面完全让位，否则两套会同时画 */
+    if (this.sx.showStage) {
+      wrap.addClass("is-hidden");
+      if (this.stage) this.stage.render();
+      return;
+    }
+    if (this.stageEl) this.stageEl.addClass("is-hidden");
+    el.empty();
+    const s = this.sx;
+    const src = this.coverSrc();
+    const h = clamp(this.layout.coverHeight != null ? this.layout.coverHeight : s.coverHeight, 0, 320);
+    const wantMotto = !!s.showMotto;
+    const srcHidden = (!src && s.coverFallback !== "gradient") || !h;
+    /* 图和座右铭是一个整体：图没了但座右铭开着时，整块变成一条窄的座右铭栏 */
+    if (srcHidden && !wantMotto) { wrap.addClass("is-hidden"); return; }
+    wrap.removeClass("is-hidden");
+    wrap.toggleClass("is-motto", wantMotto);
+    el.toggleClass("is-hidden", srcHidden);
+    el.style.height = h + "px";
+    wrap.style.minHeight = h + "px";
+
+    el.toggleClass("is-gradient", !src);
+    /* 先按裁剪框铺；没裁剪才退回取景位置 */
+    this.applyCoverCrop(el);
+    if (src) {
+      let url = "";
+      try {
+        if (src.kind === "url") url = src.path;
+        else {
+          const f = this.app.metadataCache.getFirstLinkpathDest(normalizePath(src.path), this.file ? this.file.path : "");
+          url = f ? this.app.vault.adapter.getResourcePath(f.path) : "";
+        }
+      } catch (e) { url = ""; }
+      if (url) el.style.backgroundImage = `url("${url}")`;
+      else { el.style.backgroundImage = ""; el.addClass("is-gradient"); }
+    } else el.style.backgroundImage = "";
+
+    /* 遮罩层：标题 + 动图角标 + 左下角头像 */
+    const shade = el.createDiv({ cls: "gd-cover-shade" });
+    const left = shade.createDiv({ cls: "gd-cover-left" });
+    if (s.showAvatar) {
+      const av = left.createDiv({ cls: "gd-avatar" });
+      av.style.width = av.style.height = clamp(s.avatarSize || 44, 24, 96) + "px";
+      const url = this.avatarUrl(s.avatar);
+      if (url) {
+        av.style.backgroundImage = `url("${url}")`;
+        applyCrop(av, s.avatarCrop, "50% 50%");
+      }
+      else av.setText(String(s.avatarText || (s.avatarText === "" ? "" : (this.h1 || this.date).slice(0, 1))).slice(0, 2));
+      av.setAttribute("title", "封面标志 · 右键更换");
+      av.oncontextmenu = (e) => {
+        e.preventDefault();
+        const m = new Menu();
+        m.addItem((i2) => i2.setTitle("上传一张图").setIcon("image").onClick(() => this.pickAvatar()));
+        m.addItem((i2) => i2.setTitle("裁剪这张图").setIcon("crop").onClick(() => this.cropAvatar()));
+        m.addItem((i2) => i2.setTitle("用文字标记").setIcon("type").onClick(() => {
+          new PromptModal(this.app, "封面标志", "输入 1–2 个字", s.avatarText || "", async (v) => {
+            this.sx.avatar = ""; this.sx.avatarText = String(v || "").trim().slice(0, 2);
+            this.sx.showAvatar = true;
+            await this.plugin.saveSettings(); this.renderCover();
+          }).open();
+        }));
+        m.addItem((i2) => i2.setTitle("不要标志").setIcon("x").onClick(async () => {
+          this.sx.showAvatar = false; await this.plugin.saveSettings(); this.renderCover();
+        }));
+        showMenuAt(m, e);
+      };
+      left.appendChild(av);
+    }
+    if (isAnimName(this.layout.cover || "")) left.createSpan({ cls: "gd-cover-badge", text: "动图" });
+    left.createSpan({ cls: "gd-cover-title", text: this.h1 || dateCN(this.date) });
+
+    /* 右侧座右铭栏 */
+    if (wantMotto) {
+      const mo = this.mottoEl;
+      mo.empty();
+      mo.style.alignItems = s.mottoAlign === "center" ? "center" : s.mottoAlign === "right" ? "flex-end" : "flex-start";
+      mo.style.textAlign = s.mottoAlign || "left";
+      const text = this.layout.motto || s.motto || "";
+      const line = mo.createDiv({ cls: "gd-motto-text" + (text ? "" : " is-empty") });
+      line.style.fontSize = clamp(s.mottoSize || 15, 11, 28) + "px";
+      line.setText(text || "点这里写一句座右铭…");
+      line.onclick = () => this.editMotto();
+      line.setAttribute("title", "点击编辑座右铭");
+      const tools = mo.createDiv({ cls: "gd-motto-tools" });
+      const tb = (txt, tip, fn) => {
+        const b = tools.createEl("button", { text: txt, cls: "gd-motto-btn", attr: { title: tip } });
+        b.onclick = (e) => { e.stopPropagation(); fn(); };
+      };
+      tb("改", "编辑座右铭", () => this.editMotto());
+      tb("图", "给这一篇单独设封面图", () => this.pickCover());
+      tb("位置", "拖动调整取景", () => this.dragCoverPos());
+      tb("隐藏", "收起源泉右铭栏", async () => { this.sx.showMotto = false; await this.plugin.saveSettings(); this.renderCover(); });
+    }
+
+    const ops = el.createDiv({ cls: "gd-cover-ops" });
+    const b = (text, title, fn) => {
+      const btn = ops.createEl("button", { text, cls: "gd-cover-btn", attr: { title } });
+      btn.onclick = (e) => { e.stopPropagation(); fn(e); };
+      return btn;
+    };
+    b("换封面", "选一张图当封面", () => this.pickCover());
+    b("高度", "拖动调整封面高度", () => this.tuneCoverHeight());
+    b("取景", "在图上拖动，选你想显示的那一块", () => this.dragCoverPos());
+    b("裁剪", "框选要显示的区域，框外切掉", () => this.cropCover());
+    b(s.showMotto ? "关座右铭" : "开座右铭", "封面右侧显示一句座右铭", () => this.toggleMotto());
+    if (src) b("移除", "去掉封面图", async () => {
+      this.layout.cover = "";
+      this.layout.coverHeight = 0;
+      this.render(); this.scheduleSave();
+    });
+
+    el.oncontextmenu = (evt) => {
+      evt.preventDefault();
+      const m = new Menu();
+      m.addItem((i2) => i2.setTitle("换封面图").setIcon("image").onClick(() => this.pickCover()));
+      m.addItem((i2) => i2.setTitle("从今天的第一张图取").setIcon("image-plus").onClick(() => {
+        const f = firstImageOf(this.cells.map((c) => c.content).join("\n"));
+        if (!f) { new Notice("这一篇里还没有图片"); return; }
+        this.layout.cover = f.path; this.render(); this.scheduleSave();
+      }));
+      m.addItem((i2) => i2.setTitle("拖动调整取景位置").setIcon("move").onClick(() => this.dragCoverPos()));
+      m.addItem((i2) => i2.setTitle("调封面高度").setIcon("move-vertical").onClick(() => this.tuneCoverHeight()));
+      m.addSeparator();
+      m.addItem((i2) => i2.setTitle("编辑座右铭").setIcon("quote").onClick(() => this.editMotto()));
+      m.addItem((i2) => i2.setTitle("显示/隐藏座右铭栏").setIcon("panel-right").onClick(() => this.toggleMotto()));
+      m.addItem((i2) => i2.setTitle("换封面标志").setIcon("user").onClick(() => this.pickAvatar()));
+      m.addSeparator();
+      m.addItem((i2) => i2.setTitle("不要封面").setIcon("x").onClick(() => { this.layout.cover = ""; this.layout.coverHeight = 0; this.render(); this.scheduleSave(); }));
+      showMenuAt(m, evt);
+    };
+  }
+  /* 把 layout.crops.cover 应用到元素背景；没有裁剪就按取景位置 */
+  applyCoverCrop(el) {
+    const c = (this.layout && this.layout.crops && this.layout.crops.cover) || null;
+    applyCrop(el, c, this.layout.coverPos || "50% 50%");
+  }
+
+  /* 照片层裁剪：按照片层当前的宽高比 */
+  cropPhoto() {
+    const p = this.layout && this.layout.photo;
+    if (!p) { new Notice("照片层还没有图"); return; }
+    const url = this.avatarUrl(p);
+    if (!url) { new Notice("这张图读不出来"); return; }
+    const L = (this.layout.layers && this.layout.layers.img) || null;
+    const boxW = (this.stageEl && this.stageEl.clientWidth) || 600;
+    const boxH = (this.stageEl && this.stageEl.clientHeight) || 260;
+    const ratio = L ? (L.w / Math.max(L.h, 1)) * (boxW / Math.max(boxH, 1)) : boxW / Math.max(boxH, 1);
+    openCrop(this.app, {
+      url,
+      ratio,
+      crop: (this.layout.crops && this.layout.crops.photo) || null,
+      title: "裁剪照片",
+      onOk: (c) => {
+        this.layout.crops = this.layout.crops || {};
+        if (c) this.layout.crops.photo = c; else delete this.layout.crops.photo;
+        if (this.stage) this.stage.render();
+        this.render(); this.scheduleSave();
+        new Notice(c ? "照片已裁剪" : "照片恢复整张");
+      },
+    });
+  }
+
+  /* 头像裁剪：正方形框（跟微信头像一样） */
+  cropAvatar() {
+    const url = this.avatarUrl(this.sx.avatar);
+    if (!url) { new Notice("还没上传头像图"); return; }
+    openCrop(this.app, {
+      url,
+      ratio: 1,
+      crop: this.sx.avatarCrop || null,
+      title: "裁剪头像",
+      onOk: async (c) => {
+        this.sx.avatarCrop = c || null;
+        await this.plugin.saveSettings();
+        this.renderCover();
+        new Notice(c ? "头像已裁剪" : "头像恢复整张");
+      },
+    });
+  }
+
+  /* 打开封面裁剪框：图先换成自己的 resource 路径 */
+  cropCover() {
+    const src = this.coverSrc();
+    if (!src) { new Notice("还没有封面图"); return; }
+    let url = "";
+    try {
+      if (src.kind === "url") url = src.path;
+      else {
+        const f = this.app.metadataCache.getFirstLinkpathDest(normalizePath(src.path), this.file ? this.file.path : "");
+        url = f ? this.app.vault.adapter.getResourcePath(f.path) : "";
+      }
+    } catch (e) { url = ""; }
+    if (!url) { new Notice("这张图读不出来，先换一张"); return; }
+    const h = this.layout.coverHeight || this.sx.coverHeight || 160;
+    const w = (this.el && this.el.clientWidth) || 600;
+    openCrop(this.app, {
+      url,
+      ratio: w / Math.max(h, 1),
+      crop: (this.layout.crops && this.layout.crops.cover) || null,
+      title: "裁剪封面",
+      onOk: (c) => {
+        this.layout.crops = this.layout.crops || {};
+        if (c) this.layout.crops.cover = c;
+        else delete this.layout.crops.cover;
+        this.render(); this.scheduleSave();
+        new Notice(c ? "封面已裁剪" : "封面恢复整张");
+      },
+    });
+  }
+
+  /* 头像图片转成可用的 resource 路径 */
+  coverUrl(src) {
+    if (!src || !src.path) return "";
+    try {
+      if (src.kind === "url") return src.path;
+      const f = this.app.metadataCache.getFirstLinkpathDest(normalizePath(src.path), this.file ? this.file.path : "");
+      return f ? this.app.vault.adapter.getResourcePath(f.path) : "";
+    } catch (e) { return ""; }
+  }
+  /* 舞台的「照片」层：跟背景是两张独立的图 */
+  async pickPhoto() {
+    /* 图片 / 动图 / 视频都走这条路（视频按 CSS 规则必须叠 <video>） */
+    const f = await chooseLocalFile({ accept: "" });
+    if (!f) return;
+    const nm = String(f.name || "");
+    const isVid = isVideoSrc(nm);
+    const isAnim = isAnimSrc(nm);
+    if (!isVid && !isAnim && !/\.(png|jpe?g|webp|svg|bmp|avif)$/i.test(nm)) {
+      new Notice("这个格式放不了：只支持 图片 / 动图(gif webp apng) / 视频(mp4 webm mov)");
+      return;
+    }
+    /* 体积与时长限制（用户要求：性能别崩） */
+    const s = this.plugin.settings;
+    const maxMB = clamp(s.videoMaxMB || 20, 1, 200);
+    if (f.size && f.size > maxMB * 1024 * 1024) {
+      new Notice("文件太大：" + (f.size / 1048576).toFixed(1) + " MB，上限 " + maxMB + " MB");
+      return;
+    }
+    try {
+      const folder = this.attachDir();
+      await this.plugin.ensureFolder(folder);
+      const safe = nm.replace(/[\\/:*?"<>|]/g, "_");
+      let p2 = `${folder}/${safe}`;
+      if (await this.app.vault.adapter.exists(p2)) p2 = `${folder}/${Date.now()}-${safe}`;
+      const buf = await f.arrayBuffer();
+      await this.app.vault.adapter.writeBinary(p2, buf);
+      if (isVid) {
+        if (!s.videoEnabled || IS_MOBILE) {
+          new Notice(IS_MOBILE ? "移动端不支持视频壁纸（省电）" : "视频壁纸还没开，去设置 → 外观 → 图片层里打开");
+          return;
+        }
+        /* 时长校验：造个临时 video 读 metadata */
+        const sec = await this.probeVideoSeconds(p2);
+        const maxSec = clamp(s.videoMaxSec || 60, 5, 600);
+        if (sec > maxSec) {
+          new Notice("视频太长：" + sec.toFixed(1) + " 秒，上限 " + maxSec + " 秒");
+          return;
+        }
+        this.layout.photo = p2;
+        this.layout.videoLoop = true;
+      } else {
+        this.layout.photo = p2;
+      }
+      /* 合并模式（背景和照片合成一层）时，照片层是隐藏的，图要落到背景层才看得见 */
+      if (this.layout.layers) {
+        if (s.mergeBgImg) {
+          this.layout.layers.bg.on = true;
+          this.layout.layers.img.on = false;
+        } else {
+          this.layout.layers.img.on = true;
+        }
+      }
+      this.scheduleSave();
+      if (this.stage) this.stage.render();
+      new Notice(isVid ? "视频已放上舞台（静音循环播放）" : isAnim ? "动图已放上舞台" : "照片已放上舞台，可拖动挪位置");
+    } catch (e) {
+      new Notice("放照片失败：" + (e && e.message ? e.message : e));
+    }
+  }
+
+  /* 读视频时长（秒），读不到返回 0 */
+  probeVideoSeconds(path) {
+    return new Promise((resolve) => {
+      try {
+        const url = this.avatarUrl(path);
+        if (!url) { resolve(0); return; }
+        const v = document.createElement("video");
+        v.preload = "metadata";
+        v.muted = true;
+        let done = false;
+        const fin = (n) => { if (done) return; done = true; try { v.src = ""; v.remove?.(); } catch (e) { } resolve(n); };
+        v.onloadedmetadata = () => fin(Number(v.duration) || 0);
+        v.onerror = () => fin(0);
+        setTimeout(() => fin(0), 3000);
+        v.src = url;
+      } catch (e) { resolve(0); }
+    });
+  }
+
+  /* 轮播壁纸（T-07）：选多张，按间隔自动换 */
+  async pickCarousel() {
+    const f = await chooseLocalFile({ accept: "image/*", multiple: true });
+    if (!f) return;
+    const arr = Array.isArray(f) ? f : [f];
+    if (!arr.length) return;
+    try {
+      const folder = this.attachDir();
+      await this.plugin.ensureFolder(folder);
+      const paths = [];
+      for (const one of arr) {
+        const safe = String(one.name || "img").replace(/[\\/:*?"<>|]/g, "_");
+        let p2 = `${folder}/${safe}`;
+        if (await this.app.vault.adapter.exists(p2)) p2 = `${folder}/${Date.now()}-${safe}`;
+        await this.app.vault.adapter.writeBinary(p2, await one.arrayBuffer());
+        paths.push(p2);
+      }
+      const s = this.plugin.settings;
+      s.carouselList = paths;
+      s.carouselIndex = 0;
+      s.carouselEvery = s.carouselEvery || "open";
+      await this.plugin.saveSettings();
+      this.layout.photo = paths[0];
+      if (this.layout.layers) this.layout.layers.img.on = true;
+      this.scheduleSave();
+      if (this.stage) this.stage.render();
+      new Notice("轮播组已放好，共 " + paths.length + " 张");
+    } catch (e) {
+      new Notice("建轮播组失败：" + (e && e.message ? e.message : e));
+    }
+  }
+
+  /* 按设置换下一张轮播图 */
+  /* 打开一篇日记时按 carouselEvery 决定要不要换 */
+  maybeRotateCarousel() {
+    const s = this.plugin.settings;
+    const list = Array.isArray(s.carouselList) ? s.carouselList : [];
+    if (list.length < 2) return false;
+    const every = s.carouselEvery || "open";
+    if (every === "day") {
+      const today = todayStr();
+      if (s.carouselDay === today) return false;
+      s.carouselDay = today;
+    }
+    this.nextCarousel();
+    return true;
+  }
+
+  /* 轮播定时器（30s / 5m） */
+  startCarouselTimer() {
+    this.stopCarouselTimer();
+    const s = this.plugin.settings;
+    const list = Array.isArray(s.carouselList) ? s.carouselList : [];
+    if (list.length < 2) return;
+    const every = s.carouselEvery || "open";
+    const ms = every === "30s" ? 30000 : every === "5m" ? 300000 : 0;
+    if (!ms) return;
+    this._carouselTimer = setInterval(() => {
+      if (this.layout && this.layout.photo) this.nextCarousel();
+    }, ms);
+  }
+
+  stopCarouselTimer() {
+    if (this._carouselTimer) { clearInterval(this._carouselTimer); this._carouselTimer = null; }
+  }
+
+  nextCarousel() {
+    const s = this.plugin.settings;
+    const list = Array.isArray(s.carouselList) ? s.carouselList : [];
+    if (list.length < 2) return false;
+    s.carouselIndex = ((Number(s.carouselIndex) || 0) + 1) % list.length;
+    this.layout.photo = list[s.carouselIndex];
+    this.plugin.saveSettings();
+    if (this.stage) this.stage.render();
+    return true;
+  }
+  avatarUrl(path) {
+    if (!path) return "";
+    try {
+      if (/^https?:/i.test(path)) return path;
+      const f = this.app.metadataCache.getFirstLinkpathDest(normalizePath(path), this.file ? this.file.path : "");
+      return f ? this.app.vault.adapter.getResourcePath(f.path) : "";
+    } catch (e) { return ""; }
+  }
+  async pickCover() {
+    const f = await chooseLocalFile({ accept: "image/*" });
+    if (!f) return;
+    try {
+      const folder = this.attachDir();
+      await this.plugin.ensureFolder(folder);
+      const safe = f.name.replace(/[\\/:*?"<>|]/g, "_");
+      let path = `${folder}/${safe}`;
+      if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+      await this.app.vault.createBinary(path, await f.arrayBuffer());
+      this.layout.cover = path;
+      if (!this.layout.coverHeight) this.layout.coverHeight = clamp(this.sx.coverHeight || 160, 60, 320);
+      /* 舞台模式下，图是画在「背景」层上的；不开这一层，设了封面也看不见 */
+      if (this.layout.layers && this.layout.layers.bg) this.layout.layers.bg.on = true;
+      this.render(); await this.save(true);
+      new Notice(this.sx.showStage ? "封面已换上（画在背景层）" : "封面已设置");
+    } catch (e) { new Notice("设置封面失败：" + e.message); }
+  }
+  tuneCoverHeight() {
+    const el = this.coverEl;
+    if (!el) return;
+    const startY = { y: 0 };
+    const h0 = this.layout.coverHeight || this.sx.coverHeight || 160;
+    el.addClass("is-resizing");
+    const move = (ev) => {
+      const h = clamp(Math.round(h0 + ev.clientY - startY.y), 0, 320);
+      el.style.height = `${h}px`;
+      this.layout.coverHeight = h;
+    };
+    const down = (ev) => { startY.y = ev.clientY; };
+    const up = () => {
+      document.removeEventListener("pointerdown", down);
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      el.removeClass("is-resizing");
+      this.render(); this.scheduleSave();
+    };
+    startY.y = h0;
+    document.addEventListener("pointerdown", down);
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+    new Notice("移动鼠标调整封面高度，松开即保存");
+  }
+
+  /* ---------- 封面分屏：整块 / 上下 / 左右，中缝可拖 ----------
+   * 用户要求：图片在上、日历自动往下，两者不许重合；
+   *          分屏时中缝能拖，拖的是分割线本身，不碰图片和文字。 */
+  applySplit(mode) {
+    const lay = this.layout.layers || (this.layout.layers = deepClone(DEFAULT_LAYERS));
+    const at = clamp(this.sx.splitAt || 58, 20, 80);
+    if (mode === "top") {
+      lay.bg.on = true; lay.bg.x = 0; lay.bg.y = 0; lay.bg.w = 100; lay.bg.h = at;
+      lay.img.on = true; lay.img.x = 0; lay.img.y = 0; lay.img.w = 100; lay.img.h = at;
+    } else if (mode === "left") {
+      lay.bg.on = true; lay.bg.x = 0; lay.bg.y = 0; lay.bg.w = at; lay.bg.h = 100;
+      lay.img.on = true; lay.img.x = 0; lay.img.y = 0; lay.img.w = at; lay.img.h = 100;
+    } else {
+      lay.bg.on = true; lay.bg.x = 0; lay.bg.y = 0; lay.bg.w = 100; lay.bg.h = 100;
+      lay.img.on = false;
+    }
+    this.sx.splitMode = mode;
+    this.render(); this.scheduleSave();
+  }
+
+  showSplitMenu() {
+    const m = new Menu();
+    const add = (k, name) => m.addItem((i) => i.setTitle(name).setChecked((this.sx.splitMode || "whole") === k).onClick(() => this.applySplit(k)));
+    add("whole", "整块铺满（一张图打底）");
+    add("top", "上下分屏（图在上，可以拖中缝）");
+    add("left", "左右分屏（图在左，可以拖中缝）");
+    m.addItem((i) => i.setTitle("拖动分割线").onClick(() => this.dragSplit()));
+    showMenuAt(m);
+  }
+
+  /* 拖分割线：只改 splitAt，改完把 bg/img 的 h（或 w）跟着重算 */
+  dragSplit() {
+    if ((this.sx.splitMode || "whole") === "whole") { new Notice("先选上下分屏或左右分屏"); return; }
+    const horizontal = this.sx.splitMode === "top";
+    const stage = this.stageEl;
+    const line = stage.querySelector(".gd-split-line");
+    if (!line) { new Notice("分割线还没画出来，先刷新一下"); return; }
+    let dragging = false;
+    const rect = stage.getBoundingClientRect();
+    const move = (ev) => {
+      if (!dragging) return;
+      const p = horizontal
+        ? ((ev.clientY - rect.top) / rect.height) * 100
+        : ((ev.clientX - rect.left) / rect.width) * 100;
+      this.sx.splitAt = clamp(Math.round(p), 20, 80);
+      this.applySplit(this.sx.splitMode);
+    };
+    const up = () => {
+      dragging = false;
+      document.removeEventListener("pointermove", move, true);
+      document.removeEventListener("pointerup", up, true);
+      this.scheduleSave();
+    };
+    line.onpointerdown = (ev) => { ev.preventDefault(); dragging = true; };
+    document.addEventListener("pointermove", move, true);
+    document.addEventListener("pointerup", up, true);
+    new Notice("拖动那条分割线即可，松手保存");
+  }
+
+  /* 拖动封面调整取景位置（就是"选中我想要的那一块"） */
+  dragCoverPos() {
+    const el = this.coverEl;
+    if (!el) return;
+    const cur = this.layout.coverPos || "50% 50%";
+    const m = /(-?[\d.]+)%\s+(-?[\d.]+)%/.exec(cur);
+    let x = m ? parseFloat(m[1]) : 50;
+    let y = m ? parseFloat(m[2]) : 50;
+    let sx = 0, sy = 0, dragging = false;
+    const apply = () => { el.style.backgroundPosition = x + "% " + y + "%"; };
+    apply();
+    el.addClass("is-panning");
+    new Notice("在封面上拖动选位置，松手即保存");
+    const down = (ev) => {
+      dragging = true; sx = ev.clientX; sy = ev.clientY;
+      el.setPointerCapture && el.setPointerCapture(ev.pointerId);
+      ev.preventDefault();
+    };
+    const move = (ev) => {
+      if (!dragging) return;
+      const rect = el.getBoundingClientRect();
+      const dx = ((ev.clientX - sx) / Math.max(rect.width, 1)) * 100;
+      const dy = ((ev.clientY - sy) / Math.max(rect.height, 1)) * 100;
+      x = clamp(x - dx, 0, 100);
+      y = clamp(y - dy, 0, 100);
+      sx = ev.clientX; sy = ev.clientY;
+      apply();
+    };
+    const up = () => {
+      if (!dragging) return;
+      dragging = false;
+      el.removeClass("is-panning");
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      this.layout.coverPos = x.toFixed(0) + "% " + y.toFixed(0) + "%";
+      this.scheduleSave();
+      new Notice("封面位置已保存");
+    };
+    el.addEventListener("pointerdown", down);
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  }
+  /* 座右铭：点一下就能改 */
+  editMotto() {
+    new PromptModal(this.app, "封面座右铭", "写一句想每天看到的话（清空则不显示）", this.layout.motto || this.sx.motto || "", (v) => {
+      this.layout.motto = String(v || "").trim();
+      this.renderCover(); this.scheduleSave();
+    }).open();
+  }
+  toggleMotto() {
+    const on = this.coverWrapEl ? !this.coverWrapEl.hasClass("is-motto") : true;
+    this.sx.showMotto = on;
+    this.renderCover();
+    if (on && !(this.layout.motto || this.sx.motto)) this.editMotto();
+  }
+  /* 头像：可选图片，没有就用首字 */
+  async pickAvatar() {
+    const f = await chooseLocalFile({ accept: "image/*" });
+    if (!f) return;
+    try {
+      const folder = this.attachDir();
+      await this.plugin.ensureFolder(folder);
+      const safe = f.name.replace(/[\\/:*?"<>|]/g, "_");
+      let path = `${folder}/avatar-${safe}`;
+      await this.app.vault.createBinary(path, await f.arrayBuffer());
+      this.sx.avatar = path;
+      this.sx.showAvatar = true;
+      await this.plugin.saveSettings();
+      this.renderCover();
+      new Notice("头像已设置");
+    } catch (e) { new Notice("设置头像失败：" + e.message); }
+  }
+
+  /* ---------- 头部 ---------- */
+  renderHead() {
+    const h = this.headEl;
+    h.empty();
+    const d = parseDate(this.date);
+    const info = h.createDiv({ cls: "gd-date-block" });
+    info.createDiv({ cls: "gd-daynum", text: pad2(d.getDate()) });
+    const meta = info.createDiv({ cls: "gd-date-meta" });
+    meta.createDiv({ cls: "gd-date-cn", text: `${d.getMonth() + 1}月 · ${d.getFullYear()}` });
+    meta.createDiv({ cls: "gd-week", text: `${weekdayCN(this.date)} · ${this.cells.length} 格` });
+
+    this.toolbarEl = h.createDiv({ cls: "gd-toolbar" });
+    const btn = (text, title, cls, fn) => {
+      const b = this.toolbarEl.createEl("button", { text, cls: `gd-tbtn ${cls || ""}`, attr: { title } });
+      b.onclick = fn;
+      return b;
+    };
+    btn("‹", "前一天", "gd-hide-mobile", () => this.openDay(shiftDate(this.date, -1)));
+    btn("今天", "回到今天", "", () => this.openDay(todayStr()));
+    btn("›", "后一天", "gd-hide-mobile", () => this.openDay(shiftDate(this.date, 1)));
+    btn("＋", "加一个格子", "gd-tbtn-accent", (e) => this.showPlusMenu(e, null));
+    btn("粘贴生成", "把纯文本拆成格子（也可直接 Ctrl+V）", "gd-hide-mobile", () => new PasteModal(this.app, this.plugin, "").open());
+    btn("模板", "套用格子模板", "gd-hide-mobile", () => new TemplateModal(this.app, this.plugin).open());
+    btn(this.previewMode ? "编辑" : "预览", "切换 Markdown 预览 / 编辑", "", () => { this.previewMode = !this.previewMode; this.render(); });
+    btn(this.rawMode ? "格子" : "原文", "直接编辑整篇 Markdown 原文（格式可切换）", "gd-hide-mobile", () => { if (this.rawMode) this.exitRaw(); else this.enterRaw(); });
+    btn("排布", "竖向 / 横向滚动 / 左右翻页", "gd-hide-mobile", (e) => this.showFlowMenu(e));
+    btn("⋯", "更多", "", (e) => this.showViewMenu(e));
+
+    // 旧版「同一天多篇」：主篇 / 壹 / 贰 … 顶部直接切换
+    const entries = this.plugin.dayFiles().filter((f) => splitDayKey(f.basename).date === this.date);
+    const bar = h.createDiv({ cls: "gd-entry-bar" });
+    for (const f of entries) {
+      const info2 = splitDayKey(f.basename);
+      const ebtn = bar.createEl("button", {
+        text: info2.suffix ? `第 ${info2.suffix} 篇` : "主篇",
+        cls: "gd-entry-btn" + (f.basename === this.key ? " is-on" : ""),
+        attr: { title: `${f.basename}.md` },
+      });
+      ebtn.onclick = () => this.openDay(f.basename);
+    }
+    const addEntry = bar.createEl("button", { text: "＋篇", cls: "gd-entry-btn gd-entry-add", attr: { title: "在这一天再写一篇" } });
+    addEntry.onclick = () => this.plugin.newEntryFor(this.date);
+    this.statusEl = bar.createSpan({ cls: "gd-save-status", text: this.statusText });
+
+    /* 贴纸条放在头部之后统一重建，避免被 head.empty() 清掉 */
+    if (this.stickerBarEl && this.stickerBarEl.parentElement) this.stickerBarEl.remove();
+    this.stickerBarEl = this.scrollEl.createDiv({ cls: "gd-sticker-bar" });
+    this.headEl.after(this.stickerBarEl);
+
+    /* 顶栏项目 / 主题切换（v4）——用户要「一个主题管多个项目，顶部栏切换」 */
+    try {
+      if (this.projectBarEl && this.projectBarEl.parentElement) this.projectBarEl.remove();
+      const bar2 = this.scrollEl.createDiv({ cls: "gd-project-bar" });
+      const s0 = this.plugin.settings;
+      const tchip = bar2.createEl("button", { cls: "gd-project-chip is-on", text: "主题：" + (s0.activeTheme || "散项") });
+      tchip.onclick = (e2) => this.plugin.showThemeMenu(e2);
+      const pchip = bar2.createEl("button", { cls: "gd-project-chip", text: "项目：" + (s0.projectName || "日记") });
+      pchip.onclick = async (e2) => {
+        new PromptModal(this.app, "切换项目", "项目名字（同一个主题可以管多个项目）", s0.projectName || "日记", async (v) => {
+          await this.plugin.switchProject(String(v || "").trim());
+        }).open();
+      };
+      this.headEl.after(bar2);
+      this.projectBarEl = bar2;
+    } catch (e) { /* 项目条出错不影响主界面 */ }
+  }
+
+  /* ---------- 整篇贴纸 ---------- */
+  renderStickerBar() {
+    const el = this.stickerBarEl;
+    if (!el) return;
+    el.empty();
+    const list = (this.layout.stickers || []);
+    el.toggleClass("is-empty", !list.length);
+    for (let i = 0; i < list.length; i++) {
+      const s = el.createSpan({ cls: "gd-sticker", text: list[i], attr: { title: "点一下去掉" } });
+      s.onclick = () => { this.layout.stickers = list.filter((_, j) => j !== i); this.render(); this.scheduleSave(); };
+    }
+    const add = el.createEl("button", { cls: "gd-sticker-add", text: "+ 贴纸", attr: { title: "给这一天加贴纸" } });
+    add.onclick = (e) => this.pickSticker(e, null);
+  }
+  pickSticker(evt, cell) {
+    const menu = new Menu();
+    for (const [key, name, list] of STICKER_GROUPS) {
+      menu.addItem((i) => i.setTitle(name).setIcon("smile").onClick(() => {
+        const sub = new Menu();
+        for (const s of list) {
+          sub.addItem((x) => x.setTitle(s).onClick(() => this.applySticker(s, cell)));
+        }
+        sub.addItem((x) => x.setTitle("用文件里的动图").setIcon("image").onClick(() => this.insertMedia(cell, true)));
+        showMenuAt(sub, evt);
+      }));
+    }
+    menu.addSeparator();
+    if (cell && cell.sticker) {
+      menu.addItem((i) => i.setTitle("去掉这格的贴纸").setIcon("x").onClick(() => this.applySticker("", cell)));
+    }
+    showMenuAt(menu, evt);
+  }
+  applySticker(s, cell) {
+    if (cell) {
+      cell.sticker = s;
+    } else {
+      const list = (this.layout.stickers || []).slice();
+      if (s && list.length < 5) list.push(s);
+      this.layout.stickers = list;
+    }
+    this.render(); this.scheduleSave();
+  }
+
+  /* ---------- 排布切换 ---------- */
+  showFlowMenu(evt) {
+    const m = new Menu();
+    const cur = this.sx.flow || "vertical";
+    for (const [v, n] of GRID_FLOWS) {
+      m.addItem((i) => i.setTitle(`${v === cur ? "● " : "　"}${n}`).setIcon(v === "vertical" ? "arrow-down" : "arrow-right").onClick(async () => {
+        this.sx.flow = v;
+        await this.plugin.saveSettings();
+        this.plugin.refreshAll();
+        new Notice(v === "vertical" ? "已切回上下滚" : v === "horizontal" ? "已切到左右滚（Shift+滚轮也行）" : "已切到左右翻页");
+      }));
+    }
+    m.addSeparator();
+    m.addItem((i) => i.setTitle(`每格宽度 ${this.sx.cellWidth}px → 调大`).setIcon("move-horizontal").onClick(async () => {
+      this.sx.cellWidth = clamp((this.sx.cellWidth || 260) + 40, 190, 560);
+      await this.plugin.saveSettings(); this.plugin.refreshAll();
+      new Notice(`每格宽度 ${this.sx.cellWidth}px`);
+    }));
+    m.addItem((i) => i.setTitle(`每格宽度 ${this.sx.cellWidth}px → 调小`).setIcon("move-horizontal").onClick(async () => {
+      this.sx.cellWidth = clamp((this.sx.cellWidth || 260) - 40, 190, 560);
+      await this.plugin.saveSettings(); this.plugin.refreshAll();
+      new Notice(`每格宽度 ${this.sx.cellWidth}px`);
+    }));
+    m.addItem((i) => i.setTitle(`横向时每屏 ${this.sx.flowRows} 行 → 切换`).setIcon("rows").onClick(async () => {
+      this.sx.flowRows = clamp((this.sx.flowRows || 3) >= 6 ? 1 : (this.sx.flowRows || 3) + 1, 1, 6);
+      await this.plugin.saveSettings(); this.plugin.refreshAll();
+    }));
+    m.addItem((i) => i.setTitle(`翻页一屏 ${this.sx.pageCols} 列 → 切换`).setIcon("columns").onClick(async () => {
+      this.sx.pageCols = clamp((this.sx.pageCols || 3) >= 6 ? 1 : (this.sx.pageCols || 3) + 1, 1, 6);
+      await this.plugin.saveSettings(); this.plugin.refreshAll();
+    }));
+    showMenuAt(m, evt);
+  }
+
+  /* ---------- 翻页指示 ---------- */
+  renderPageBar() {
+    const el = this.pageBarEl;
+    if (!el) return;
+    el.empty();
+    const flow = this.sx.flow || "vertical";
+    if (flow !== "paged") { el.addClass("is-hidden"); return; }
+    el.removeClass("is-hidden");
+    const prev = el.createEl("button", { text: "‹", cls: "gd-page-btn", attr: { title: "上一页" } });
+    prev.onclick = () => this.pageTo(-1);
+    this.pageLabelEl = el.createSpan({ cls: "gd-page-label", text: "1 / 1" });
+    const next = el.createEl("button", { text: "›", cls: "gd-page-btn", attr: { title: "下一页" } });
+    next.onclick = () => this.pageTo(1);
+    const fit = el.createEl("button", { text: "全宽", cls: "gd-page-btn", attr: { title: "把每页列数设成刚好铺满" } });
+    fit.onclick = async () => {
+      const w = this.gridEl ? this.gridEl.parentElement.clientWidth : 1200;
+      const cw = clamp(this.sx.cellWidth || 260, 190, 560);
+      this.sx.pageCols = clamp(Math.max(1, Math.floor((w - 40) / (cw + clamp(this.sx.gap, 0, 48)))), 1, 6);
+      await this.plugin.saveSettings(); this.plugin.refreshAll();
+    };
+    this.updatePageIndicator();
+  }
+  pageWidth() {
+    if (!this.gridEl) return 1;
+    const cw = clamp(this.sx.cellWidth || 260, 190, 560) + clamp(this.sx.gap, 0, 48);
+    return Math.max(1, Math.round(cw * clamp(this.sx.pageCols || 3, 1, 6)));
+  }
+  updatePageIndicator() {
+    if (!this.pageLabelEl || !this.scrollEl) return;
+    const pw = this.pageWidth();
+    const total = Math.max(1, Math.ceil((this.gridEl.scrollWidth - 8) / pw));
+    const cur = clamp(Math.round(this.scrollEl.scrollLeft / pw) + 1, 1, total);
+    this.pageNo = cur; this.pageTotal = total;
+    this.pageLabelEl.textContent = `${cur} / ${total}`;
+  }
+  pageTo(delta) {
+    const pw = this.pageWidth();
+    const target = (this.pageNo - 1 + delta) * pw;
+    if (this.scrollEl.scrollTo) this.scrollEl.scrollTo({ left: target, behavior: "smooth" });
+    else this.scrollEl.scrollLeft = target;
+  }
+
+  /* ---------- 更多菜单 ---------- */
+  setStatus(t) {
+    this.statusText = t;
+    if (this.statusEl) this.statusEl.textContent = t;
+  }
+  /* 批量把这个月/最近 N 天的皮肤与边框统一换掉 */
+  /* 图片层：一张 / 轮播 / 视频 / 动图 */
+  showPhotoMenu(evt) {
+    const menu = new Menu();
+    menu.addItem((i) => i.setTitle("放一张图 / 动图 / 视频…").setIcon("image").onClick(() => this.pickPhoto()));
+    menu.addItem((i) => i.setTitle("选一组图做轮播…").setIcon("images").onClick(() => this.pickCarousel()));
+    menu.addItem((i) => i.setTitle("换下一张（轮播组）").setIcon("refresh-cw").onClick(() => {
+      if (!this.nextCarousel()) new Notice("还没有轮播组");
+    }));
+    menu.addSeparator();
+    const s = this.plugin.settings;
+    menu.addItem((i) => i.setTitle(s.videoEnabled ? "✓ 允许视频" : "允许视频（桌面端）").setIcon("video")
+      .onClick(async () => { s.videoEnabled = !s.videoEnabled; await this.plugin.saveSettings(); this.stage?.render(); }));
+    menu.addItem((i) => i.setTitle("去掉这张图").setIcon("trash").onClick(async () => {
+      this.layout.photo = "";
+      if (this.layout.layers) this.layout.layers.img.on = false;
+      this.scheduleSave();
+      this.stage?.render();
+    }));
+    if (evt) showMenuAt(menu, evt); else menu.showAtMouseEvent(new MouseEvent("click"));
+  }
+
+  showBatchSkinMenu() {
+    const menu = new Menu();
+    const skins = THEMES;
+    for (const [key, name] of skins) {
+      menu.addItem((i) => i.setTitle("全部换成：" + name).setIcon("palette").onClick(async () => {
+        await this.plugin.applySkinToAll(key, "", 0);
+      }));
+    }
+    menu.addSeparator();
+    const borders = BORDERS;
+    for (const [key, name] of borders) {
+      menu.addItem((i) => i.setTitle("边框全换：" + name).setIcon("square").onClick(async () => {
+        await this.plugin.applySkinToAll("", key, 0);
+      }));
+    }
+    menu.addSeparator();
+    menu.addItem((i) => i.setTitle("只改最近 30 天").setIcon("calendar").onClick(async () => {
+      await this.plugin.applySkinToAll(this.plugin.settings.theme, this.plugin.settings.defaultBorder, 30);
+    }));
+    showMenuAt(menu, { clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 });
+  }
+  showViewMenu(evt) {
+    const menu = new Menu();
+    menu.addItem((i) => i.setTitle("今天是……（跳转日期）").setIcon("calendar").onClick(() => {
+      new PromptModal(this.app, "跳转到日期", "格式 YYYY-MM-DD", this.date, (v) => {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(v.trim())) this.openDay(v.trim());
+        else new Notice("日期格式不对");
+      }).open();
+    }));
+    menu.addItem((i) => i.setTitle("把当前布局存为模板").setIcon("save").onClick(() => this.saveAsTemplate()));
+    menu.addItem((i) => i.setTitle("查看版本历史 / 恢复").setIcon("history").onClick(() => new SnapshotModal(this.app, this.plugin, this.file).open()));
+    menu.addItem((i) => i.setTitle("打开日历").setIcon("calendar-days").onClick(() => this.plugin.openCalendar()));
+    menu.addItem((i) => i.setTitle("批量设置封面…").setIcon("images").onClick(() => this.plugin.openBatchCover()));
+    menu.addItem((i) => i.setTitle("批量选中 / 全部套用皮肤").setIcon("palette").onClick(() => this.showBatchSkinMenu()));
+    menu.addItem((i) => i.setTitle("重新载入文件").setIcon("refresh-cw").onClick(() => this.reload()));
+    menu.addSeparator();
+    menu.addItem((i) => i.setTitle(`本篇列数 ${this.gridCols} → ${this.gridCols >= 6 ? 1 : this.gridCols + 1}`).setIcon("columns").onClick(async () => {
+      this.gridCols = this.gridCols >= 6 ? 1 : this.gridCols + 1;
+      for (const c of this.cells) c.cs = clamp(c.cs, 1, this.gridCols);
+      this.render();
+      await this.save(true);
+      new Notice(`本篇改为 ${this.gridCols} 列（跟随文件同步到手机）`);
+    }));
+    menu.addItem((i) => i.setTitle("切换页面风格").setIcon("palette").onClick((e2) => this.showThemeMenu(e2 || evt)));
+    menu.addItem((i) => i.setTitle("主题：选择 / 保存 / 回滚").setIcon("palette").onClick((e2) => this.plugin.showThemeMenu(e2 || evt)));
+    menu.addItem((i) => i.setTitle("换一张图 / 轮播 / 视频").setIcon("image").onClick((e2) => this.showPhotoMenu(e2 || evt)));
+    menu.addItem((i) => i.setTitle("切换格子边框").setIcon("square").onClick((e2) => this.showBorderMenu(e2 || evt, null)));
+    menu.addItem((i) => i.setTitle(this.rawMode ? "切回九宫格" : "打开原文 MD（可切换格式）").setIcon("code").onClick(() => { if (this.rawMode) this.exitRaw(); else this.enterRaw(); }));
+    menu.addItem((i) => i.setTitle("在 Obsidian 中打开这篇 md").setIcon("file-text").onClick(() => this.app.workspace.getLeaf(true).openFile(this.file)));
+    showMenuAt(menu, evt);
+  }
+  showThemeMenu(evt) {
+    const m = new Menu();
+    for (const [v, n] of THEMES) {
+      m.addItem((i) => i.setTitle(`${this.sx.theme === v ? "● " : "　"}${n}`).onClick(async () => {
+        this.sx.theme = v;
+        await this.plugin.saveSettings();
+        this.plugin.refreshAll();
+      }));
+    }
+    showMenuAt(m, evt);
+  }
+  showBorderMenu(evt, cell) {
+    const m = new Menu();
+    for (const [v, n] of BORDERS) {
+      const cur = cell ? (cell.border || this.layout.border) : this.layout.border;
+      m.addItem((i) => i.setTitle(`${cur === v ? "● " : "　"}${n}`).onClick(() => {
+        if (cell) { cell.border = v; this.render(); this.scheduleSave(); }
+        else { this.layout.border = v; this.render(); this.scheduleSave(); }
+      }));
+    }
+    m.addSeparator();
+    m.addItem((i) => i.setTitle("设为新格子的默认边框").setIcon("settings").onClick(async () => {
+      this.sx.defaultBorder = cell ? (cell.border || this.layout.border) : this.layout.border;
+      await this.plugin.saveSettings();
+      new Notice("已设为默认边框");
+    }));
+    showMenuAt(m, evt);
+  }
+
+  /* ---------- 格子右上角「＋」 ---------- */
+  showPlusMenu(evt, cell) {
+    const m = new Menu();
+    m.addItem((i) => i.setTitle("在下面加一格").setIcon("plus").onClick(() => this.addCell(cell, "below")));
+    m.addItem((i) => i.setTitle("在右边加一格").setIcon("arrow-right").onClick(() => this.addCell(cell, "right")));
+    m.addSeparator();
+    m.addItem((i) => i.setTitle("插入图片").setIcon("image").onClick(() => this.insertMedia(cell, false)));
+    m.addItem((i) => i.setTitle("插入动图（GIF）").setIcon("film").onClick(() => this.insertMedia(cell, true)));
+    m.addItem((i) => i.setTitle("插入贴纸").setIcon("smile").onClick((e2) => this.pickSticker(e2 || evt, cell)));
+    m.addItem((i) => i.setTitle("插入片段…").setIcon("text").onClick((e2) => {
+      const sub = new Menu();
+      for (const [n, t] of CONTENT_SNIPPETS) {
+        sub.addItem((x) => x.setTitle(n).onClick(() => this.insertText(cell, t)));
+      }
+      showMenuAt(sub, e2 || evt);
+    }));
+    if (cell) {
+      m.addSeparator();
+      m.addItem((i) => i.setTitle("格子设置（大小 / 颜色 / 顺序）").setIcon("more-horizontal").onClick(() => this.showCellMenu(evt, cell)));
+      m.addItem((i) => i.setTitle("删除这一格").setIcon("trash").onClick(() => {
+        new ConfirmModal(this.app, "删除格子？", `「${cell.title}」的内容会一起删除。删除前会自动存快照，可以用「撤销」或时间线恢复。`, () => {
+          this.cells = this.cells.filter((c) => c.id !== cell.id);
+          this.render(); this.scheduleSave();
+        }).open();
+      }));
+    }
+    showMenuAt(m, evt);
+  }
+  insertText(cell, text) {
+    if (cell) {
+      cell.content = (cell.content || "") + text;
+      this.render(); this.scheduleSave();
+      return;
+    }
+    const c = { id: uid(), title: "新格子", content: text.trim(), cs: 1, rs: 1, h: 0, accent: "", collapsed: false, border: "", sticker: "" };
+    this.cells.push(c);
+    this.render(); this.scheduleSave();
+  }
+  /* 插图 / 插动图：拖拽不行时也能从菜单进 */
+  async insertMedia(cell, animOnly) {
+    const f = await chooseLocalFile({ accept: animOnly ? "image/gif,image/webp,image/apng,.gif,.webp,.apng" : "image/*,video/*" });
+    if (!f) return;
+    try {
+      const limitMB = clamp(this.sx.animMaxMB || 8, 1, 200);
+      if (isAnimName(f.name) && f.size > limitMB * 1024 * 1024) {
+        new Notice(`这个动图有 ${(f.size / 1048576).toFixed(1)}MB，超过 ${limitMB}MB 可能会卡。仍然可以插入。`, 6000);
+      }
+      const folder = this.attachDir();
+      await this.plugin.ensureFolder(folder);
+      const safe = f.name.replace(/[\\/:*?"<>|]/g, "_");
+      let path = `${folder}/${safe}`;
+      if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+      await this.app.vault.createBinary(path, await f.arrayBuffer());
+      const md = `![[${safe}|420]]`;
+      if (cell) {
+        cell.content = (cell.content || "") + (cell.content && !cell.content.endsWith("\n") ? "\n" : "") + md;
+      } else {
+        this.cells.push({ id: uid(), title: "图", content: md, cs: 1, rs: 1, h: 0, accent: "", collapsed: false, border: "", sticker: "" });
+      }
+      this.render(); await this.save(true);
+      new Notice(isAnimName(safe) ? "已插入动图，它会一直播放" : "已插入图片");
+    } catch (e) { new Notice("插入失败：" + e.message); }
+  }
+
+  /* ---------- 单格 ---------- */
+  renderCell(cell, index) {
+    const s = this.plugin.settings;
+    const flow = s.flow || "vertical";
+    const isH = flow !== "vertical";
+    const cols = (s.mobileOneColumn && IS_MOBILE) ? 1 : clamp(this.gridCols, 1, 6);
+    const cs = clamp(cell.cs, 1, cols);
+    const border = cell.border || this.layout.border || s.defaultBorder || "hair";
+    const isCenter = s.centerCell && this.cells.length >= 9 && index === 4;
+    const el = this.gridEl.createDiv({
+      cls: "gd-cell" + (cell.collapsed ? " is-collapsed" : "") + (cell.accent ? " has-accent" : "")
+        + (cell.sticker ? " has-sticker" : "") + (isCenter ? " is-center" : ""),
+    });
+    el.dataset.id = cell.id;
+    el.dataset.border = border;
+    el.style.gridColumn = `span ${cs}`;
+    el.style.gridRow = `span ${clamp(cell.rs, 1, 6)}`;
+    if (!isH) {
+      el.style.minHeight = cell.h ? `${cell.h}px` : `${clamp(cell.rs, 1, 6) * clamp(s.rowHeight, 80, 600) + (clamp(cell.rs, 1, 6) - 1) * clamp(s.gap, 0, 48)}px`;
+    } else if (cell.h) {
+      el.style.height = `${cell.h}px`;
+    }
+    if (cell.accent) el.style.setProperty("--gd-cell-accent", cell.accent);
+
+    const head = el.createDiv({ cls: "gd-cell-head" });
+    const ti = head.createEl("input", { cls: "gd-cell-title", attr: { placeholder: "格子标题（可以是一句问句）", spellcheck: "false" } });
+    ti.value = cell.title;
+    ti.oninput = () => { cell.title = ti.value; this.scheduleSave(); };
+    if (cell.sticker) {
+      const st = head.createSpan({ cls: "gd-cell-sticker", text: cell.sticker, attr: { title: "点一下换贴纸" } });
+      st.onclick = (e) => this.pickSticker(e, cell);
+    }
+    head.createSpan({ cls: "gd-cell-dim", text: cs > 1 || cell.rs > 1 ? `${cs}×${cell.rs}` : "" });
+    const more = head.createEl("button", { cls: "gd-cell-more", text: "⋯", attr: { title: "格子设置" } });
+    more.onclick = (e) => this.showCellMenu(e, cell);
+    const plus = head.createEl("button", { cls: "gd-cell-plus", text: "＋", attr: { title: "加一格 / 插图 / 贴纸" } });
+    plus.onclick = (e) => this.showPlusMenu(e, cell);
+
+    let taRef = null;
+    this.renderFmtBar(el, cell, () => taRef);
+    const body = el.createDiv({ cls: "gd-cell-body" });
+    if (this.previewMode) {
+      const pv = body.createDiv({ cls: "gd-cell-preview" });
+      if (cell.content.trim()) this.renderMarkdown(pv, cell.content).then(() => this.bindImages(pv, cell));
+      else pv.createDiv({ cls: "gd-cell-placeholder", text: this.emptyHint(index) });
+    } else {
+      const ta = body.createEl("textarea", {
+        cls: "gd-cell-editor",
+        attr: { placeholder: this.emptyHint(index), spellcheck: "false" },
+      });
+      taRef = ta;
+      ta.value = cell.content;
+      ta.onfocus = () => { this._editStart = { id: cell.id, value: ta.value }; el.addClass("is-editing"); };
+      ta.onblur = () => { this.commitCellEdit(cell, ta.value); el.removeClass("is-editing"); };
+      ta.oninput = () => {
+        cell.content = ta.value;
+        this.setStatus("编辑中");
+        this.scheduleSave();
+        this.tickWords(cell, el);
+        /* 改一格其他格跟随：其它同名格的内容实时更新（不重绘，避免抢焦点） */
+        if (this.plugin.settings.autoFollowCells) {
+          const nk = normHeadKey(cell.title || "");
+          if (nk) {
+            for (const c of this.cells) {
+              if (c.id === cell.id || normHeadKey(c.title || "") !== nk) continue;
+              c.content = ta.value;
+              const other = this.gridEl.querySelector('.gd-cell[data-id="' + c.id + '"] .gd-cell-editor');
+              if (other && other !== ta) other.value = ta.value;
+            }
+          }
+        }
+      };
+      ta.onkeydown = (e) => {
+        if (e.key === "Tab") { e.preventDefault(); const p = ta.selectionStart; ta.setRangeText("  ", p, p, "end"); }
+      };
+      /* 直接把图片/动图拖进格子 */
+      ta.addEventListener("dragover", (e) => { if (e.dataTransfer && e.dataTransfer.types.includes("Files")) { e.preventDefault(); el.addClass("is-drop"); } });
+      ta.addEventListener("dragleave", () => el.removeClass("is-drop"));
+      ta.addEventListener("drop", async (e) => {
+        const files = e.dataTransfer && e.dataTransfer.files;
+        if (!files || !files.length) return;
+        e.preventDefault(); e.stopPropagation();
+        el.removeClass("is-drop");
+        await this.dropFilesInto(cell, files);
+      });
+    }
+    /* 编辑态也把图片显示出来：textarea 永远不会渲染 ![[图]]，
+     * 用户看到的是一串源码，就以为"图片坏了"。这里在格子底部补一条缩略图。 */
+    if (!this.previewMode) this.renderCellImages(el, cell);
+    if (s.showWordTicker) el.createDiv({ cls: "gd-cell-ticker" });
+
+    const grip = el.createDiv({ cls: "gd-cell-grip", attr: { title: "拖动调整占几列 / 几行" } });
+    grip.addEventListener("pointerdown", (e) => this.beginResize(e, cell, el));
+
+    if (!IS_MOBILE) {
+      head.draggable = true;
+      head.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/gd-cell", cell.id); el.addClass("is-dragging"); });
+      head.addEventListener("dragend", () => el.removeClass("is-dragging"));
+      el.addEventListener("dragover", (e) => { if (e.dataTransfer.types.includes("text/gd-cell")) { e.preventDefault(); el.addClass("is-drop"); } });
+      el.addEventListener("dragleave", () => el.removeClass("is-drop"));
+      el.addEventListener("drop", (e) => {
+        const from = e.dataTransfer.getData("text/gd-cell");
+        if (!from) return;
+        e.preventDefault(); el.removeClass("is-drop");
+        const a = this.cells.findIndex((c) => c.id === from), b = this.cells.findIndex((c) => c.id === cell.id);
+        if (a >= 0 && b >= 0 && a !== b) {
+          const [m] = this.cells.splice(a, 1);
+          this.cells.splice(b, 0, m);
+          this.render(); this.scheduleSave();
+        }
+      });
+    }
+  }
+  /* ---------- 原文（Markdown）模式 ---------- */
+  async enterRaw() {
+    if (!(this.file instanceof TFile)) { new Notice("还没有这个文件"); return; }
+    try { this._rawText = await this.app.vault.read(this.file); } catch (e) { this._rawText = ""; }
+    this._rawDirty = false;
+    this.rawMode = true;
+    this.render();
+  }
+  async exitRaw() {
+    await this.saveRaw();
+    this.rawMode = false;
+    await this.reload();
+  }
+  renderRaw() {
+    const g = this.gridEl;
+    g.empty();
+    g.addClass("is-raw");
+    g.style.gridTemplateColumns = "";
+    g.style.gridTemplateRows = "";
+    g.style.gridAutoFlow = "";
+    g.style.gridAutoColumns = "";
+    g.style.width = "";
+    const wrap = g.createDiv({ cls: "gd-raw" });
+    const bar = wrap.createDiv({ cls: "gd-raw-bar" });
+    bar.createSpan({ text: "Markdown 原文 · 直接改整篇" });
+    const b1 = bar.createEl("button", { text: "回到九宫格", cls: "gd-tbtn gd-tbtn-accent" });
+    b1.onclick = () => this.exitRaw();
+    const b2 = bar.createEl("button", { text: "立即保存", cls: "gd-tbtn" });
+    b2.onclick = () => this.saveRaw(true);
+    const ta = wrap.createEl("textarea", { cls: "gd-raw-ta", attr: { spellcheck: "false" } });
+    ta.value = this._rawText || "";
+    ta.oninput = () => { this._rawText = ta.value; this._rawDirty = true; this.setStatus("原文编辑中"); };
+    ta.onblur = () => this.saveRaw();
+    this._rawTa = ta;
+    this.setStatus(this._rawDirty ? "原文未保存" : "原文 · 已同步");
+  }
+  async saveRaw(force) {
+    if (!this._rawDirty && !force) return;
+    if (!(this.file instanceof TFile)) return;
+    try {
+      const cur = await this.app.vault.read(this.file);
+      if (cur === this._rawText) { this._rawDirty = false; this.setStatus("已保存"); return; }
+      this.plugin.history.pushUndo(this.file, cur, "原文编辑");
+      await this.plugin.history.snapshot(this.file, "自动", false);
+      await this.app.vault.modify(this.file, this._rawText);
+      this._rawDirty = false;
+      this.setStatus("已保存 · 原文");
+      this.plugin.notifyRefresh();
+    } catch (e) { new Notice("保存失败：" + e.message); }
+  }
+
+  emptyHint(index) {
+    if (!this.sx.showPromptHint) return "（空）";
+    const set = PROMPT_SETS[this.sx.promptSet] || PROMPT_SETS["日间"];
+    const q = set[index % set.length];
+    return `写点什么…（${q}？）`;
+  }
+  tickWords(cell, el) {
+    const t = el.querySelector(".gd-cell-ticker");
+    if (!t) return;
+    const n = (cell.content || "").length;
+    t.style.setProperty("--gd-p", `${clamp(n / 400, 0, 1)}`);
+  }
+  async dropFilesInto(cell, files) {
+    for (const f of Array.from(files).slice(0, 8)) {
+      try {
+        const folder = this.attachDir();
+        await this.plugin.ensureFolder(folder);
+        const safe = (f.name || "paste.png").replace(/[\\/:*?"<>|]/g, "_");
+        let path = `${folder}/${safe}`;
+        if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+        await this.app.vault.createBinary(path, await f.arrayBuffer());
+        const md = f.type && f.type.startsWith("image") ? `![[${safe}|420]]` : `[[${safe}]]`;
+        cell.content = (cell.content || "") + (cell.content && !cell.content.endsWith("\n") ? "\n" : "") + md;
+      } catch (e) { new Notice("拖入失败：" + e.message); }
+    }
+    this.render(); await this.save(true);
+  }
+
+  /* 旧版的格子格式条：粗体 / 斜体 / 删除线 / 高亮 / 文字颜色 / 插图 / 动图 / 附件 */
+  renderFmtBar(el, cell, getTa) {
+    const fmt = el.createDiv({ cls: "gd-cell-fmt" });
+    const apply = (before, after) => {
+      const ta = getTa();
+      if (!ta) { new Notice("先切到编辑模式"); return; }
+      const s = ta.selectionStart, e = ta.selectionEnd;
+      const sel = ta.value.slice(s, e) || "文字";
+      ta.setRangeText(before + sel + after, s, e, "select");
+      cell.content = ta.value;
+      this.setStatus("编辑中"); this.scheduleSave();
+      ta.focus();
+    };
+    const btn = (text, title, fn) => {
+      const b = fmt.createEl("button", { text, cls: "gd-fmt-btn", attr: { title } });
+      b.onmousedown = (e) => e.preventDefault(); // 别让按钮抢走文本选区
+      b.onclick = fn;
+      return b;
+    };
+    btn("B", "粗体 **文字**", () => apply("**", "**"));
+    btn("I", "斜体 *文字*", () => apply("*", "*"));
+    btn("S", "删除线 ~~文字~~", () => apply("~~", "~~"));
+    btn("==", "高亮 ==文字==", () => apply("==", "=="));
+    btn("色", "文字颜色", (e) => {
+      const cm = new Menu();
+      for (const [n, v] of [["墨灰", "#4a4a4a"], ["胭脂", "#b3524b"], ["陶土", "#c2704f"], ["琥珀", "#c99a3e"], ["芥末", "#9a9b4a"], ["薄荷", "#5b8c6e"], ["青瓷", "#5f9b9b"], ["雾蓝", "#6b8eb3"], ["靛青", "#4f6fa8"], ["浅紫", "#9a7bb0"], ["樱花", "#c98ba0"], ["石灰", "#8d8a7d"]]) {
+        cm.addItem((x) => x.setTitle(n).onClick(() => apply(`<span style="color:${v}">`, "</span>")));
+      }
+      showMenuAt(cm, e);
+    });
+    btn("图", "插入图片", () => this.insertMedia(cell, false));
+    btn("动", "插入动图（GIF / WebP）", () => this.insertMedia(cell, true));
+    btn("附", "插入附件（PDF / 音频 / 任意文件）", () => this.insertAttachment(cell, getTa(), "file"));
+    return fmt;
+  }
+  async insertAttachment(cell, ta, kind) {
+    if (!ta) { new Notice("先切到编辑模式"); return; }
+    const f = await chooseLocalFile({ accept: kind === "image" ? "image/*" : undefined });
+    if (!f) return;
+    try {
+      const folder = this.attachDir();
+      await this.plugin.ensureFolder(folder);
+      const safe = f.name.replace(/[\\/:*?"<>|]/g, "_");
+      let path = `${folder}/${safe}`;
+      if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+      await this.app.vault.createBinary(path, await f.arrayBuffer());
+      const md = kind === "image" ? `![[${safe}|400]]` : `[[${safe}]]`;
+      const p = ta.selectionStart;
+      ta.setRangeText(md, p, p, "end");
+      cell.content = ta.value;
+      await this.save(true);
+      new Notice(kind === "image" ? "已插入图片（预览模式可拖动改宽度）" : "已插入附件");
+    } catch (e) { new Notice("插入失败：" + e.message); }
+  }
+  /* 预览模式里拖动图片改宽度，写回 ![[图|宽]] */
+  bindImages(root, cell) {
+    for (const img of Array.from(root.querySelectorAll("img"))) {
+      const name = (img.getAttribute("src") || "").split("/").pop();
+      if (!name) continue;
+      img.style.cursor = "ew-resize";
+      img.setAttribute("title", "拖动调整图片宽度");
+      if (isAnimName(name)) {
+        img.classList.add("gd-anim");
+        img.dataset.gdAnim = "1";
+      }
+      img.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        const x0 = e.clientX, w0 = img.getBoundingClientRect().width;
+        let w = w0;
+        const move = (ev) => { w = Math.max(60, Math.round(w0 + ev.clientX - x0)); img.style.width = `${w}px`; };
+        const up = () => {
+          document.removeEventListener("pointermove", move);
+          document.removeEventListener("pointerup", up);
+          if (Math.abs(w - w0) < 3) return; // 只是点了一下，别改宽度
+          const re = new RegExp(`(!\\[\\[${escapeRe(decodeURIComponent(name))})(?:\\|\\d+)?(\\]\\])`, "g");
+          cell.content = cell.content.replace(re, `$1|${w}$2`);
+          this.setStatus("图片宽度已保存"); this.scheduleSave();
+        };
+        document.addEventListener("pointermove", move);
+        document.addEventListener("pointerup", up);
+      });
+    }
+  }
+
+  /* 旧版每格独立的撤销 / 重做（与整篇的快照撤回是两套） */
+  /* 格子里的图片就地预览：把 ![[图]] 与 ![a](b) 都认出来，渲染成缩略图 */
+  renderCellImages(el, cell) {
+    const text = cell.content || "";
+    const found = [];
+    const re = /!\[\[([^\]|#]+?)(?:\|([^\]]*))?\]\]|!\[([^\]]*)\]\(([^)\s]+)\)/g;
+    let m;
+    while ((m = re.exec(text))) {
+      const target = (m[1] || m[4] || "").trim();
+      if (!target) continue;
+      if (!/^https?:/i.test(target) && !/\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(target)) continue;
+      found.push(target);
+      if (found.length >= 8) break;
+    }
+    if (!found.length) return;
+    const strip = el.createDiv({ cls: "gd-cell-imgs" });
+    for (const target of found) {
+      const url = this.plugin.thumbUrl ? this.plugin.thumbUrl(target) : "";
+      const box = strip.createDiv({ cls: "gd-cell-img" + (url ? "" : " is-broken") });
+      if (url) {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = target.split("/").pop();
+        img.addClass("gd-cell-img-el");
+        box.appendChild(img);
+        box.setAttribute("title", "点一下看大图");
+        box.onclick = (e) => { e.stopPropagation(); this.showImage(url, img.alt); };
+      } else {
+        box.setText("图丢了：" + target.split("/").pop());
+        box.setAttribute("title", "这个文件找不到（常见原因：被回收站改名加了 .trashed- 前缀）。右键 → 修复断链图片 可以修。");
+        box.onclick = (e) => { e.stopPropagation(); this.plugin.openRepairLinks(); };
+      }
+    }
+  }
+
+  /* 点缩略图看大图，不跳转、不占标签页 */
+  showImage(url, name) {
+    let box = document.querySelector(".gd-img-view");
+    if (box) box.remove();
+    box = document.createElement("div");
+    box.addClass("gd-img-view");
+    const img = document.createElement("img");
+    img.src = url;
+    img.addClass("gd-img-view-el");
+    box.appendChild(img);
+    const cap = document.createElement("div");
+    cap.addClass("gd-img-view-cap");
+    cap.setText(name || "");
+    box.appendChild(cap);
+    box.addEventListener("click", () => box.remove());
+    document.body.appendChild(box);
+    const esc = (e) => { if (e.key === "Escape") { box.remove(); window.removeEventListener("keydown", esc); } };
+    window.addEventListener("keydown", esc);
+  }
+
+  /* 「改一格其他格跟随」：把这一格的标题 + 内容同步到其它同名格子。
+   * 只在 autoFollowCells 打开时生效；不同名的不动，避免误伤。 */
+  syncCellToNamesakes(cell) {
+    if (!this.plugin.settings.autoFollowCells) return 0;
+    const key = normHeadKey(cell.title || "");
+    if (!key) return 0;
+    let n = 0;
+    for (const c of this.cells) {
+      if (c.id === cell.id) continue;
+      if (normHeadKey(c.title || "") !== key) continue;
+      if (c.content !== cell.content) { c.content = cell.content; n++; }
+    }
+    return n;
+  }
+  commitCellEdit(cell, value) {
+    if (!this._editStart || this._editStart.id !== cell.id) return;
+    if (this._editStart.value !== value) {
+      const h = this.cellHist.get(cell.id) || { undo: [], redo: [] };
+      h.undo.push(this._editStart.value);
+      if (h.undo.length > 30) h.undo.shift();
+      h.redo.length = 0;
+      this.cellHist.set(cell.id, h);
+    }
+    this._editStart = null;
+  }
+  stepCell(cell, dir) {
+    const h = this.cellHist.get(cell.id);
+    const ta = this.gridEl.querySelector(`.gd-cell[data-id="${cell.id}"] .gd-cell-editor`);
+    if (!ta) { new Notice("先切到编辑模式"); return; }
+    if (!h) { new Notice("这个格子还没有可撤销的改动"); return; }
+    if (dir < 0) {
+      if (!h.undo.length) { new Notice("已经到最早的一步"); return; }
+      h.redo.push(cell.content); cell.content = h.undo.pop();
+    } else {
+      if (!h.redo.length) { new Notice("已经到最新的一步"); return; }
+      h.undo.push(cell.content); cell.content = h.redo.pop();
+    }
+    ta.value = cell.content;
+    this.setStatus("编辑中"); this.scheduleSave();
+  }
+  async openWholeFile(cell) {
+    const leaf = this.app.workspace.getLeaf(true);
+    await leaf.openFile(this.file);
+    const ed = leaf.view && leaf.view.editor;
+    if (ed && cell) {
+      try {
+        const mark = "#".repeat(clamp(this.plugin.settings.headingLevel || 2, 2, 4));
+        const lines = ed.getValue().split("\n");
+        const i = lines.findIndex((l) => l.trim() === `${mark} ${cell.title}`);
+        if (i >= 0) {
+          ed.setCursor({ line: i, ch: 0 });
+          if (ed.scrollIntoView) ed.scrollIntoView({ from: { line: i, ch: 0 }, to: { line: i, ch: 0 } }, true);
+        }
+      } catch (e) { /* 视图还没准备好就算了 */ }
+    }
+  }
+  async renderMarkdown(el, md) {
+    el.empty();
+    try { await MarkdownRenderer.render(this.app, md, el, this.file ? this.file.path : "", this); }
+    catch (e) {
+      try { await MarkdownRenderer.renderMarkdown(md, el, this.file ? this.file.path : "", this); }
+      catch (e2) { el.createEl("pre", { text: md }); }
+    }
+    /* 正文排版：只给“直接子级段落”打标记，标题/列表/引用/表格不碰 */
+    try {
+      for (const p of Array.from(el.children || [])) {
+        if (p && p.tagName === "P") p.classList.add("gd-p");
+      }
+    } catch (e3) { /* 标记失败不影响渲染 */ }
+  }
+  beginResize(e, cell, el) {
+    e.preventDefault(); e.stopPropagation();
+    const s = this.plugin.settings;
+    const flow = s.flow || "vertical";
+    const cols = (s.mobileOneColumn && IS_MOBILE) ? 1 : clamp(this.gridCols, 1, 6);
+    const gap = clamp(s.gap, 0, 48);
+    const grid = this.gridEl.getBoundingClientRect();
+    const cw = flow === "vertical"
+      ? (grid.width - (cols - 1) * gap) / cols
+      : clamp(s.cellWidth || 260, 190, 560) + gap;
+    const rh = clamp(s.rowHeight, 80, 600) + gap;
+    const x0 = e.clientX, y0 = e.clientY, cs0 = cell.cs, rs0 = cell.rs;
+    const move = (ev) => {
+      const cs = clamp(cs0 + Math.round((ev.clientX - x0) / cw), 1, cols);
+      const rs = clamp(rs0 + Math.round((ev.clientY - y0) / rh), 1, 6);
+      if (cs !== cell.cs || rs !== cell.rs) {
+        cell.cs = cs; cell.rs = rs;
+        el.style.gridColumn = `span ${cs}`;
+        el.style.gridRow = `span ${rs}`;
+        if (!cell.h && flow === "vertical") el.style.minHeight = `${rs * clamp(s.rowHeight, 80, 600) + (rs - 1) * gap}px`;
+        const dim = el.querySelector(".gd-cell-dim");
+        if (dim) dim.textContent = `${cs}×${rs}`;
+      }
+    };
+    const up = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      this.scheduleSave();
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  }
+  showCellMenu(evt, cell) {
+    const s0 = this.plugin.settings;
+    /* （联动开关在整篇级别，先加到菜单顶部） */
+    const menu = new Menu();
+    const s = this.plugin.settings;
+    const maxCols = (s.mobileOneColumn && IS_MOBILE) ? 1 : clamp(this.gridCols, 1, 6);
+    menu.addItem((i) => i.setTitle("重命名").setIcon("pencil").onClick(() => {
+      new PromptModal(this.app, "重命名格子", "标题", cell.title, (v) => { cell.title = v.trim() || cell.title; this.render(); this.scheduleSave(); }).open();
+    }));
+    menu.addItem((i) => i.setTitle((s0.autoFollowCells ? "✓ " : "　") + "改一格其他格跟随（同名格）").setIcon("link").onClick(async () => {
+      this.plugin.settings.autoFollowCells = !this.plugin.settings.autoFollowCells;
+      await this.plugin.saveSettings();
+      new Notice(this.plugin.settings.autoFollowCells ? "已开启：同名格子内容会一起变" : "已关闭：每格各自独立");
+    }));
+    menu.addSeparator();
+    menu.addItem((i) => i.setTitle(cell.cs > 1 ? "恢复占 1 列" : "占 2 列").setIcon("columns").onClick(() => { cell.cs = cell.cs > 1 ? 1 : clamp(2, 1, maxCols); this.render(); this.scheduleSave(); }));
+    menu.addItem((i) => i.setTitle(cell.rs > 1 ? "恢复占 1 行" : "占 2 行").setIcon("rows").onClick(() => { cell.rs = cell.rs > 1 ? 1 : 2; this.render(); this.scheduleSave(); }));
+    menu.addItem((i) => i.setTitle("高度 +60px").setIcon("arrow-down").onClick(() => { cell.h = (cell.h || s.rowHeight) + 60; this.render(); this.scheduleSave(); }));
+    menu.addItem((i) => i.setTitle("高度 −60px").setIcon("arrow-up").onClick(() => { cell.h = Math.max(80, (cell.h || s.rowHeight) - 60); this.render(); this.scheduleSave(); }));
+    menu.addItem((i) => i.setTitle("边框").setIcon("square").onClick((e2) => this.showBorderMenu(e2 || evt, cell)));
+    const colors = [["默认", ""], ["暖橙", "#c2704f"], ["墨绿", "#5b8c6e"], ["雾蓝", "#6b8eb3"], ["藕紫", "#9a7bb0"], ["赭红", "#b25a5a"]];
+    menu.addItem((i) => i.setTitle("强调色").setIcon("palette").onClick(() => {
+      const cm = new Menu();
+      for (const [n, v] of colors) cm.addItem((x) => x.setTitle(n).onClick(() => { cell.accent = v; this.render(); this.scheduleSave(); }));
+      showMenuAt(cm, evt);
+    }));
+    menu.addItem((i) => i.setTitle("贴纸").setIcon("smile").onClick((e2) => this.pickSticker(e2 || evt, cell)));
+    menu.addSeparator();
+    menu.addItem((i) => i.setTitle("撤销这一格").setIcon("undo-2").onClick(() => this.stepCell(cell, -1)));
+    menu.addItem((i) => i.setTitle("重做这一格").setIcon("redo-2").onClick(() => this.stepCell(cell, 1)));
+    menu.addItem((i) => i.setTitle("在文件里定位 / 打开整篇").setIcon("file-text").onClick(() => this.openWholeFile(cell)));
+    menu.addItem((i) => i.setTitle("用模板补齐格子（保留旧内容）").setIcon("layout-template").onClick(async () => {
+      const tpl = this.plugin.settings.templates.find((t) => t.name === this.plugin.settings.activeTemplate) || this.plugin.settings.templates[0];
+      const n = await this.plugin.fillMissingCells(this.key, (tpl.cells || []).map((c) => c.title));
+      new Notice(n ? `已补齐 ${n} 个格子，原有内容没动` : "这个模板的格子已经有了");
+    }));
+    menu.addSeparator();
+    menu.addItem((i) => i.setTitle("上移").setIcon("chevron-up").onClick(() => this.moveCell(cell, -1)));
+    menu.addItem((i) => i.setTitle("下移").setIcon("chevron-down").onClick(() => this.moveCell(cell, 1)));
+    menu.addItem((i) => i.setTitle("在此之后插入一格").setIcon("plus").onClick(() => this.addCell(cell, "below")));
+    menu.addItem((i) => i.setTitle("删除这一格").setIcon("trash").onClick(() => {
+      new ConfirmModal(this.app, "删除格子？", `「${cell.title}」的内容会一起删除。删除前会自动存快照，可以用「撤销」或时间线恢复。`, () => {
+        this.cells = this.cells.filter((c) => c.id !== cell.id);
+        this.render(); this.scheduleSave();
+      }).open();
+    }));
+    showMenuAt(menu, evt);
+  }
+  moveCell(cell, delta) {
+    const i = this.cells.findIndex((c) => c.id === cell.id);
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= this.cells.length) return;
+    const [m] = this.cells.splice(i, 1);
+    this.cells.splice(j, 0, m);
+    this.render(); this.scheduleSave();
+  }
+  addCell(after, where) {
+    new PromptModal(this.app, "新增格子", "标题（可以写成一句问句）", where === "right" ? "新格子" : "新格子", (v) => {
+      const c = {
+        id: uid(), title: v.trim() || "新格子", content: "", cs: 1, rs: 1, h: 0,
+        accent: "", collapsed: false, border: "", sticker: "",
+      };
+      const i = after ? this.cells.findIndex((x) => x.id === after.id) : -1;
+      if (i >= 0) this.cells.splice(i + 1, 0, c); else this.cells.push(c);
+      this.render(); this.scheduleSave();
+      setTimeout(() => {
+        const els = this.gridEl.querySelectorAll(".gd-cell");
+        const last = els[els.length - 1];
+        if (last) { const t = last.querySelector(".gd-cell-title"); if (t) { t.focus(); t.select(); } }
+      }, 30);
+    }).open();
+  }
+  saveAsTemplate() {
+    new TemplateSaveModal(this.app, this.plugin, this.cells, `${this.date} 的布局`).open();
+  }
+  async saveNow() {
+    if (!(this.file instanceof TFile) || this.saving) return;
+    this.saving = true;
+    this.setStatus("保存中");
+    try {
+      const text = serializeDay(this.date, this.cells, {
+        fm: this.fm, h1: this.h1, columns: this.gridCols,
+        level: this.plugin.settings.headingLevel,
+        layout: this.layout,
+      });
+      const current = await this.app.vault.read(this.file);
+      if (current === text) { this.setStatus("已保存 · 自动"); return; }
+      this.plugin.history.pushUndo(this.file, current, `编辑 ${dateShort(this.date)}`);
+      if (this.plugin.settings.autoSnapshot) await this.plugin.history.snapshot(this.file, "自动");
+      await this.app.vault.modify(this.file, text);
+      this.plugin.notifyRefresh();
+      this.setStatus("已保存 · 自动");
+    } catch (e) {
+      console.error("[格间日记] 保存失败", e);
+      this.setStatus("保存失败");
+      new Notice("保存失败：" + e.message);
+    } finally { this.saving = false; }
+  }
+  async save(immediate) {
+    this.scheduleSave.cancel();
+    if (immediate) await this.saveNow();
+    else this.scheduleSave();
+  }
+}
+
+
+/* ---- 06-float.js ---- */
+/* ============ 悬浮窗：不占主区，随时写一格就关 ============
+ * Obsidian 的 ItemView 一定占主区/侧栏，做不到"浮在上面"，
+ * 所以这里用 position:fixed 的浮层自己画。
+ * 特点：拖动 / 缩放 / 贴边半收 / 三档尺寸 / 位置记忆 / 不锁背景（不是 Modal）。
+ * ============================================================ */
+
+const FLOAT_SIZES = { s: { w: 480, h: 420 }, m: { w: 720, h: 660 }, l: { w: 1000, h: 760 } };
+
+class GDFloat {
+  constructor(plugin) {
+    this.plugin = plugin;
+    this.el = null;
+    this.key = todayStr();
+    this.cells = [];
+    this.fm = "";
+    this.h1 = "";
+    this.layout = {};
+    this.docked = "";
+    this.drag = null;
+    this.saveTimer = debounce(() => this.saveNow(), 800);
+  }
+  get app() { return this.plugin.app; }
+  get sx() { return this.plugin.settings; }
+
+  toggle() {
+    if (this.el) this.close();
+    else this.open();
+  }
+  async open(key) {
+    if (this.el) { if (key) await this.load(key); return; }
+    const host = document.body;
+    const wrap = document.createElement("div");
+    wrap.addClass("gd-root");
+    wrap.addClass("gd-float");
+    wrap.addClass(`gd-theme-${this.sx.theme || "card"}`);
+    host.appendChild(wrap);
+    this.el = wrap;
+    const r = this.sx.floatRect || {};
+    const size = FLOAT_SIZES[this.sx.floatSize] || FLOAT_SIZES.m;
+    const w = clamp(r.width || size.w, 360, 1400);
+    const h = clamp(r.height || size.h, 320, 1200);
+    const vw = window.innerWidth, vh = window.innerHeight;
+    wrap.style.width = `${w}px`;
+    wrap.style.height = `${h}px`;
+    wrap.style.left = `${clamp(r.left != null ? r.left : vw - w - 40, 0, Math.max(0, vw - w))}px`;
+    wrap.style.top = `${clamp(r.top != null ? r.top : 90, 0, Math.max(0, vh - h))}px`;
+    this.build();
+    await this.load(key || todayStr());
+  }
+  close() {
+    this.saveTimer.cancel();
+    this.saveNow(true);
+    if (this._esc) { window.removeEventListener("keydown", this._esc); this._esc = null; }
+    if (this.el) { this.el.remove(); this.el = null; }
+  }
+  build() {
+    const el = this.el;
+    el.empty();
+    this.barEl = el.createDiv({ cls: "gd-float-bar" });
+    const title = this.barEl.createDiv({ cls: "gd-float-title", text: this.sx.floatTitle || "灵感笔记" });
+    title.setAttribute("title", "双击改名字");
+    title.addEventListener("dblclick", () => {
+      new PromptModal(this.app, "给这个悬浮窗起个名字", "显示在标题栏", this.sx.floatTitle || "灵感笔记", async (v) => {
+        this.sx.floatTitle = String(v || "").trim() || "灵感笔记";
+        await this.plugin.saveSettings();
+        this.build();
+      }).open();
+    });
+    const ops = this.barEl.createDiv({ cls: "gd-float-ops" });
+    const b = (text, title2, fn) => {
+      const btn = ops.createEl("button", { text, cls: "gd-float-btn", attr: { title: title2 } });
+      btn.onclick = (e) => { e.stopPropagation(); fn(e); };
+      return btn;
+    };
+    b("大", "切换尺寸（小 / 中 / 大）", () => this.cycleSize());
+    b("≡", "在主区打开这一天", () => this.plugin.openDay(this.key));
+    b("—", "收缩成一条（再点展开）", () => this.collapseBar());
+    b("×", "关闭悬浮窗（位置会记住）", () => this.close());
+
+    this.scrollEl = el.createDiv({ cls: "gd-float-scroll" });
+    this.dateEl = this.scrollEl.createDiv({ cls: "gd-float-date" });
+    this.gridEl = this.scrollEl.createDiv({ cls: "gd-grid gd-float-grid" });
+    this.footEl = el.createDiv({ cls: "gd-float-foot" });
+
+    /* 拖动标题条 */
+    this.barEl.addEventListener("pointerdown", (ev) => {
+      if (ev.target && ev.target.closest("button")) return;
+      this.startDrag(ev);
+    });
+    /* 右下角缩放 */
+    const grip = el.createDiv({ cls: "gd-float-grip", attr: { title: "拖动缩放" } });
+    grip.addEventListener("pointerdown", (ev) => this.startResize(ev));
+    /* Esc 关闭 */
+    this._esc = (ev) => { if (ev.key === "Escape") this.close(); };
+    window.addEventListener("keydown", this._esc);
+  }
+  startDrag(ev) {
+    ev.preventDefault();
+    const r = this.el.getBoundingClientRect();
+    const dx = ev.clientX - r.left, dy = ev.clientY - r.top;
+    this.el.addClass("is-dragging");
+    const move = (e) => {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const left = clamp(e.clientX - dx, -r.width + 60, vw - 60);
+      const top = clamp(e.clientY - dy, 0, vh - 40);
+      this.el.style.left = `${left}px`;
+      this.el.style.top = `${top}px`;
+      /* 贴边半收 */
+      if (this.sx.floatEdgeDock) {
+        if (left <= 8) this.el.addClass("dock-left");
+        else this.el.removeClass("dock-left");
+        if (left + r.width >= vw - 8) this.el.addClass("dock-right");
+        else this.el.removeClass("dock-right");
+      }
+    };
+    const up = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      this.el.removeClass("is-dragging");
+      this.remember();
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  }
+  startResize(ev) {
+    ev.preventDefault(); ev.stopPropagation();
+    const r = this.el.getBoundingClientRect();
+    const x0 = ev.clientX, y0 = ev.clientY, w0 = r.width, h0 = r.height;
+    this.el.addClass("is-resizing");
+    const move = (e) => {
+      this.el.style.width = `${clamp(Math.round(w0 + e.clientX - x0), 360, 1400)}px`;
+      this.el.style.height = `${clamp(Math.round(h0 + e.clientY - y0), 320, 1200)}px`;
+    };
+    const up = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      this.el.removeClass("is-resizing");
+      this.render();
+      this.remember();
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  }
+  remember() {
+    if (!this.el) return;
+    const r = this.el.getBoundingClientRect();
+    this.sx.floatRect = { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) };
+    this.plugin.saveSettings();
+  }
+  cycleSize() {
+    const order = ["s", "m", "l"];
+    const i = order.indexOf(this.sx.floatSize || "m");
+    const next = order[(i + 1) % order.length];
+    this.sx.floatSize = next;
+    const sz = FLOAT_SIZES[next];
+    this.el.style.width = `${sz.w}px`;
+    this.el.style.height = `${sz.h}px`;
+    this.render();
+    this.remember();
+    new Notice(next === "s" ? "小窗" : next === "m" ? "中窗" : "大窗");
+  }
+  collapseBar() {
+    this.el.toggleClass("is-collapsed");
+  }
+
+  async load(key) {
+    this.key = key || todayStr();
+    const folder = normalizePath(this.sx.rootFolder || "日记");
+    const path = `${folder}/${this.key}.md`;
+    let file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) {
+      file = await this.plugin.createDayFileFor(this.key);
+    }
+    this.file = file;
+    const text = await this.app.vault.read(file);
+    const parsed = parseDay(text, this.sx.headingLevel);
+    this.fm = parsed.fm; this.h1 = parsed.h1;
+    this.layout = normalizeLayout(parsed.layout, this.sx);
+    this.cells = normalizeCells(parsed.cells, parsed.layout, this.sx);
+    this.render();
+  }
+  render() {
+    if (!this.el) return;
+    const el = this.el;
+    const cols = clamp(this.sx.columns, 1, 6);
+    el.style.setProperty("--gd-cols", String(cols));
+    el.style.setProperty("--gd-row-h", `${clamp(this.sx.rowHeight, 80, 600)}px`);
+    el.style.setProperty("--gd-gap", `${clamp(this.sx.gap, 0, 48)}px`);
+    el.style.setProperty("--gd-radius", `${clamp(this.sx.radius, 0, 28)}px`);
+    el.style.setProperty("--gd-accent", this.sx.accent || "#c2704f");
+    el.style.setProperty("--gd-font-size", `${clamp(this.sx.fontSize, 10, 26)}px`);
+    el.classList.toggle("is-hover-lift", !!this.sx.hoverLift);
+
+    this.dateEl.empty();
+    this.dateEl.createSpan({ cls: "gd-float-day", text: `${dateShort(this.key)} ${weekdayCN(this.key)}` });
+    const nav = this.dateEl.createDiv({ cls: "gd-float-nav" });
+    const nb = (t, tt, fn) => { const x = nav.createEl("button", { text: t, cls: "gd-float-mini", attr: { title: tt } }); x.onclick = fn; };
+    nb("‹", "前一天", () => this.load(shiftDate(this.key, -1)));
+    nb("今天", "回到今天", () => this.load(todayStr()));
+    nb("›", "后一天", () => this.load(shiftDate(this.key, 1)));
+    const add = nav.createEl("button", { text: "＋格", cls: "gd-float-mini", attr: { title: "加一格" } });
+    add.onclick = () => this.addCell();
+
+    this.gridEl.empty();
+    this.gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    if (!this.cells.length) this.gridEl.createDiv({ cls: "gd-float-empty", text: "还没有格子，点「＋格」加一个" });
+    this.cells.forEach((c) => this.renderCell(c));
+
+    this.footEl.empty();
+    this.footEl.createSpan({ text: `${this.cells.length} 格 · ${this.cells.reduce((n, x) => n + x.content.length, 0)} 字` });
+    const hint = this.footEl.createSpan({ cls: "gd-float-hint", text: "Ctrl+S 保存 · Esc 关闭" });
+    hint.onclick = () => this.saveNow(true);
+  }
+  renderCell(c) {
+    const el = this.gridEl.createDiv({ cls: "gd-cell gd-float-cell" });
+    el.dataset.border = c.border || this.layout.border || this.sx.defaultBorder || "hair";
+    const head = el.createDiv({ cls: "gd-cell-head" });
+    const ti = head.createEl("input", { cls: "gd-cell-title", attr: { placeholder: "格子标题" } });
+    ti.value = c.title;
+    ti.oninput = () => { c.title = ti.value; this.saveTimer(); };
+    if (c.sticker) head.createSpan({ cls: "gd-cell-sticker", text: c.sticker });
+    const more = head.createEl("button", { cls: "gd-cell-more", text: "＋", attr: { title: "加一格 / 插图" } });
+    more.onclick = () => { this.addCell(); };
+    const body = el.createDiv({ cls: "gd-cell-body" });
+    const ta = body.createEl("textarea", { cls: "gd-cell-editor", attr: { placeholder: "写点什么…" } });
+    ta.value = c.content;
+    ta.oninput = () => { c.content = ta.value; this.saveTimer(); };
+    ta.addEventListener("drop", async (e) => {
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      e.preventDefault();
+      for (const f of Array.from(files).slice(0, 4)) {
+        try {
+          const folder = normalizePath(`${this.sx.rootFolder || "日记"}/attachments`);
+          await this.plugin.ensureFolder(folder);
+          const safe = (f.name || "paste.png").replace(/[\\/:*?"<>|]/g, "_");
+          let path = `${folder}/${safe}`;
+          if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+          await this.app.vault.createBinary(path, await f.arrayBuffer());
+          c.content = (c.content || "") + (c.content && !c.content.endsWith("\n") ? "\n" : "") + `![[${safe}|360]]`;
+          ta.value = c.content;
+          this.saveTimer();
+        } catch (err) { new Notice("拖入失败：" + err.message); }
+      }
+    });
+  }
+  addCell() {
+    new PromptModal(this.app, "新增格子", "标题（可以写成一句问句）", "新格子", (v) => {
+      this.cells.push({ id: uid(), title: v.trim() || "新格子", content: "", cs: 1, rs: 1, h: 0, accent: "", collapsed: false, border: "", sticker: "" });
+      this.render(); this.saveTimer();
+    }).open();
+  }
+  async saveNow(immediate) {
+    this.saveTimer.cancel();
+    if (!(this.file instanceof TFile)) return;
+    try {
+      const text = serializeDay(this.key, this.cells, {
+        fm: this.fm, h1: this.h1, columns: clamp(this.sx.columns, 1, 6),
+        level: this.sx.headingLevel, layout: this.layout,
+      });
+      const cur = await this.app.vault.read(this.file);
+      if (cur === text) return;
+      this.plugin.history.pushUndo(this.file, cur, "悬浮窗编辑");
+      if (this.sx.autoSnapshot && immediate) await this.plugin.history.snapshot(this.file, "悬浮窗");
+      await this.app.vault.modify(this.file, text);
+      this.plugin.notifyRefresh();
+    } catch (e) { console.error("[格间日记] 悬浮窗保存失败", e); }
+  }
+  refresh(key) {
+    if (!this.el) return;
+    if (key && splitDayKey(key).date !== splitDayKey(this.key).date) this.load(key);
+    else this.load(this.key);
+  }
+}
+
+
+/* ---- 06-view-sidebar.js ---- */
+/* ============ 左侧栏：日记目录 · 点击联动主视图 ============
+ * 参照 ozntel/file-tree-alternative 的双面板形态：
+ *   上半 = 文件夹树（可折叠、带数量徽标）
+ *   下半 = 选中文件夹里的文件列表
+ * 中间有一条可拖动的分隔条，比例会记住。
+ * 日记视图（日期命名的 md）会带日历图标，点了直接进九宫格。
+ * ========================================================== */
+
+class SidebarView extends ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    this.plugin = plugin;
+    this.keyword = "";
+    this.activeKey = "";
+    this.activeFolder = "";
+    this.collapsed = new Set();
+    this.summaryCache = new Map();
+    this.collapsedMonth = new Set();
+    this.renderDebounced = debounce(() => this.render(), 120);
+  }
+  getViewType() { return VIEW_SIDEBAR; }
+  getDisplayText() { return "日记目录"; }
+  getIcon() { return ICON_SIDEBAR; }
+
+  async onOpen() { this.build(); await this.render(); }
+
+  build() {
+    const el = this.contentEl;
+    el.empty();
+    el.addClass("gd-root"); el.addClass("gd-sidebar-root");
+    if (IS_MOBILE) el.addClass("is-mobile");
+    el.toggleClass("gd-glow", this.plugin.settings.hoverGlow !== false);
+    el.toggleClass("gd-tree-lines", this.plugin.settings.showTreeLines !== false);
+
+    /* 顶部：默认只留搜索框（用户要求「顶部瘦身」），标题与按钮收进一个 ⋯ 菜单 */
+    el.toggleClass("is-slimtop", this.plugin.settings.treeSlimTop !== false);
+    if (this.plugin.settings.treeSlimTop === false) {
+      const top = el.createDiv({ cls: "gd-side-top" });
+      const title = top.createDiv({ cls: "gd-side-title" });
+      title.createSpan({ text: "格间日记" });
+      title.createEl("small", { text: "目录" });
+      const acts = top.createDiv({ cls: "gd-side-acts" });
+      const mkBtn = (text, tip, fn) => {
+        const b = acts.createEl("button", { text, cls: "gd-tbtn", attr: { title: tip, "aria-label": tip } });
+        b.onclick = (e) => { e.stopPropagation(); fn(); };
+        return b;
+      };
+      mkBtn("今天", "打开今天的日记", () => this.plugin.openDay(todayStr()));
+      mkBtn("＋", "在这一天再写一篇", () => this.plugin.newEntryFor(todayStr()));
+      mkBtn("⟳", "刷新目录", () => this.render());
+    }
+
+    /* 搜索 */
+    const searchRow = el.createDiv({ cls: "gd-side-search" });
+    this.searchInput = searchRow.createEl("input", {
+      cls: "gd-side-search-input",
+      attr: { placeholder: "搜索日期 / 内容 / 文件名…", type: "search" },
+    });
+    this.searchInput.addEventListener("input", () => {
+      this.keyword = this.searchInput.value.trim();
+      this.renderDebounced();
+    });
+    if (this.plugin.settings.treeSlimTop !== false) {
+      const more = searchRow.createEl("button", { cls: "gd-tbtn gd-side-more", text: "⋯", attr: { title: "今天 / 新建 / 刷新 / 排序筛选" } });
+      more.onclick = (e) => { e.stopPropagation(); this.topMenu(e); };
+    }
+
+    /* 双面板：上文件夹 / 下文件 */
+    if (this.plugin.settings.treeTwoPane !== false) {
+      this.body = el.createDiv({ cls: "gd-split" });
+      this.folderPane = this.body.createDiv({ cls: "gd-split-top" });
+      this.splitter = this.body.createDiv({ cls: "gd-split-bar", attr: { title: "拖动调整上下比例" } });
+      this.filePane = this.body.createDiv({ cls: "gd-split-bot" });
+      this.folderListEl = this.folderPane.createDiv({ cls: "gd-tree-folders" });
+      this.fileListEl = this.filePane.createDiv({ cls: "gd-tree-files" });
+      this.applySplit(this.plugin.settings.treePaneRatio || 0.42);
+      this.bindSplitter();
+    } else {
+      this.fileListEl = el.createDiv({ cls: "gd-side-list" });
+    }
+
+    /* 底部（默认隐藏，可在设置里打开） */
+    if (this.plugin.settings.treeShowFoot) {
+      const foot = el.createDiv({ cls: "gd-side-foot" });
+      foot.createEl("button", { text: "时间线 / 版本历史", cls: "gd-side-link" }).onclick = () => this.plugin.openTimeline();
+      foot.createEl("button", { text: "日历", cls: "gd-side-link" }).onclick = () => this.plugin.openCalendar();
+      foot.createEl("button", { text: "设置", cls: "gd-side-link" }).onclick = () => this.plugin.openSettings();
+    }
+  }
+
+  applySplit(ratio) {
+    if (!this.folderPane) return;
+    const r = clamp(ratio, 0.15, 0.85);
+    this.folderPane.style.flex = `0 0 ${(r * 100).toFixed(1)}%`;
+    this.filePane.style.flex = "1 1 auto";
+  }
+
+  bindSplitter() {
+    let dragging = false;
+    const down = (ev) => { dragging = true; this.splitter.addClass("is-dragging"); ev.preventDefault(); };
+    const move = (ev) => {
+      if (!dragging || !this.body) return;
+      const rect = this.body.getBoundingClientRect();
+      const r = clamp((ev.clientY - rect.top) / Math.max(rect.height, 1), 0.15, 0.85);
+      this.applySplit(r);
+    };
+    const up = () => {
+      if (!dragging) return;
+      dragging = false;
+      this.splitter.removeClass("is-dragging");
+      const rect = this.body.getBoundingClientRect();
+      const r = clamp((this.folderPane.getBoundingClientRect().height / Math.max(rect.height, 1)), 0.15, 0.85);
+      this.plugin.settings.treePaneRatio = r;
+      this.plugin.saveSettings();
+    };
+    this.splitter.addEventListener("pointerdown", down);
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  }
+
+  setActive(key) {
+    this.activeKey = key;
+    if (!this.fileListEl) return;
+    for (const row of this.fileListEl.querySelectorAll(".gd-tree-file")) {
+      row.toggleClass("is-active", row.dataset.key === key);
+    }
+  }
+
+  /* ---------- 数据：把 vault 拆成「文件夹树」+「文件清单」 ---------- */
+  collect() {
+    const root = normalizePath(this.plugin.settings.rootFolder || "日记");
+    const s = this.plugin.settings;
+    const all = this.app.vault.getFiles().filter((f) => {
+      if (f.path.includes("/.")) return false;
+      if (f.extension !== "md") return false;
+      if (f.path.startsWith(root + "/")) return true;
+      /* 其他文件夹里的 md 也能看（开关控制），但不含附件目录 */
+      return !!s.treeShowOtherFiles;
+    });
+    const folders = new Map();     // 文件夹路径（相对 root）→ 文件数（含子孙）
+    let rootTotal = 0;
+    for (const f of all) {
+      const inRoot = f.path.startsWith(root + "/");
+      /* 不在日记目录下的文件，用它自己的完整路径当相对路径；
+         以前一律按 root.length+1 去切，会把 AI模型资料/_素材 切成「_素材」。 */
+      const rel = inRoot ? f.path.slice(root.length + 1) : f.path;
+      const dirs = rel.split("/").slice(0, -1);
+      if (inRoot) rootTotal++;
+      let acc = "";
+      for (const p of dirs) {
+        acc = acc ? acc + "/" + p : p;
+        folders.set(acc, (folders.get(acc) || 0) + 1);
+      }
+    }
+    folders.set("", rootTotal);
+    return { root, all, folders };
+  }
+
+  async render() {
+    if (this.plugin.settings.treeTwoPane !== false) this.renderFolders();
+    await this.renderFiles();
+  }
+
+  /* ---------- 文件夹：标题本身就是菜单 ---------- */
+  folderHeadMenu(evt) {
+    const s = this.plugin.settings;
+    const m = new Menu();
+    const tick = (on) => (on ? "✓ " : "");
+
+    /* 排序 */
+    m.addItem((i) => i.setTitle("排序").setIcon("arrow-up-down").setDisabled(true));
+    for (const [v, n] of [["date-desc", "日期 ↓"], ["date-asc", "日期 ↑"], ["name-asc", "名称 A→Z"], ["name-desc", "名称 Z→A"], ["mtime-desc", "最近改过"]]) {
+      m.addItem((i) => i.setTitle("　" + tick(s.treeSortMode === v) + n).onClick(async () => {
+        s.treeSortMode = v; await this.plugin.saveSettings(); this.render();
+      }));
+    }
+    m.addSeparator();
+
+    /* 只看 */
+    m.addItem((i) => i.setTitle("只看").setIcon("filter").setDisabled(true));
+    for (const [v, n] of [["all", "全部"], ["daily", "只看日记"], ["other", "只看其它文件"], ["fav", "只看收藏"]]) {
+      m.addItem((i) => i.setTitle("　" + tick(s.treeFilterMode === v) + n).onClick(async () => {
+        s.treeFilterMode = v; await this.plugin.saveSettings(); this.render();
+      }));
+    }
+    m.addSeparator();
+
+    /* 分组 */
+    m.addItem((i) => i.setTitle("分组").setIcon("layout-list").setDisabled(true));
+    for (const [v, n] of [["smart", "今天 / 昨天 / 前七天 / 更早"], ["month", "按月"], ["none", "不分组"]]) {
+      m.addItem((i) => i.setTitle("　" + tick((s.treeGroupMode || "smart") === v) + n).onClick(async () => {
+        s.treeGroupMode = v; await this.plugin.saveSettings(); this.render();
+      }));
+    }
+    m.addSeparator();
+
+    /* 显示 */
+    m.addItem((i) => i.setTitle(tick(s.treeCompact) + "紧凑模式（一行一个）").setIcon("align-justify").onClick(async () => {
+      s.treeCompact = !s.treeCompact; await this.plugin.saveSettings(); this.build(); this.render();
+    }));
+    m.addItem((i) => i.setTitle(tick(s.treeThumb !== false) + "显示封面缩略图").setIcon("image").onClick(async () => {
+      s.treeThumb = s.treeThumb === false; await this.plugin.saveSettings(); this.render();
+    }));
+    m.addItem((i) => i.setTitle(tick(s.treeShowStats !== false) + "显示篇数和字数").setIcon("hash").onClick(async () => {
+      s.treeShowStats = s.treeShowStats === false; await this.plugin.saveSettings(); this.render();
+    }));
+    m.addSeparator();
+
+    /* 文件夹操作 */
+    m.addItem((i) => i.setTitle("展开全部文件夹").setIcon("chevrons-down").onClick(() => { this.collapsed.clear(); this.renderFolders(); }));
+    m.addItem((i) => i.setTitle("折叠全部文件夹").setIcon("chevrons-up").onClick(() => {
+      for (const k of this.collect().folders.keys()) this.collapsed.add(k);
+      this.renderFolders();
+    }));
+    m.addItem((i) => i.setTitle(s.treeShowHidden ? "收起被隐藏的文件夹" : "显示被隐藏的文件夹").setIcon("eye").onClick(async () => {
+      s.treeShowHidden = !s.treeShowHidden; await this.plugin.saveSettings(); this.renderFolders();
+    }));
+    m.addItem((i) => i.setTitle("新建文件夹…").setIcon("folder-plus").onClick(() => {
+      new PromptModal(this.app, "新建文件夹", "在「" + (this.activeFolder || "日记") + "」下面建一个子文件夹", "", async (v) => {
+        const name = String(v || "").trim().replace(/[\\/:*?"<>|]/g, "_");
+        if (!name) return;
+        const root = normalizePath(this.plugin.settings.rootFolder || "日记");
+        const base = this.activeFolder ? root + "/" + this.activeFolder : root;
+        try {
+          await this.app.vault.createFolder(normalizePath(base + "/" + name));
+          new Notice("已建好文件夹");
+          this.renderFolders();
+        } catch (e) { new Notice("建文件夹失败：" + (e && e.message ? e.message : e)); }
+      }).open();
+    }));
+    m.addSeparator();
+
+    m.addItem((i) => i.setTitle("打开今天的日记").setIcon("calendar-check").onClick(() => this.plugin.openDay(todayStr())));
+    m.addItem((i) => i.setTitle("刷新目录").setIcon("refresh-cw").onClick(() => this.render()));
+    showMenuAt(m, evt);
+  }
+
+  /* 文件夹排序：先按手动顺序，其余按名字 */
+  orderFolders(keys) {
+    const order = Array.isArray(this.plugin.settings.treeFolderOrder) ? this.plugin.settings.treeFolderOrder : [];
+    return keys.slice().sort((a, b) => {
+      if (a === "") return -1;
+      if (b === "") return 1;
+      const ia = order.indexOf(a), ib = order.indexOf(b);
+      if (ia >= 0 && ib >= 0) return ia - ib;
+      if (ia >= 0) return -1;
+      if (ib >= 0) return 1;
+      return a.localeCompare(b, "zh");
+    });
+  }
+
+  folderStyle(key) {
+    const all = this.plugin.settings.treeFolderStyles || {};
+    return all[key] || null;
+  }
+
+  renderFolders() {
+    const el = this.folderListEl;
+    if (!el) return;
+    el.empty();
+    const s = this.plugin.settings;
+    const { root, all, folders } = this.collect();
+    const kw = this.keyword.toLowerCase();
+    const hidden = new Set(Array.isArray(s.treeHiddenFolders) ? s.treeHiddenFolders : []);
+    const showHidden = !!s.treeShowHidden;
+
+    /* 标题就是菜单入口 */
+    const head = el.createDiv({ cls: "gd-tree-head gd-tree-headbtn" });
+    head.createSpan({ text: "文件夹" });
+    head.createSpan({ text: String([...folders.keys()].filter((k) => k !== "").length), cls: "gd-side-count" });
+    head.createSpan({ cls: "gd-tree-headmore", text: "⋯" });
+    head.setAttribute("title", "点这里：排序 / 只看 / 分组 / 显示 / 新建文件夹");
+    head.onclick = (e) => { e.stopPropagation(); this.folderHeadMenu(e); };
+
+    let keys = this.orderFolders([...folders.keys()]);
+
+    for (const key of keys) {
+      if (key !== "" && hidden.has(key) && !showHidden) continue;
+      const depth = key ? key.split("/").length : 0;
+      const name = key ? key.split("/").pop() : root.split("/").pop() || "日记";
+      const isOpen = !this.collapsed.has(key);
+      const st = this.folderStyle(key);
+      const row = el.createDiv({ cls: "gd-tree-folder" + (key === this.activeFolder ? " is-active" : "") + (hidden.has(key) ? " is-hiddenfolder" : "") });
+      row.style.paddingLeft = 6 + depth * 12 + "px";
+      row.dataset.folder = key;
+      if (st && st.color) row.style.setProperty("--gd-tree-folder-color", st.color);
+
+      this.sepInto(el, "folder:" + key);
+      row.createSpan({ cls: "gd-tree-caret", text: isOpen ? "▾" : "▸" });
+      const icon = row.createSpan({ cls: "gd-tree-icon" });
+      this.paintTreeIcon(icon, false, st);
+      row.createSpan({ text: name, cls: "gd-tree-name" });
+      if (s.treeShowBadge !== false) {
+        const n = folders.get(key) || 0;
+        if (n) row.createSpan({ text: String(n), cls: "gd-side-count" });
+      }
+
+      const caret = row.querySelector(".gd-tree-caret");
+      caret.onclick = (e) => {
+        e.stopPropagation();
+        if (this.collapsed.has(key)) this.collapsed.delete(key); else this.collapsed.add(key);
+        this.renderFolders();
+      };
+      row.onclick = () => {
+        this.activeFolder = key;
+        this.renderFolders();
+        this.renderFiles();
+      };
+      row.addEventListener("contextmenu", (e) => this.folderMenu(e, key));
+      this.bindDropTarget(row, key);
+
+      /* 子文件夹 */
+      if (isOpen) {
+        const direct = [...folders.keys()].filter((k) => {
+          if (!k || k === key) return false;
+          const q = key ? key.split("/") : [];
+          const p = k.split("/");
+          if (p.length !== q.length + 1) return false;
+          return q.every((seg, i) => seg === p[i]);
+        });
+        for (const ck of this.orderFolders(direct.sort((x, y) => x.localeCompare(y, "zh")))) {
+          if (hidden.has(ck) && !showHidden) continue;
+          const cn = ck.split("/").pop();
+          const cst = this.folderStyle(ck);
+          const crow = el.createDiv({ cls: "gd-tree-folder is-child" + (ck === this.activeFolder ? " is-active" : "") + (hidden.has(ck) ? " is-hiddenfolder" : "") });
+          crow.style.paddingLeft = 6 + (depth + 1) * 12 + "px";
+          crow.dataset.folder = ck;
+          if (cst && cst.color) crow.style.setProperty("--gd-tree-folder-color", cst.color);
+          crow.createSpan({ cls: "gd-tree-caret", text: this.collapsed.has(ck) ? "▸" : "▾" });
+          const ci = crow.createSpan({ cls: "gd-tree-icon" });
+          this.paintTreeIcon(ci, false, cst);
+          crow.createSpan({ text: cn, cls: "gd-tree-name" });
+          const n = folders.get(ck) || 0;
+          if (n) crow.createSpan({ text: String(n), cls: "gd-side-count" });
+          crow.onclick = (e) => {
+            e.stopPropagation();
+            this.activeFolder = ck;
+            this.renderFolders();
+            this.renderFiles();
+          };
+          crow.addEventListener("contextmenu", (e) => this.folderMenu(e, ck));
+          this.bindDropTarget(crow, ck);
+        }
+      }
+      if (kw && !name.toLowerCase().includes(kw)) row.addClass("is-dim");
+    }
+  }
+
+  async renderFiles() {
+    const el = this.fileListEl;
+    if (!el) return;
+    el.empty();
+    const s = this.plugin.settings;
+    el.toggleClass("is-compact", !!s.treeCompact);
+    const { root, all } = this.collect();
+    const folder = this.activeFolder || "";
+    const kw = this.keyword.toLowerCase();
+
+    let files = all.filter((f) => {
+      const inRoot = f.path.startsWith(root + "/");
+      const rel = inRoot ? f.path.slice(root.length + 1) : f.path;
+      const dir = rel.includes("/") ? rel.slice(0, rel.lastIndexOf("/")) : "";
+      return folder ? dir === folder || dir.startsWith(folder + "/") : true;
+    });
+
+    if (kw) {
+      const picked = [];
+      for (const f of files) {
+        let hit = f.basename.toLowerCase().includes(kw);
+        if (!hit) hit = (await this.summary(f)).text.toLowerCase().includes(kw);
+        if (hit) picked.push(f);
+      }
+      files = picked;
+    }
+
+    const fm = s.treeFilterMode || "all";
+    const favSet = new Set(Array.isArray(s.favoriteFiles) ? s.favoriteFiles : []);
+    if (fm === "daily") files = files.filter((f) => DATE_RE.test(f.name));
+    else if (fm === "other") files = files.filter((f) => !DATE_RE.test(f.name));
+    else if (fm === "fav") files = files.filter((f) => favSet.has(f.path));
+
+    const sm = s.treeSortMode || "date-desc";
+    const byName = (a, b) => a.basename.localeCompare(b.basename, "zh");
+    const byDate = (a, b) => {
+      const da = splitDayKey(a.basename), db = splitDayKey(b.basename);
+      if (da.date !== db.date) return db.date.localeCompare(da.date);
+      const va = cnValue(da.suffix), vb = cnValue(db.suffix);
+      return (Number.isFinite(va) ? va : 999) - (Number.isFinite(vb) ? vb : 999);
+    };
+    if (sm === "date-asc") files.sort((a, b) => -byDate(a, b));
+    else if (sm === "name-asc") files.sort(byName);
+    else if (sm === "name-desc") files.sort((a, b) => -byName(a, b));
+    else if (sm === "mtime-desc") files.sort((a, b) => (b.stat ? b.stat.mtime : 0) - (a.stat ? a.stat.mtime : 0));
+    else files.sort(byDate);
+
+    /* 标题行：文件夹名 + 篇数 */
+    const head = el.createDiv({ cls: "gd-tree-head" });
+    head.createSpan({ text: folder ? folder.split("/").pop() : "全部日记" });
+    head.createSpan({ text: String(files.length) + " 篇", cls: "gd-side-count" });
+
+    if (!files.length) {
+      el.createDiv({ cls: "gd-empty", text: kw ? "没有匹配的笔记" : "这个文件夹里还没有笔记" });
+      return;
+    }
+
+    const gm = s.treeGroupMode || "smart";
+
+    if (gm === "none") {
+      for (const f of files) await this.renderFileRow2(f, el);
+      return;
+    }
+
+    /* 分桶 */
+    const buckets = new Map();
+    const today = todayStr();
+    const yest = shiftDate(today, -1);
+    const weekAgo = shiftDate(today, -7);
+    for (const f of files) {
+      const d = splitDayKey(f.basename).date || "";
+      let bk;
+      if (gm === "month") bk = d ? d.slice(0, 7) : "其他";
+      else {
+        if (!d) bk = "其他";
+        else if (d === today) bk = "今天";
+        else if (d === yest) bk = "昨天";
+        else if (d > weekAgo) bk = "前七天";
+        else bk = "更早";
+      }
+      if (!buckets.has(bk)) buckets.set(bk, []);
+      buckets.get(bk).push(f);
+    }
+
+    const SMART_ORDER = ["今天", "昨天", "前七天", "更早", "其他"];
+    const list = gm === "month"
+      ? [...buckets.keys()].sort((a, b) => b.localeCompare(a))
+      : SMART_ORDER.filter((k) => buckets.has(k));
+
+    for (const bk of list) {
+      const items = buckets.get(bk);
+      const shut = this.collapsedMonth.has(bk);
+      const gh = el.createDiv({ cls: "gd-tree-group gd-tree-month" + (shut ? " is-shut" : "") });
+      gh.createSpan({ cls: "gd-tree-caret", text: shut ? "▸" : "▾" });
+      gh.createSpan({ text: gm === "month" && bk !== "其他" ? bk.replace("-", " 年 ") + " 月" : bk });
+      gh.createSpan({ text: String(items.length), cls: "gd-side-count" });
+      gh.onclick = () => {
+        if (this.collapsedMonth.has(bk)) this.collapsedMonth.delete(bk); else this.collapsedMonth.add(bk);
+        this.renderFiles();
+      };
+      if (shut) continue;
+      for (const f of items) await this.renderFileRow2(f, el);
+    }
+  }
+
+  async renderFileRow2(file, parent) {
+    const key = file.basename;
+    const isDaily = DATE_RE.test(file.name);
+    const { suffix } = splitDayKey(key);
+    const s = this.plugin.settings;
+    const favs = Array.isArray(s.favoriteFiles) ? s.favoriteFiles : [];
+    const isFav = favs.includes(file.path);
+    const row = parent.createDiv({ cls: "gd-tree-file" + (key === this.activeKey ? " is-active" : "") + (isFav ? " is-fav" : "") });
+    row.dataset.key = key;
+
+    /* 封面缩略图（用户要的「封面缩略图」） */
+    const info = await this.summary(file);
+    const showThumb = s.treeThumb !== false && !s.treeCompact;
+    if (showThumb) {
+      /* 小图钉：一个空格宽的方块，有图用图，没图用强调色 */
+      const th = row.createDiv({ cls: "gd-tree-thumb" });
+      const url = info.img ? this.plugin.thumbUrl(info.img) : "";
+      if (url) th.style.backgroundImage = 'url("' + url + '")';
+      else th.addClass("is-empty");
+    } else {
+      /* 没图钉的时候才出小圆点，两者不重复 */
+      const icon = row.createSpan({ cls: "gd-tree-icon" });
+      this.paintTreeIcon(icon, isDaily, null);
+    }
+
+    const main = row.createDiv({ cls: "gd-tree-file-main" });
+    const name = isDaily ? dateShort(key) + (suffix ? " · 第 " + suffix + " 篇" : "") : file.basename;
+    const nameEl = main.createDiv({ cls: "gd-tree-file-name", text: name });
+    nameEl.setAttribute("title", name);
+    if (s.treeCompact) {
+      if (s.treeShowStats !== false) row.createSpan({ cls: "gd-tree-wd", text: weekdayCN(key) });
+    } else {
+      const sub = main.createDiv({ cls: "gd-tree-file-sub", text: info.text });
+      sub.setAttribute("title", info.text);
+    }
+    if (!s.treeCompact && s.treeShowStats !== false) {
+      const bits = [];
+      if (isDaily) bits.push(weekdayCN(key));
+      if (info.words) bits.push(info.words + " 字");
+      if (bits.length) row.createSpan({ cls: "gd-tree-wd", text: bits.join(" · ") });
+    }
+    if (s.treeDragMove !== false) this.bindDragRow(row, file);
+
+    row.onclick = () => {
+      if (isDaily) this.plugin.openDay(key); else this.app.workspace.getLeaf(true).openFile(file);
+    };
+    row.addEventListener("contextmenu", (e) => this.showItemMenu(e, file));
+  }
+
+  /* ---------- 图标：默认干净（文件夹可自定义 emoji / 图标） ---------- */
+  paintTreeIcon(icon, isDaily, st) {
+    icon.className = "gd-tree-icon";
+    icon.empty();
+    if (st && st.emoji) { icon.addClass("is-emoji"); icon.setText(st.emoji); return; }
+    if (st && st.icon) { setIcon(icon, st.icon); return; }
+    if (isDaily) { icon.addClass("is-dot"); return; }
+    icon.addClass("is-dot");
+  }
+
+  /* ---------- 分隔符：线体或图（A3） ---------- */
+  sepInto(parent, key) {
+    const st = this.plugin.settings.treeSepStyle || "none";
+    if (st === "none") return;
+    if (st === "char" || st === "image") {
+      const ch = this.plugin.settings.treeSepChar || "";
+      if (!ch) return;
+      if (st === "image") {
+        const img = parent.createSpan({ cls: "gd-tree-sep is-img", attr: { title: "分隔" } });
+        img.style.backgroundImage = 'url("' + ch + '")';
+        return;
+      }
+      parent.createSpan({ cls: "gd-tree-sep is-char", text: ch });
+      return;
+    }
+    parent.createSpan({ cls: "gd-tree-sep is-" + st, attr: { "aria-hidden": "true" } });
+  }
+
+  /* ---------- 顶部 ⋯ 菜单（瘦身模式下替代原来的三个按钮） ---------- */
+  topMenu(evt) {
+    const m = new Menu();
+    m.addItem((i) => i.setTitle("打开今天的日记").setIcon("calendar-check").onClick(() => this.plugin.openDay(todayStr())));
+    m.addItem((i) => i.setTitle("今天再写一篇").setIcon("calendar-plus").onClick(() => this.plugin.newEntryFor(todayStr())));
+    m.addItem((i) => i.setTitle("刷新目录").setIcon("refresh-cw").onClick(() => this.render()));
+    m.addSeparator();
+    m.addItem((i) => i.setTitle("打开时间线").setIcon("git-branch").onClick(() => this.plugin.openTimeline()));
+    m.addItem((i) => i.setTitle("时间线浮窗").setIcon("picture-in-picture-2").onClick(() => this.plugin.openTimelineFloat()));
+    m.addItem((i) => i.setTitle("打开日历").setIcon("calendar").onClick(() => this.plugin.openCalendar()));
+    m.addItem((i) => i.setTitle("表格形态看这一天").setIcon("table").onClick(() => this.plugin.openTable(this.plugin.keyOfGridView())));
+    m.addSeparator();
+    m.addItem((i) => i.setTitle("展开全部月份").setIcon("chevrons-down").onClick(() => { this.collapsedMonth.clear(); this.renderFiles(); }));
+    m.addItem((i) => i.setTitle("折叠全部月份").setIcon("chevrons-up").onClick(() => {
+      const all = this.collect().all;
+      for (const f of all) { const d = splitDayKey(f.basename).date; if (d) this.collapsedMonth.add(d.slice(0, 7)); }
+      this.renderFiles();
+    }));
+    showMenuAt(m, evt);
+  }
+
+  /* ---------- 拖拽移动文件 / 文件夹（A4） ---------- */
+  bindDragRow(row, file) {
+    row.setAttribute("draggable", "true");
+    row.addEventListener("dragstart", (e) => {
+      this._dragFile = file;
+      row.addClass("is-dragging");
+      try { e.dataTransfer.setData("text/plain", file.path); e.dataTransfer.effectAllowed = "move"; } catch (_) { }
+    });
+    row.addEventListener("dragend", () => { this._dragFile = null; row.removeClass("is-dragging"); });
+  }
+
+  bindDropTarget(row, folderPath) {
+    if (this.plugin.settings.treeDragMove === false) return;
+    const ok = () => !!this._dragFile && this._dragFile.parent && this._dragFile.parent.path !== folderPath;
+    row.addEventListener("dragover", (e) => { if (ok()) { e.preventDefault(); row.addClass("is-drop"); } });
+    row.addEventListener("dragleave", () => row.removeClass("is-drop"));
+    row.addEventListener("drop", async (e) => {
+      row.removeClass("is-drop");
+      const f = this._dragFile;
+      if (!ok()) return;
+      e.preventDefault(); e.stopPropagation();
+      const root = normalizePath(this.plugin.settings.rootFolder || "日记");
+      const target = normalizePath((folderPath ? root + "/" + folderPath : root) + "/" + f.name);
+      try {
+        await this.app.fileManager.renameFile(f, target);
+        new Notice("已移动到 " + (folderPath || "根目录"));
+        this.plugin.refreshAll();
+      } catch (err) { new Notice("移动失败：" + (err && err.message ? err.message : err)); }
+      this._dragFile = null;
+    });
+  }
+
+  folderMenu(evt, folder) {
+    const m = new Menu();
+    m.addItem((i) => i.setTitle("只在这个文件夹里看").setIcon("filter").onClick(() => {
+      this.activeFolder = folder; this.renderFolders(); this.renderFiles();
+    }));
+    m.addItem((i) => i.setTitle("看全部日记").setIcon("layers").onClick(() => {
+      this.activeFolder = ""; this.renderFolders(); this.renderFiles();
+    }));
+    if (folder) {
+      m.addSeparator();
+      m.addItem((i) => i.setTitle("今天在这个文件夹里写一篇").setIcon("calendar-plus").onClick(async () => {
+        const old = this.plugin.settings.rootFolder;
+        this.plugin.settings.rootFolder = normalizePath(old + "/" + folder);
+        await this.plugin.newEntryFor(todayStr());
+        this.plugin.settings.rootFolder = old;
+      }));
+      m.addItem((i) => i.setTitle("这个文件夹的外观…").setIcon("palette").onClick(() => this.folderAppearanceMenu(folder)));
+      const hid = Array.isArray(this.plugin.settings.treeHiddenFolders) ? this.plugin.settings.treeHiddenFolders : [];
+      const isHid = hid.includes(folder);
+      m.addItem((i) => i.setTitle(isHid ? "取消隐藏" : "隐藏这个文件夹").setIcon(isHid ? "eye" : "eye-off").onClick(async () => {
+        let arr = hid.slice();
+        if (isHid) arr = arr.filter((x) => x !== folder); else arr.push(folder);
+        this.plugin.settings.treeHiddenFolders = arr;
+        await this.plugin.saveSettings();
+        this.renderFolders();
+      }));
+      m.addItem((i) => i.setTitle("上移一位").setIcon("arrow-up").onClick(async () => this.shiftFolder(folder, -1)));
+      m.addItem((i) => i.setTitle("下移一位").setIcon("arrow-down").onClick(async () => this.shiftFolder(folder, 1)));
+    }
+    showMenuAt(m, evt);
+  }
+
+  async summary(file) {
+    const cached = this.summaryCache.get(file.path);
+    if (cached && cached.mtime === file.stat.mtime) return cached;
+    let text = "", img = "", words = 0;
+    try {
+      const raw = await this.app.vault.cachedRead(file);
+      const parsed = parseDay(raw);
+      const filled = parsed.cells.find((c) => c.content && c.content.trim());
+      text = filled ? truncate(`${filled.title} · ${filled.content}`, 60) : "（空）";
+      for (const c of parsed.cells) if (c.content) words += c.content.replace(/\s/g, "").length;
+      for (const c of parsed.cells) {
+        const m = /!\[\[([^\]|]+)|!\[[^\]]*\]\(([^)]+)\)/.exec(c.content || "");
+        if (m) { img = (m[1] || m[2] || "").trim(); break; }
+      }
+      if (!img && parsed.layout && parsed.layout.cover) img = parsed.layout.cover;
+    } catch (e) { text = ""; }
+    const out = { mtime: file.stat.mtime, text, img, words };
+    this.summaryCache.set(file.path, out);
+    return out;
+  }
+  showItemMenu(evt, file) {
+    const menu = new Menu();
+    const isDay = DATE_RE.test(file.name);
+    const key = isDay ? file.basename : "";
+    const s = this.plugin.settings;
+
+    /* ---- 打开（对齐原生 + 格子视图） ---- */
+    if (isDay) {
+      menu.addItem((i) => i.setTitle("在格子里打开").setIcon("layout-grid").onClick(() => this.plugin.openDay(key)));
+      menu.addItem((i) => i.setTitle("用表格打开").setIcon("table").onClick(() => this.plugin.openTable(key)));
+      menu.addItem((i) => i.setTitle("放到右侧栏打开").setIcon("sidebar-right").onClick(() => {
+        this.app.workspace.getRightLeaf(false).setViewState({ type: "gd-grid-view", state: { key } });
+      }));
+    }
+    menu.addItem((i) => i.setTitle("在新标签页打开").setIcon("file-plus").onClick(() => this.app.workspace.getLeaf("tab").openFile(file)));
+    menu.addItem((i) => i.setTitle("在新窗口打开").setIcon("popup-open").onClick(() => {
+      this.app.workspace.openPopoutLeaf && this.app.workspace.openPopoutLeaf().openFile(file);
+    }));
+    menu.addSeparator();
+
+    /* ---- 编辑 ---- */
+    menu.addItem((i) => i.setTitle("重命名…").setIcon("pencil").onClick(async () => {
+      new PromptModal(this.app, "重命名", "新的文件名（不含 .md）", file.basename, async (v) => {
+        const name = String(v || "").trim();
+        if (!name || name === file.basename) return;
+        const folder = file.parent ? file.parent.path : "";
+        const target = normalizePath((folder ? folder + "/" : "") + name + ".md");
+        try {
+          await this.app.fileManager.renameFile(file, target);
+          new Notice("已重命名");
+          this.plugin.refreshAll();
+        } catch (e) { new Notice("重命名失败：" + (e && e.message ? e.message : e)); }
+      }).open();
+    }));
+    menu.addItem((i) => i.setTitle("复制一份").setIcon("copy").onClick(() => {
+      try {
+        this.app.fileManager.duplicateFile(file);
+        new Notice("已复制一份");
+      } catch (e) {
+        /* 老版本 Obsidian 没有 duplicateFile，退回自己复制 */
+        (async () => {
+          const folder = file.parent ? file.parent.path : "";
+          const data = await this.app.vault.read(file);
+          const base = file.basename + " 副本";
+          let path = normalizePath((folder ? folder + "/" : "") + base + ".md");
+          let n = 2;
+          while (this.app.vault.getAbstractFileByPath(path)) {
+            path = normalizePath((folder ? folder + "/" : "") + base + " " + n + ".md");
+            n++;
+          }
+          await this.app.vault.create(path, data);
+          new Notice("已复制一份");
+          this.plugin.refreshAll();
+        })();
+      }
+    }));
+    menu.addItem((i) => i.setTitle("移动到…").setIcon("folder-input").onClick(() => this.moveMenu(file)));
+    menu.addSeparator();
+
+    /* ---- 自定义：收藏 / 封面 / 皮肤 ---- */
+    const favs = s.favoriteFiles || [];
+    const isFav = favs.includes(file.path);
+    menu.addItem((i) => i.setTitle(isFav ? "取消收藏" : "收藏这篇").setIcon(isFav ? "star-off" : "star")
+      .onClick(async () => {
+        let arr = Array.isArray(s.favoriteFiles) ? s.favoriteFiles.slice() : [];
+        if (isFav) arr = arr.filter((x) => x !== file.path);
+        else arr.unshift(file.path);
+        s.favoriteFiles = arr.slice(0, 50);
+        await this.plugin.saveSettings();
+        this.render();
+      }));
+    if (isDay) {
+      menu.addItem((i) => i.setTitle("给这天设封面…").setIcon("image").onClick(async () => {
+        const f = await chooseLocalFile({ accept: "image/*" });
+        if (!f) return;
+        await this.plugin.setCoverFor(key, f);
+      }));
+      menu.addItem((i) => i.setTitle("这一篇换皮肤").setIcon("palette").onClick(() => {
+        const m = new Menu();
+        for (const [v, n] of THEMES) {
+          m.addItem((x) => x.setTitle(n).setChecked(s.theme === v).onClick(async () => {
+            await this.plugin.applySkinToAll(v, null, 0, [key]);
+          }));
+        }
+        const md = this.app.workspace.containerEl;
+        showMenuAt(m, { clientX: evt.clientX, clientY: evt.clientY, preventDefault() {}, currentTarget: md });
+      }));
+    }
+    menu.addSeparator();
+
+    /* ---- 版本与快照 ---- */
+    menu.addItem((i) => i.setTitle("查看版本历史 / 恢复").setIcon("history").onClick(() => new SnapshotModal(this.app, this.plugin, file).open()));
+    menu.addItem((i) => i.setTitle("立即存快照").setIcon("save").onClick(async () => {
+      await this.plugin.history.snapshot(file, "手动", true);
+      new Notice("已保存快照");
+    }));
+    menu.addSeparator();
+
+    /* ---- 系统与路径（原生功能） ---- */
+    menu.addItem((i) => i.setTitle("复制文件名").setIcon("clipboard").onClick(() => {
+      navigator.clipboard.writeText(file.basename); new Notice("已复制");
+    }));
+    menu.addItem((i) => i.setTitle("复制笔记库内路径").setIcon("clipboard-list").onClick(() => {
+      navigator.clipboard.writeText(file.path); new Notice("已复制路径");
+    }));
+    menu.addItem((i) => i.setTitle("复制完整路径").setIcon("hard-drive").onClick(() => {
+      const base = this.app.vault.adapter.basePath || "";
+      navigator.clipboard.writeText(base ? normalizePath(base + "/" + file.path) : file.path);
+      new Notice("已复制完整路径");
+    }));
+    if (this.app.showInFolder) {
+      menu.addItem((i) => i.setTitle("在系统文件管理器里显示").setIcon("folder-open").onClick(() => {
+        try { this.app.showInFolder(file.path); } catch (e) { new Notice("打不开文件管理器"); }
+      }));
+    }
+    menu.addSeparator();
+
+    /* ---- 删除 ---- */
+    menu.addItem((i) => i.setTitle("删除这篇（可恢复）").setIcon("trash").onClick(() => {
+      new ConfirmModal(this.app, "删除这篇日记？", `${file.basename}.md 会移进 Obsidian 回收站，同时留一份完整快照，可随时恢复。`, async () => {
+        const content = await this.app.vault.read(file);
+        this.plugin.history.recordDelete(file, content);
+        this.plugin.history.pushUndo(file, content, "删除日记");
+        await this.plugin.history.snapshot(file, "删除前", true);
+        await this.app.vault.trash(file, false);
+        new Notice("已移入回收站，可用「撤销」恢复");
+        this.plugin.refreshAll();
+      }).open();
+    }));
+    menu.addItem((i) => i.setTitle("永久删除…").setIcon("trash-2").onClick(() => {
+      new ConfirmModal(this.app, "永久删除？", "这个操作不进回收站，删了就找不回来（快照里还有一份，但正文会没）。", async () => {
+        const content = await this.app.vault.read(file);
+        this.plugin.history.recordDelete(file, content);
+        await this.app.vault.delete(file, true);
+        new Notice("已永久删除");
+        this.plugin.refreshAll();
+      }, "永久删除", "取消").open();
+    }));
+
+    showMenuAt(menu, evt);
+  }
+
+  /* 移动到别的文件夹 */
+  moveMenu(file) {
+    const m = new Menu();
+    const folders = [""];
+    for (const f of this.app.vault.getAllLoadedFiles()) {
+      if (f.path && f.children) folders.push(f.path);
+    }
+    const cur = file.parent ? file.parent.path : "";
+    for (const f of folders.slice(0, 40)) {
+      if (f === cur) continue;
+      m.addItem((i) => i.setTitle(f || "/（库根目录）").setIcon("folder").onClick(async () => {
+        const target = normalizePath((f ? f + "/" : "") + file.name);
+        try {
+          await this.app.fileManager.renameFile(file, target);
+          new Notice("已移动");
+          this.plugin.refreshAll();
+        } catch (e) { new Notice("移动失败：" + (e && e.message ? e.message : e)); }
+      }));
+    }
+    showMenuAt(m, { clientX: 0, clientY: 0, preventDefault() {}, stopPropagation() {}, currentTarget: this.contentEl });
+  }
+
+  /* ---------- 每个文件夹独立外观 ---------- */
+  folderAppearanceMenu(folder) {
+    const m = new Menu();
+    const s = this.plugin.settings;
+    const st = this.folderStyle(folder) || {};
+    m.addItem((i) => i.setTitle("选个颜色").setIcon("droplet").onClick(() => {
+      const cm = new Menu();
+      for (const [n, v] of [["墨黑", "#3b3f45"], ["雾蓝", "#5b7fa6"], ["苔绿", "#6f8f5e"], ["赭石", "#a8744a"], ["紫灰", "#806d94"], ["砖红", "#b4574e"], ["金", "#b08b3e"], ["不用颜色", ""]]) {
+        cm.addItem((x) => x.setTitle(n).onClick(async () => {
+          const all = s.treeFolderStyles || {};
+          all[folder] = Object.assign({}, all[folder] || {}, { color: v });
+          s.treeFolderStyles = all;
+          await this.plugin.saveSettings();
+          this.renderFolders();
+        }));
+      }
+      showMenuAt(cm, { clientX: 240, clientY: 240, preventDefault() { }, currentTarget: this.contentEl });
+    }));
+    m.addItem((i) => i.setTitle("选个表情当图标").setIcon("smile").onClick(() => {
+      const em = new Menu();
+      for (const e of ["📁", "📚", "🗂", "📔", "✍️", "🎧", "🌿", "☕", "🌙", "⭐", "🐟", "🎨", "不用表情", ""]) {
+        em.addItem((x) => x.setTitle(e || "（清空）").onClick(async () => {
+          const all = s.treeFolderStyles || {};
+          all[folder] = Object.assign({}, all[folder] || {}, { emoji: e, icon: "" });
+          s.treeFolderStyles = all;
+          await this.plugin.saveSettings();
+          this.renderFolders();
+        }));
+      }
+      showMenuAt(em, { clientX: 240, clientY: 260, preventDefault() { }, currentTarget: this.contentEl });
+    }));
+    m.addItem((i) => i.setTitle("用图标字体").setIcon("icons").onClick(() => {
+      const im = new Menu();
+      for (const ic of ["folder", "book", "notebook-pen", "library", "archive", "star", "heart", "leaf", "coffee", "moon"]) {
+        im.addItem((x) => x.setTitle(ic).setIcon(ic).onClick(async () => {
+          const all = s.treeFolderStyles || {};
+          all[folder] = Object.assign({}, all[folder] || {}, { icon: ic, emoji: "" });
+          s.treeFolderStyles = all;
+          await this.plugin.saveSettings();
+          this.renderFolders();
+        }));
+      }
+      showMenuAt(im, { clientX: 240, clientY: 260, preventDefault() { }, currentTarget: this.contentEl });
+    }));
+    m.addSeparator();
+    m.addItem((i) => i.setTitle("恢复这个文件夹的默认外观").setIcon("rotate-ccw").onClick(async () => {
+      const all = s.treeFolderStyles || {};
+      delete all[folder];
+      s.treeFolderStyles = all;
+      await this.plugin.saveSettings();
+      this.renderFolders();
+    }));
+    showMenuAt(m, { clientX: 240, clientY: 240, preventDefault() { }, currentTarget: this.contentEl });
+  }
+
+  /* 文件夹手动排序 */
+  async shiftFolder(folder, dir) {
+    const keys = this.orderFolders([...this.collect().folders.keys()]).filter((k) => k !== "");
+    const i = keys.indexOf(folder);
+    if (i < 0) return;
+    const j = i + dir;
+    if (j < 0 || j >= keys.length) return;
+    const arr = keys.slice();
+    const t0 = arr[i]; arr[i] = arr[j]; arr[j] = t0;
+    this.plugin.settings.treeFolderOrder = arr;
+    await this.plugin.saveSettings();
+    this.renderFolders();
+  }
+
+  async onClose() { this.renderDebounced.cancel(); }
+}
+
+
+/* ---- 07-calendar-panel.js ---- */
+/* ============ 日历面板：5 骨架 × 6 纹理 + 农历 / 节气 / 节日 ============
+ * 设计原则（来自用户 2026-11-07 的定稿）：
+ *   1. 骨架决定「日期怎么排」，纹理决定「底子怎么画」，两者可自由组合 —— 5×6 = 30 种外观，
+ *      代码只写 11 份，不用为每一款外观单独写一遍。
+ *   2. 底图由用户自设，可放左上 / 右下 / 双角 / 铺满，可以拖动位置；文字必须自动保底可读。
+ *   3. 左键：有日记就打开，没有就新建后打开；**已有多篇时先问要不要再建一篇**。
+ *   4. 右键：写第二篇 / 只看这天 / 给这天换壁纸 / 标记纪念日。
+ *
+ * 这个类只负责「画」，不持有日记数据之外的任何状态；所有写入都走 plugin 的 API。
+ * ============================================================ */
+
+const CAL_WEEK_HEAD = ["日", "一", "二", "三", "四", "五", "六"];
+const CAL_MONTH_CN = ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
+
+class CalendarPanel {
+  constructor(plugin) {
+    this.plugin = plugin;
+    this.el = null;
+    this.anchor = todayStr();        // 聚焦日期
+    this.index = null;               // Map<date, {count, files[]}>
+    this.sumCache = new Map();       // LRU: date -> {words, thumb, stickers}
+    this.drag = null;
+    this.refreshTimer = debounce(() => this.refresh(), 240);
+  }
+  get app() { return this.plugin.app; }
+  get sx() { return this.plugin.settings; }
+  get skel() { return this.sx.calSkeleton || "grid"; }
+  get texture() { return this.sx.calTexture || "paper"; }
+
+  /* ---------- 生命周期 ---------- */
+  attachDir() { return this.plugin.attachDir(); }
+
+  openInPane(container) {
+    this.el = container;
+    this.el.addClass("gd-cal-panel");
+    this.buildIndex();
+    this.render();
+  }
+  close() { this.el = null; }
+
+  /* ---------- 数据索引：只扫文件名，正文按需惰性读 ---------- */
+  buildIndex() {
+    const map = new Map();
+    for (const f of this.plugin.dayFiles()) {
+      const d = splitDayKey(f.basename).date;
+      if (!d) continue;
+      const cur = map.get(d) || { count: 0, files: [] };
+      cur.count++;
+      cur.files.push(f);
+      map.set(d, cur);
+    }
+    this.index = map;
+  }
+  info(dateStr) { return (this.index && this.index.get(dateStr)) || { count: 0, files: [] }; }
+  has(dateStr) { return this.info(dateStr).count > 0; }
+
+  /* 某天的摘要（字数 / 首图 / 贴纸），带 LRU 上限 */
+  async detail(dateStr) {
+    if (this.sumCache.has(dateStr)) {
+      const v = this.sumCache.get(dateStr);
+      this.sumCache.delete(dateStr);
+      this.sumCache.set(dateStr, v);
+      return v;
+    }
+    const out = { words: 0, thumb: "", stickers: [] };
+    const it = this.info(dateStr);
+    if (it.count) {
+      try {
+        const raw = await this.app.vault.read(it.files[0]);
+        const parsed = parseDay(raw, this.sx.headingLevel);
+        let w = 0;
+        for (const c of parsed.cells) w += (c.content || "").replace(/\s/g, "").length;
+        out.words = w;
+        const lay = parsed.layout || {};
+        out.stickers = Array.isArray(lay.stickers) ? lay.stickers : [];
+        if (laysCover(lay)) out.thumb = lay.cover;
+        else {
+          for (const c of parsed.cells) {
+            const m = firstImageOf(c.content);
+            if (m) { out.thumb = m; break; }
+          }
+        }
+      } catch (e) { /* 读不到就当空 */ }
+    }
+    this.sumCache.set(dateStr, out);
+    if (this.sumCache.size > 200) this.sumCache.delete(this.sumCache.keys().next().value);
+    return out;
+  }
+  thumbOf(link) {
+    if (!link) return "";
+    if (/^https?:/i.test(link)) return link;
+    const f = this.app.metadataCache.getFirstLinkpathDest(link, "");
+    return f ? this.app.vault.getResourcePath(f) : "";
+  }
+
+  /* ---------- 渲染入口 ---------- */
+  refresh() { if (this.el) { this.buildIndex(); this.render(); } }
+
+  render() {
+    if (!this.el) return;
+    this.el.empty();
+    this.el.dataset.skeleton = this.skel;
+    this.el.dataset.texture = this.texture;
+    this.applyWallpaper();
+    this.renderTop();
+    const body = this.el.createDiv({ cls: "gd-cal-body" });
+    this.bodyEl = body;
+    const fn = {
+      grid: () => this.renderGrid(body),
+      strip: () => this.renderStrip(body),
+      annual: () => this.renderAnnual(body),
+      hero: () => this.renderHero(body),
+      split: () => this.renderSplit(body),
+      dual: () => this.renderDual(body),
+    }[this.skel] || (() => this.renderGrid(body));
+    fn();
+    this.paintExtras();
+  }
+
+  /* 底图：位置四选一 + 蒙层 + 文字反色兜底 */
+  applyWallpaper() {
+    const el = this.el;
+    const wp = this.sx.calWallpaper;
+    el.classList.remove("is-wall", "is-wall-full", "is-wall-corner");
+    el.style.removeProperty("--gd-cal-wall");
+    el.style.removeProperty("--gd-cal-wall-opacity");
+    el.style.removeProperty("--gd-cal-wall-blur");
+    if (!wp) return;
+    const url = this.thumbOf(wp);
+    if (!url) return;
+    el.classList.add("is-wall");
+    const pos = this.sx.calWallpaperPos || "left-top";
+    if (pos === "full") el.classList.add("is-wall-full");
+    else el.classList.add("is-wall-corner");
+    el.dataset.wallPos = pos;
+    el.style.setProperty("--gd-cal-wall", `url("${url}")`);
+    /* 底图裁剪：把 size / position 也写成变量，CSS 里直接吃 */
+    const cc = cropCss(this.plugin.settings.calWallCrop);
+    el.style.setProperty("--gd-cal-wall-size", cc ? cc.size : "cover");
+    el.style.setProperty("--gd-cal-wall-pos", cc ? cc.position : (this.plugin.settings.calWallpaperPos === "left-top" ? "0% 0%" : "50% 50%"));
+    el.style.setProperty("--gd-cal-wall-opacity", String(clamp(this.sx.calWallpaperOpacity ?? 0.85, 0.1, 1)));
+    el.style.setProperty("--gd-cal-wall-blur", `${clamp(this.sx.calWallpaperBlur || 0, 0, 12)}px`);
+  }
+
+  /* 顶栏：‹ 今天 › + 周期胶囊 + 骨架/纹理切换 */
+  renderTop() {
+    const top = this.el.createDiv({ cls: "gd-cal-top" });
+    const nav = top.createDiv({ cls: "gd-cal-nav" });
+    const prev = nav.createEl("button", { cls: "gd-cal-nbtn", text: "‹" });
+    prev.onclick = () => this.shift(-1);
+    const today = nav.createEl("button", { cls: "gd-cal-nbtn is-text", text: "今天" });
+    today.onclick = () => { this.anchor = todayStr(); this.render(); };
+    const next = nav.createEl("button", { cls: "gd-cal-nbtn", text: "›" });
+    next.onclick = () => this.shift(1);
+
+    const title = top.createDiv({ cls: "gd-cal-title" });
+    title.setText(this.titleText());
+
+    const ops = top.createDiv({ cls: "gd-cal-ops" });
+    const sk = ops.createEl("button", { cls: "gd-cal-obtn", text: "骨架" });
+    sk.onclick = (e) => {
+      const m = new Menu();
+      for (const [k, n] of CAL_SKELETONS) {
+        m.addItem((i) => i.setTitle(n).setChecked(this.skel === k).onClick(async () => {
+          this.sx.calSkeleton = k; await this.plugin.saveSettings(); this.render();
+        }));
+      }
+      showMenuAt(m, { clientX: e.clientX, clientY: e.clientY });
+    };
+    const tx = ops.createEl("button", { cls: "gd-cal-obtn", text: "纹理" });
+    tx.onclick = (e) => {
+      const m = new Menu();
+      for (const [k, n] of CAL_TEXTURES) {
+        m.addItem((i) => i.setTitle(n).setChecked(this.texture === k).onClick(async () => {
+          this.sx.calTexture = k; await this.plugin.saveSettings(); this.render();
+        }));
+      }
+      showMenuAt(m, { clientX: e.clientX, clientY: e.clientY });
+    };
+    const pic = ops.createEl("button", { cls: "gd-cal-obtn", text: "底图" });
+    pic.onclick = (e) => this.wallMenu(e);
+    const cls = ops.createEl("button", { cls: "gd-cal-obtn", text: "■" });
+    cls.setAttr("title", "关闭这个日历");
+    /* 以前这里调 toggleCalendar()，它永远开浮窗；
+     * 于是在标签页里点「关闭」，反而弹出一个浮窗 —— 用户说的「不要弹」。
+     * 现在只关自己所在的那个：浮窗里就关浮窗，标签页里就关标签页。 */
+    cls.onclick = () => {
+      if (this.inFloat) this.plugin.closeCalendarFloat();
+      else {
+        const leaf = this.plugin.app.workspace.getLeavesOfType(VIEW_CALENDAR)[0];
+        if (leaf) leaf.detach();
+      }
+    };
+  }
+
+  titleText() {
+    const a = this.anchor;
+    switch (this.skel) {
+      case "annual": return a.slice(0, 4) + " 年";
+      case "strip": return `第 ${weekNo(a)} 周`;
+      case "hero": return "今天";
+      case "dual": {
+        const y = Number(a.slice(0, 4)), m = Number(a.slice(5, 7));
+        const n1 = `${y} 年 ${m} 月`;
+        const nm = m === 12 ? 1 : m + 1, ny = m === 12 ? y + 1 : y;
+        return n1 + " – " + `${ny} 年 ${nm} 月`;
+      }
+      default: return `${a.slice(0, 4)} 年 ${Number(a.slice(5, 7))} 月`;
+    }
+  }
+
+  shift(dir) {
+    const a = this.anchor;
+    if (this.skel === "annual") this.anchor = shiftMonth(a, 12 * dir);
+    else if (this.skel === "strip") this.anchor = shiftDate(a, 7 * dir);
+    else if (this.skel === "hero") this.anchor = shiftDate(a, dir);
+    else this.anchor = shiftMonth(a, dir);
+    this.render();
+  }
+
+  /* ---------- 骨架 1：月网格（七列六行）---------- */
+  renderGrid(box) {
+    const head = box.createDiv({ cls: "gd-cal-wdays" });
+    const start = this.sx.calWeekStart === 0 ? 0 : 1;
+    for (let i = 0; i < 7; i++) {
+      head.createDiv({ cls: "gd-cal-wd", text: CAL_WEEK_HEAD[(start + i) % 7] });
+    }
+    const grid = box.createDiv({ cls: "gd-cal-grid" });
+    const cells = this.monthCells(this.anchor, start);
+    for (const c of cells) {
+      const el = grid.createDiv({ cls: "gd-cal-cell" });
+      this.fillCell(el, c.date, c.inMonth);
+    }
+    this.paintCells(grid);
+  }
+
+  /* 一个月要显示的日期（含前后补白） */
+  monthCells(anchor, start) {
+    const y = Number(anchor.slice(0, 4)), m = Number(anchor.slice(5, 7));
+    const first = y + "-" + pad2(m) + "-01";
+    const lastDay = new Date(y, m, 0).getDate();
+    const last = y + "-" + pad2(m) + "-" + pad2(lastDay);
+    const dow = parseDate(first).getDay();          // 0=周日
+    const lead = (dow - start + 7) % 7;
+    const out = [];
+    for (let i = lead; i > 0; i--) out.push({ date: shiftDate(first, -i), inMonth: false });
+    for (let d = 1; d <= lastDay; d++) out.push({ date: y + "-" + pad2(m) + "-" + pad2(d), inMonth: true });
+    let k = 1;
+    while (out.length % 7) { out.push({ date: shiftDate(last, k++), inMonth: false }); }
+    return out;
+  }
+
+  /* 一格：日号 + 农历那行小字 + 有日记的标记 */
+  fillCell(el, date, inMonth) {
+    el.dataset.date = date;
+    if (!inMonth) el.addClass("is-dim");
+    if (date === todayStr()) el.addClass("is-today");
+    if (date === this.anchor) el.addClass("is-anchor");
+    const it = this.info(date);
+    if (it.count) el.addClass("has");
+    if (it.count > 1) el.addClass("is-multi");
+
+    /* B8：节假日 / 调休上班 / 周末着色 */
+    if (this.sx.calShowHoliday !== false) {
+      try {
+        const dk = dayKind(date);
+        if (dk.kind === "holiday") el.addClass("is-holiday");
+        else if (dk.kind === "workday") el.addClass("is-makeup");
+        else if (dk.kind === "weekend") el.addClass("is-weekend");
+        if (dk.name && dk.kind === "holiday") el.setAttribute("title", dk.name);
+      } catch (e) { /* 节假日表缺失不影响渲染 */ }
+    }
+
+    const num = el.createDiv({ cls: "gd-cal-num" });
+    num.setText(String(Number(date.slice(8, 10))));
+    if (it.count > 1) num.createSpan({ cls: "gd-cal-badge", text: "×" + it.count });
+
+    const sub = el.createDiv({ cls: "gd-cal-sub" });
+    sub.setText(this.subText(date));
+
+    const mark = el.createDiv({ cls: "gd-cal-mark" });
+    if (it.count) mark.createSpan({ cls: "gd-cal-dot" });
+
+    el.onclick = (e) => this.onDayClick(date, e);
+    el.ondblclick = (e) => { e.preventDefault(); this.onDayDblClick(date, e); };
+    el.oncontextmenu = (e) => { e.preventDefault(); this.dayMenu(date, e); };
+  }
+
+  /* 格子下方那行：节日 > 节气 > 农历（受 calLunarMode 控制） */
+  subText(date) {
+    const s = this.sx;
+    if (s.calShowHoliday !== false) {
+      try {
+        const dk = dayKind(date);
+        if (dk.kind === "holiday" && dk.name) return dk.name;
+      } catch (e) { /* ignore */ }
+    }
+    if (s.calShowFestival) {
+      const f = festivalOf(date);
+      if (f) return f;
+    }
+    if (s.calShowTerm) {
+      const t = termOf(date);
+      if (t) return t;
+    }
+    if (s.calLunarMode === "none") return "";
+    return lunarLabel(date, s.calLunarMode);
+  }
+
+  /* 异步补缩略图与字数（不阻塞首屏） */
+  paintCells(scope) {
+    if (!scope) return;
+    const cells = scope.querySelectorAll(".gd-cal-cell, .gd-cal-strip-cell, .gd-cal-split-cell");
+    let i = 0;
+    const step = () => {
+      if (i >= cells.length) return;
+      const el = cells[i++];
+      const date = el.dataset.date;
+      this.detail(date).then((d) => {
+        if (!d) return;
+        if (d.thumb) {
+          const t = el.querySelector(".gd-cal-thumb");
+          if (t) t.style.backgroundImage = `url("${this.thumbOf(d.thumb)}")`;
+        }
+        if (d.stickers.length) {
+          const sk = el.querySelector(".gd-cal-stk");
+          if (sk) sk.setText(d.stickers.slice(0, 3).join(""));
+        }
+      });
+      setTimeout(step, 12);
+    };
+    step();
+  }
+
+  /* ---------- 骨架 2：周条（上横条 + 当天详情）---------- */
+  renderStrip(box) {
+    const start = this.sx.calWeekStart === 0 ? 0 : 1;
+    const base = this.weekStart(this.anchor, start);
+    const strip = box.createDiv({ cls: "gd-cal-strip" });
+    for (let i = 0; i < 7; i++) {
+      const date = shiftDate(base, i);
+      const el = strip.createDiv({ cls: "gd-cal-strip-cell" });
+      this.fillCell(el, date, true);
+      el.addClass("is-strip");
+      const wd = el.createDiv({ cls: "gd-cal-wd2", text: CAL_WEEK_HEAD[(start + i) % 7] });
+      el.insertBefore(wd, el.firstChild);
+    }
+    const det = box.createDiv({ cls: "gd-cal-detail" });
+    this.renderDayDetail(det, this.anchor);
+    this.paintCells(strip);
+  }
+
+  weekStart(dateStr, start) {
+    const d = new Date(dateStr + "T00:00:00Z");
+    const dow = d.getUTCDay();
+    const diff = (dow - start + 7) % 7;
+    return shiftDate(dateStr, -diff);
+  }
+
+  /* ---------- 骨架 3：纵向年历（12 个月竖排）---------- */
+  renderAnnual(box) {
+    const y = Number(this.anchor.slice(0, 4));
+    const wrap = box.createDiv({ cls: "gd-cal-annual" });
+    for (let m = 1; m <= 12; m++) {
+      const mm = wrap.createDiv({ cls: "gd-cal-mini" });
+      mm.createDiv({ cls: "gd-cal-mini-title", text: CAL_MONTH_CN[m - 1] });
+      const g = mm.createDiv({ cls: "gd-cal-mini-grid" });
+      const start = this.sx.calWeekStart === 0 ? 0 : 1;
+      for (let i = 0; i < 7; i++) g.createDiv({ cls: "gd-cal-mini-wd", text: CAL_WEEK_HEAD[(start + i) % 7] });
+      const cells = this.monthCells(`${y}-${pad2(m)}-01`, start);
+      for (const c of cells) {
+        const el = g.createDiv({ cls: "gd-cal-mini-cell" + (c.inMonth ? "" : " is-dim") + (this.has(c.date) ? " has" : "") + (c.date === todayStr() ? " is-today" : "") });
+        el.dataset.date = c.date;
+        el.setText(String(Number(c.date.slice(8, 10))));
+        if (this.has(c.date)) el.addClass("has");
+        el.onclick = (e) => this.onDayClick(c.date, e);
+        el.oncontextmenu = (e) => { e.preventDefault(); this.dayMenu(c.date, e); };
+      }
+    }
+  }
+
+  /* ---------- 骨架 4：大日期（巨号数字 + 农历 + 节日）---------- */
+  renderHero(box) {
+    const date = this.anchor;
+    const hero = box.createDiv({ cls: "gd-cal-hero" });
+    const big = hero.createDiv({ cls: "gd-cal-big" });
+    big.setText(String(Number(date.slice(8, 10))));
+    const side = hero.createDiv({ cls: "gd-cal-hero-side" });
+    side.createDiv({ cls: "gd-cal-hero-week", text: "星期" + CAL_WEEK_HEAD[new Date(date + "T00:00:00Z").getUTCDay()] });
+    side.createDiv({ cls: "gd-cal-hero-year", text: `${date.slice(0, 4)} 年 ${Number(date.slice(5, 7))} 月` });
+    const ln = lunarOf(date);
+    if (ln) side.createDiv({ cls: "gd-cal-hero-lunar", text: `${ln.ganzhi}年 ${ln.monthName}${ln.dayName}` });
+    const fest = festivalOf(date);
+    if (fest) side.createDiv({ cls: "gd-cal-hero-fest", text: fest });
+    const term = termOf(date);
+    if (term && term !== fest) side.createDiv({ cls: "gd-cal-hero-term", text: "节气 · " + term });
+
+    const nav = hero.createDiv({ cls: "gd-cal-hero-nav" });
+    for (const [txt, delta] of [["‹", -1], ["今天", 0], ["›", 1]]) {
+      const b = nav.createEl("button", { cls: "gd-cal-nbtn", text: txt });
+      b.onclick = (e) => {
+        if (delta === 0) this.anchor = todayStr();
+        else this.anchor = shiftDate(this.anchor, delta);
+        this.render();
+      };
+    }
+    const det = box.createDiv({ cls: "gd-cal-detail" });
+    this.renderDayDetail(det, date);
+  }
+
+  /* ---------- 骨架 6：双月并排（左本月 / 右下月，各一套完整七列网格）---------- */
+  renderDual(box) {
+    const start = this.sx.calWeekStart === 0 ? 0 : 1;
+    const wrap = box.createDiv({ cls: "gd-cal-dual" });
+    const a = this.anchor;
+    const nextAnchor = shiftMonth(a, 1);
+    for (const [anchor, which] of [[a, "l"], [nextAnchor, "r"]]) {
+      const col = wrap.createDiv({ cls: "gd-cal-dual-col is-" + which });
+      const hd = col.createDiv({ cls: "gd-cal-dual-head" });
+      hd.createSpan({ cls: "gd-cal-dual-mon", text: `${anchor.slice(0, 4)} 年 ${Number(anchor.slice(5, 7))} 月` });
+
+      const head = col.createDiv({ cls: "gd-cal-wdays" });
+      for (let i = 0; i < 7; i++) head.createDiv({ cls: "gd-cal-wd", text: CAL_WEEK_HEAD[(start + i) % 7] });
+
+      const grid = col.createDiv({ cls: "gd-cal-grid is-small is-dual" });
+      for (const c of this.monthCells(anchor, start)) {
+        const el = grid.createDiv({ cls: "gd-cal-cell is-small" });
+        this.fillCell(el, c.date, c.inMonth);
+      }
+      this.paintCells(grid);
+    }
+    const foot = box.createDiv({ cls: "gd-cal-dual-foot" });
+    const st = this.sx.calDualPick;
+    if (st) foot.createSpan({ cls: "gd-cal-dual-sel", text: `已选：${dateShort(st)} · ${weekdayCN(st)}` });
+    else foot.createSpan({ cls: "gd-cal-dual-sel", text: "点日期即可预览，双击进入那一天" });
+  }
+
+  /* ---------- 骨架 5：双栏月历（左网格 右详情）---------- */
+  renderSplit(box) {
+    const wrap = box.createDiv({ cls: "gd-cal-split" });
+    const left = wrap.createDiv({ cls: "gd-cal-split-l" });
+    const right = wrap.createDiv({ cls: "gd-cal-split-r" });
+    const start = this.sx.calWeekStart === 0 ? 0 : 1;
+    const head = left.createDiv({ cls: "gd-cal-wdays" });
+    for (let i = 0; i < 7; i++) head.createDiv({ cls: "gd-cal-wd", text: CAL_WEEK_HEAD[(start + i) % 7] });
+    const grid = left.createDiv({ cls: "gd-cal-grid is-small" });
+    for (const c of this.monthCells(this.anchor, start)) {
+      const el = grid.createDiv({ cls: "gd-cal-cell is-small" });
+      this.fillCell(el, c.date, c.inMonth);
+    }
+    this.renderDayDetail(right, this.anchor);
+    this.paintCells(grid);
+  }
+
+  /* 某天的详情面板（周条 / 大日期 / 双栏共用） */
+  renderDayDetail(box, date) {
+    box.empty();
+    const head = box.createDiv({ cls: "gd-cal-dhead" });
+    head.createDiv({ cls: "gd-cal-ddate", text: dateShort(date) + " · " + weekdayCN(date) });
+    const ln = lunarOf(date);
+    if (ln) head.createDiv({ cls: "gd-cal-dlunar", text: ln.monthName + ln.dayName });
+    const it = this.info(date);
+    const acts = box.createDiv({ cls: "gd-cal-dacts" });
+    const add = acts.createEl("button", { cls: "gd-cal-act", text: it.count ? "再写一篇" : "写这一篇" });
+    add.onclick = () => this.createAndOpen(date);
+    if (it.count) {
+      const open = acts.createEl("button", { cls: "gd-cal-act", text: "打开今天这篇" });
+      open.onclick = () => this.plugin.openDay(it.files[0].basename);
+    }
+    const list = box.createDiv({ cls: "gd-cal-dlist" });
+    if (!it.count) {
+      list.createDiv({ cls: "gd-cal-dempty", text: "这天还没有日记" });
+      return;
+    }
+    it.files.forEach((f, i) => {
+      const row = list.createDiv({ cls: "gd-cal-drow" });
+      row.createSpan({ cls: "gd-cal-didx", text: i === 0 ? "主篇" : "第 " + splitDayKey(f.basename).suffix + " 篇" });
+      const sum = row.createSpan({ cls: "gd-cal-dsum", text: f.basename });
+      row.onclick = () => this.plugin.openDay(f.basename);
+      row.oncontextmenu = (e) => { e.preventDefault(); this.dayMenu(date, e); };
+    });
+    this.detail(date).then((d) => {
+      if (d && d.thumb && list.isConnected) {
+        const th = list.createDiv({ cls: "gd-cal-dthumb" });
+        th.style.backgroundImage = `url("${this.thumbOf(d.thumb)}")`;
+      }
+    });
+  }
+
+  /* ---------- 交互 ---------- */
+  /* 单击 = 就地预览，不跳转；双击 = 进入那一天。
+   * 用户原话：「其实就是点开了之后它不跳转就行了。我可以在同一个页面点开多个日历。」
+   * 空日子没有可预览的东西，单击也先给预览卡（里面有「写这一篇」），避免误触直接跳走。 */
+  onDayClick(date, evt) {
+    this.anchor = date;
+    const el = evt && evt.currentTarget;
+    if (this._clickTimer) clearTimeout(this._clickTimer);
+    this._clickTimer = setTimeout(() => {
+      this._clickTimer = null;
+      this.showPreview(date, el);
+    }, 220);
+  }
+
+  /* 双击：取消待触发的单击预览，直接进入 */
+  onDayDblClick(date, evt) {
+    if (this._clickTimer) { clearTimeout(this._clickTimer); this._clickTimer = null; }
+    this.hidePreview();
+    const it = this.info(date);
+    if (it.count > 1 && evt && !evt.shiftKey) {
+      new ConfirmModal(
+        this.app,
+        "这天已经写了 " + it.count + " 篇",
+        "要再新建第 " + (it.count + 1) + " 篇吗？点「打开已有」就直接看第 1 篇。",
+        () => { this.createAndOpen(date); },
+        "再建一篇",
+        "打开已有",
+        () => { this.plugin.openDay(it.files[0].basename); }
+      ).open();
+      return;
+    }
+    if (it.count >= 1) { this.plugin.openDay(it.files[0].basename); return; }
+    this.createAndOpen(date);
+  }
+
+  /* 预览卡：贴着被点的格子浮出来，点别处 / Esc 就消失 */
+  showPreview(date, anchorEl) {
+    this.hidePreview();
+    const doc = (typeof document !== "undefined") ? document : null;
+    if (!doc || !doc.body) return;
+    const mk = (tag, cls, txt) => {
+      const n = doc.createElement(tag);
+      if (cls) n.className = cls;
+      if (txt != null) n.textContent = txt;
+      return n;
+    };
+    const card = mk("div", "gd-cal-pop");
+    doc.body.appendChild(card);
+    this.popEl = card;
+
+    const head = mk("div", "gd-cal-pop-head");
+    const ln = lunarOf(date);
+    const fest = festivalOf(date) || termOf(date) || "";
+    const sub = fest || (ln ? ln.monthName + ln.dayName : "");
+    head.appendChild(mk("div", "gd-cal-pop-title", dateShort(date) + " · " + weekdayCN(date) + (sub ? " · " + sub : "")));
+    const x = mk("button", "gd-cal-pop-x", "×");
+    x.onclick = () => this.hidePreview();
+    head.appendChild(x);
+    card.appendChild(head);
+
+    const it = this.info(date);
+    const body = mk("div", "gd-cal-pop-body");
+    if (!it.count) {
+      body.appendChild(mk("p", "gd-cal-pop-empty", "这天还没有日记"));
+    } else {
+      for (const f of it.files) {
+        const row = mk("a", "gd-cal-pop-row", f.basename === date ? "主篇" : "第 " + splitDayKey(f.basename).suffix + " 篇");
+        row.onclick = (e) => { e.stopPropagation(); this.hidePreview(); this.plugin.openDay(f.basename); };
+        body.appendChild(row);
+      }
+    }
+    card.appendChild(body);
+
+    const acts = mk("div", "gd-cal-pop-acts");
+    const act = (txt, fn) => {
+      const b = mk("button", "gd-cal-pop-btn", txt);
+      b.onclick = (e) => { e.stopPropagation(); fn(); };
+      acts.appendChild(b);
+    };
+    act(it.count ? "再写一篇" : "写这一篇", () => { this.hidePreview(); this.createAndOpen(date); });
+    if (it.count) act("进入这一天", () => { this.hidePreview(); this.plugin.openDay(it.files[0].basename); });
+    act("换壁纸", () => { this.hidePreview(); this.pickWall(date); });
+    card.appendChild(acts);
+
+    /* 定位：贴着格子的下方，放不下翻到上方 */
+    const vw = (typeof window !== "undefined" && window.innerWidth) || 1200;
+    const vh = (typeof window !== "undefined" && window.innerHeight) || 800;
+    const r = anchorEl && anchorEl.getBoundingClientRect ? anchorEl.getBoundingClientRect() : null;
+    const cr = card.getBoundingClientRect ? card.getBoundingClientRect() : { width: 240, height: 170 };
+    let left = r && r.left ? r.left : 120;
+    let top = r && r.bottom ? r.bottom + 6 : 140;
+    if (left + cr.width > vw - 8) left = Math.max(8, vw - cr.width - 8);
+    if (top + cr.height > vh - 8) top = Math.max(8, (r && r.top ? r.top : 200) - cr.height - 6);
+    card.style.left = Math.round(left) + "px";
+    card.style.top = Math.round(top) + "px";
+
+    this._popOutside = (e) => { if (!card.contains(e.target)) this.hidePreview(); };
+    setTimeout(() => doc.addEventListener("mousedown", this._popOutside, true), 0);
+    this._popEsc = (e) => { if (e.key === "Escape") this.hidePreview(); };
+    doc.addEventListener("keydown", this._popEsc, true);
+  }
+
+  hidePreview() {
+    const doc = (typeof document !== "undefined") ? document : null;
+    if (this._popOutside && doc) { doc.removeEventListener("mousedown", this._popOutside, true); this._popOutside = null; }
+    if (this._popEsc && doc) { doc.removeEventListener("keydown", this._popEsc, true); this._popEsc = null; }
+    if (this.popEl) { this.popEl.remove(); this.popEl = null; }
+  }
+
+  async createAndOpen(date) {
+    try {
+      await this.plugin.newEntryFor(date);
+      this.refresh();
+    } catch (e) { new Notice("新建失败：" + e.message); }
+  }
+
+  dayMenu(date, evt) {
+    const m = new Menu();
+    const it = this.info(date);
+    m.addItem((i) => i.setTitle(it.count ? "再写一篇" : "写这一篇").setIcon("plus").onClick(() => this.createAndOpen(date)));
+    if (it.count) {
+      m.addItem((i) => i.setTitle("只看这天").setIcon("eye").onClick(async () => {
+        await this.plugin.openDay(it.files[0].basename);
+      }));
+      m.addItem((i) => i.setTitle("在 Obsidian 里打开文件").setIcon("file-text").onClick(() => {
+        this.app.workspace.getLeaf(true).openFile(it.files[0]);
+      }));
+    }
+    m.addSeparator();
+    m.addItem((i) => i.setTitle("给这天换壁纸…").setIcon("image").onClick(() => this.pickWall(date)));
+    m.addItem((i) => i.setTitle("日历底图…").setIcon("picture-in-picture").onClick((e2) => this.wallMenu(evt || e2)));
+    m.addItem((i) => i.setTitle("标记为纪念日").setIcon("star").onClick(async () => {
+      new PromptModal(this.app, "纪念日", "给这天加一句备注（会写进当天日记的 frontmatter）", "", async (v) => {
+        if (!v) return;
+    try {
+          const f = it.files[0] || (await this.plugin.createDayFileFor(date));
+          if (!f) return;
+          await this.app.fileManager.processFrontMatter(f, (fm) => { fm["纪念日"] = v; });
+          new Notice("已标记：" + v);
+          this.refresh();
+        } catch (e) { new Notice("标记失败：" + e.message); }
+      }).open();
+    }));
+    showMenuAt(m, { clientX: (evt && evt.clientX) || 0, clientY: (evt && evt.clientY) || 0 });
+  }
+
+  /* 给某天单独设壁纸（写进那天的 layout.cover） */
+  async pickWall(date) {
+    const f = await chooseLocalFile({ accept: "image/*" });
+    if (!f) return;
+    try {
+      const folder = this.attachDir();
+      await this.plugin.ensureFolder(folder);
+      const safe = f.name.replace(/[\\/:*?"<>|]/g, "_");
+      let path = `${folder}/${safe}`;
+      if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+      await this.app.vault.createBinary(path, await f.arrayBuffer());
+      const file = this.info(date).files[0] || (await this.plugin.createDayFileFor(date));
+      if (!file) return;
+      const raw = await this.app.vault.read(file);
+      const parsed = parseDay(raw, this.sx.headingLevel);
+      const lay = normalizeLayout(parsed.layout, this.sx);
+      lay.cover = path;
+      if (!lay.coverHeight) lay.coverHeight = 160;
+      const cells = normalizeCells(parsed.cells, parsed.layout, this.sx);
+      await this.app.vault.modify(file, serializeDay(date, cells, {
+        fm: parsed.fm, h1: parsed.h1,
+        columns: (parsed.layout && parsed.layout.cols) || this.sx.columns,
+        level: this.sx.headingLevel, layout: lay,
+      }));
+      new Notice("已给 " + dateShort(date) + " 换上壁纸");
+      this.refresh();
+      this.plugin.refreshAll();
+    } catch (e) { new Notice("设壁纸失败：" + e.message); }
+  }
+
+  /* 日历自身的底图菜单 */
+  wallMenu(evt) {
+    const m = new Menu();
+    m.addItem((i) => i.setTitle("选一张图…").setIcon("image-plus").onClick(() => this.pickCalWall()));
+    m.addItem((i) => i.setTitle("从库里的图片挑…").setIcon("images").onClick(() => {
+      const imgs = this.app.vault.getFiles().filter((f) => /^(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(f.extension));
+      const m2 = new Menu();
+      for (const f of imgs.slice(-30).reverse()) {
+        m2.addItem((i2) => i2.setTitle(f.basename).setIcon("image").onClick(async () => {
+          this.sx.calWallpaper = f.path; await this.plugin.saveSettings(); this.render();
+        }));
+      }
+      if (!imgs.length) m2.addItem((i2) => i2.setTitle("库里还没有图片").setDisabled(true));
+      showMenuAt(m2, { clientX: (evt && evt.clientX) || 0, clientY: (evt && evt.clientY) || 0 });
+    }));
+    m.addSeparator();
+    for (const [k, n] of CAL_WALL_POS) {
+      m.addItem((i) => i.setTitle("摆位：" + n).setChecked((this.sx.calWallpaperPos || "left-top") === k).onClick(async () => {
+        this.sx.calWallpaperPos = k; await this.plugin.saveSettings(); this.render();
+      }));
+    }
+    m.addSeparator();
+    m.addItem((i) => i.setTitle("去掉底图").setIcon("trash").onClick(async () => {
+      this.sx.calWallpaper = ""; await this.plugin.saveSettings(); this.render();
+    }));
+    showMenuAt(m, { clientX: (evt && evt.clientX) || 0, clientY: (evt && evt.clientY) || 0 });
+  }
+  async pickCalWall() {
+    const f = await chooseLocalFile({ accept: "image/*" });
+    if (!f) return;
+    try {
+      const folder = this.attachDir();
+      await this.plugin.ensureFolder(folder);
+      const safe = f.name.replace(/[\\/:*?"<>|]/g, "_");
+      let path = `${folder}/${safe}`;
+      if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+      await this.app.vault.createBinary(path, await f.arrayBuffer());
+      this.sx.calWallpaper = path;
+      await this.plugin.saveSettings();
+      this.render();
+    } catch (e) { new Notice("设底图失败：" + e.message); }
+  }
+
+  /* 空实现占位：留着以后放"标记点"等装饰 */
+  paintExtras() { }
+}
+
+/* 判断 layout 有没有封面（避免 undefined 判断散落各处） */
+function laysCover(lay) { return !!(lay && lay.cover); }
+
+/* 第几周（ISO 近似，够用） */
+function weekNo(dateStr) {
+  const d = new Date(dateStr + "T00:00:00Z");
+  const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - start) / 86400000 + start.getUTCDay() + 1) / 7);
+}
+
+
+/* ---- 07-calendar.js ---- */
+/* ============ 日历视图（宿主）============
+ * 真正的画法在 07-calendar-panel.js 的 CalendarPanel 里：
+ *   5 种骨架（月网格 / 周条 / 纵向年历 / 大日期 / 双栏月历）×
+ *   6 种纹理（无 / 方格纸 / 点点阵 / 细横线 / 纸纹 / 渐变）
+ * 这个类只做三件事：占住 Obsidian 的一个标签页、把面板挂上去、把轴视图开关接好。
+ * ============================================================ */
+
+const WEEK_HEAD = ["一", "二", "三", "四", "五", "六", "日"];
+
+class CalendarView extends ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    this.plugin = plugin;
+    this.anchor = todayStr();
+    this.filter = "all";
+    this.index = null;
+    this.sumCache = new Map();
+    this.refreshTimer = debounce(() => this.rebuild(), 260);
+  }
+  get sx() { return this.plugin.settings; }
+  getViewType() { return VIEW_CALENDAR; }
+  getDisplayText() { return "日记日历"; }
+  getIcon() { return ICON_CALENDAR; }
+  getState() { return { anchor: this.anchor, filter: this.filter }; }
+  async setState(state) {
+    if (state && state.anchor) this.anchor = state.anchor;
+    if (state && state.filter) this.filter = state.filter;
+  }
+  async onOpen() {
+    this.contentEl.addClass("gd-root");
+    this.contentEl.addClass("gd-cal-root");
+    if (IS_MOBILE) this.contentEl.addClass("is-mobile");
+    this.build();
+  }
+  onClose() { this.refreshTimer.cancel(); if (this.panel) this.panel.close(); }
+
+  build() {
+    const el = this.contentEl;
+    el.empty();
+    this.scrollEl = el.createDiv({ cls: "gd-cal-scroll" });
+
+    /* 轴视图：跟面板共用数据，只在本视图里额外画一条横轴 */
+    if (this.sx.showCalendarAxis) {
+      this.axisEl = this.scrollEl.createDiv({ cls: "gd-cal-axis-bar" });
+      this.renderAxis();
+    }
+    this.panelHost = this.scrollEl.createDiv({ cls: "gd-cal-panel-host" });
+    this.mount();
+  }
+
+  mount() {
+    if (!this.panel) this.panel = new CalendarPanel(this.plugin);
+    this.panel.inFloat = false;
+    this.panel.openInPane(this.panelHost);
+  }
+
+  rebuild() {
+    this.contentEl.empty();
+    this.build();
+  }
+
+  /* 轴视图：近 90 天，节点大小按字数分四档 */
+  async renderAxis() {
+    const box = this.axisEl;
+    if (!box) return;
+    box.empty();
+    box.createDiv({ cls: "gd-cal-axis-label", text: "近 90 天" });
+    const track = box.createDiv({ cls: "gd-cal-axis-track" });
+    const today = todayStr();
+    for (let i = 89; i >= 0; i--) {
+      const date = shiftDate(today, -i);
+      const n = this.panel ? this.panel.info(date).count : 0;
+      const dot = track.createDiv({ cls: "gd-cal-axis-dot" + (n ? " has" : "") });
+      dot.dataset.date = date;
+      dot.setAttr("title", date);
+      dot.onclick = () => { if (n) this.plugin.openDay(this.panel.info(date).files[0].basename); };
+      if (n) {
+        const sz = clamp(5 + n * 3, 6, 16);
+        dot.style.width = sz + "px";
+        dot.style.height = sz + "px";
+      }
+    }
+  }
+}
+
+
+/* ---- 07-view-timeline.js ---- */
+/* ============================================================
+ * 时间线：竖轴 + 左右错开 + 严格按日期过滤
+ *  - TimelinePanel：真正的画面（标签页和悬浮窗共用同一套）
+ *  - TimelineView ：只负责占一个 Obsidian 标签页，把面板塞进去
+ *  - 悬浮窗在 09-plugin.js 里用 openTimelineFloat() 直接建 div，可多开
+ * ============================================================ */
+
+class TimelinePanel {
+  constructor(plugin, opts) {
+    this.plugin = plugin;
+    this.app = plugin.app;
+    this.opts = opts || {};
+    this.inFloat = !!this.opts.float;
+    this.el = null;
+    this.listEl = null;
+    this.range = 90;
+    this.keyword = "";
+    this.expanded = new Set();
+    this.activeKey = "";
+    this.followDay = true;
+    this.dayFilter = "";
+    this.renderDebounced = debounce(() => this.render(), 120);
+    this.dead = false;
+  }
+
+  openInPane(container) {
+    this.el = container;
+    container.empty();
+    container.addClass("gd-root");
+    container.addClass("gd-timeline-root");
+    if (this.inFloat) container.addClass("is-float");
+    if (IS_MOBILE) container.addClass("is-mobile");
+    this.build();
+    this.render();
+  }
+
+  close() {
+    this.dead = true;
+    this.renderDebounced.cancel();
+  }
+
+  refresh() {
+    if (this.dead) return;
+    this.build();
+    this.render();
+  }
+
+  setActive(key) {
+    this.activeKey = key || "";
+    if (this.followDay) this.refresh();
+  }
+
+  build() {
+    const el = this.el;
+    if (!el) return;
+    el.empty();
+
+    const top = el.createDiv({ cls: "gd-tl-top" });
+    const tline = top.createDiv({ cls: "gd-tl-titlebar" });
+    tline.createEl("h4", { text: this.focusDate() ? "这一天的记录" : "时间线" });
+
+    const acts = top.createDiv({ cls: "gd-tl-acts" });
+    const sel = acts.createEl("select", { cls: "gd-select" });
+    for (const [v, n] of [["30", "近 30 天"], ["90", "近 90 天"], ["0", "全部"]]) sel.createEl("option", { text: n, attr: { value: v } });
+    sel.value = String(this.range);
+    sel.onchange = () => { this.range = Number(sel.value); this.render(); };
+    const mkBtn = (txt, title, fn, on) => {
+      const b = acts.createEl("button", { cls: "gd-tbtn" + (on ? " is-on" : ""), text: txt, attr: { title } });
+      b.onclick = fn;
+      return b;
+    };
+    mkBtn("跟随当天", "只看主视图当前这一天（默认开）", () => {
+      this.followDay = !this.followDay;
+      this.build(); this.render();
+    }, this.followDay);
+    mkBtn("看全部", "不跟随，列出范围内的全部日期", () => {
+      this.followDay = false; this.dayFilter = "";
+      this.build(); this.render();
+    }, !this.followDay);
+    mkBtn("撤销", "撤销上一次改动", () => this.plugin.history.undo());
+    mkBtn("重做", "重做", () => this.plugin.history.redo());
+
+    const search = el.createDiv({ cls: "gd-side-search" });
+    const si = search.createEl("input", { cls: "gd-side-search-input", attr: { type: "search", placeholder: "搜索日期 / 内容…" } });
+    si.value = this.keyword;
+    si.addEventListener("input", () => { this.keyword = si.value.trim(); this.renderDebounced(); });
+
+    this.listEl = el.createDiv({ cls: "gd-tl-list" });
+    if (!this.inFloat) el.createDiv({ cls: "gd-tl-note", text: "每次改动前自动留版本；点开任意一天可查看 / 恢复历史内容。" });
+  }
+
+  /* 严格取「当前这一天」：点哪天就只出哪天，绝不掺别的日期 */
+  focusDate() {
+    if (!this.followDay || !this.activeKey) return this.dayFilter || "";
+    return splitDayKey(this.activeKey).date || this.dayFilter || "";
+  }
+
+  firstImg(cells) {
+    for (const c of cells || []) {
+      const m = /!\[\[([^\]|#]+?)(?:\|[^\]]*)?\]\]|!\[[^\]]*\]\(([^)\s]+)\)/.exec(c.content || "");
+      if (!m) continue;
+      const src = (m[1] || m[2] || "").trim();
+      if (!src) continue;
+      const url = this.plugin.thumbUrl ? this.plugin.thumbUrl(src) : "";
+      if (url) return { url, name: src };
+    }
+    return null;
+  }
+
+  groupByDate(files) {
+    const map = new Map();
+    for (const f of files) {
+      const { date, suffix } = splitDayKey(f.basename);
+      const d = date || f.basename;
+      if (!map.has(d)) map.set(d, []);
+      map.get(d).push({ file: f, suffix });
+    }
+    const list = [...map.entries()].map(([date, items]) => {
+      items.sort((a, b) => {
+        const va = cnValue(a.suffix), vb = cnValue(b.suffix);
+        return (Number.isFinite(va) ? va : -1) - (Number.isFinite(vb) ? vb : -1);
+      });
+      return { date, items };
+    });
+    list.sort((a, b) => b.date.localeCompare(a.date));
+    return list;
+  }
+
+  async render() {
+    if (!this.listEl || this.dead) return;
+    const kw = this.keyword.toLowerCase();
+    const focus = this.focusDate();
+    let files;
+    if (focus) {
+      files = this.plugin.dayFiles().filter((f) => splitDayKey(f.basename).date === focus);
+    } else {
+      const cutoff = this.range > 0 ? shiftDate(todayStr(), -this.range) : "";
+      files = this.plugin.dayFiles().filter((f) => !cutoff || f.basename >= cutoff);
+    }
+
+    this.listEl.empty();
+    this.listEl.removeClass("is-axis");
+    this.listEl.addClass("is-single");
+
+    const shownDay = focus || "";
+    if (shownDay) {
+      const bar = this.listEl.createDiv({ cls: "gd-tl-focus" });
+      const dk = dayKind(shownDay);
+      const tag = dk.kind === "holiday" ? ` · ${dk.name || "节假日"}` : dk.kind === "weekend" ? " · 周末" : "";
+      bar.createSpan({ text: "只看 " + dateCN(shownDay) + tag + " · 共 " + files.length + " 篇" });
+      const all2 = bar.createEl("button", { text: "看全部日期", cls: "gd-mini-btn" });
+      all2.onclick = () => { this.followDay = false; this.dayFilter = ""; this.build(); this.render(); };
+    }
+
+    const groups = this.groupByDate(files);
+    let shown = 0;
+    let year = "";
+    for (const g of groups) {
+      const parts = [];
+      for (const it of g.items) {
+        try {
+          const parsed = parseDay(await this.app.vault.cachedRead(it.file));
+          parts.push({ it, parsed, text: parsed.cells.map((c) => `${c.title} ${c.content}`).join("\n") });
+        } catch (e) { /* ignore */ }
+      }
+      const allText = parts.map((p) => p.text).join("\n");
+      if (kw && !(g.date.includes(kw) || allText.toLowerCase().includes(kw))) continue;
+      shown++;
+
+      const y = g.date.slice(0, 4);
+      if (y !== year) {
+        year = y;
+        const yb = this.listEl.createDiv({ cls: "gd-tl-year" });
+        yb.createSpan({ cls: "gd-tl-year-num", text: y });
+        yb.createSpan({ cls: "gd-tl-year-cn", text: cnYearLabel(y) });
+      }
+
+      const row = this.listEl.createDiv({ cls: "gd-tl-row" });
+      row.createDiv({ cls: "gd-tl-node" });
+
+      const card = row.createDiv({ cls: "gd-tl-card" });
+      const dk = dayKind(g.date);
+      if (dk.kind === "holiday") card.addClass("is-holiday");
+      else if (dk.kind === "weekend") card.addClass("is-weekend");
+
+      const head = card.createDiv({ cls: "gd-tl-head" });
+      const db = head.createDiv({ cls: "gd-tl-datebox" });
+      db.createEl("strong", { text: dateShort(g.date) });
+      db.createEl("span", { text: `${weekdayCN(g.date)} · ${g.items.length} 篇 · ${allText.replace(/\s/g, "").length} 字` });
+      if (dk.kind === "holiday" && dk.name) db.createEl("i", { cls: "gd-tl-holiday", text: dk.name });
+      /* 整行点一下就开这一天的浮窗（手机上不用长按右键） */
+      row.setAttribute("title", "点一下：打开这一天的浮窗");
+      row.onclick = () => {
+        if (this.inFloat) return;             /* 浮窗里再点不再套娃 */
+        this.plugin.openTimelineFloat(g.date);
+      };
+      const btns = head.createDiv({ cls: "gd-tl-head-btns" });
+      const anyKey = g.items[0] ? g.items[0].file.basename : "";
+      btns.createEl("button", { text: this.expanded.has(g.date) ? "收起" : "详情", cls: "gd-mini-btn" }).onclick = (e) => {
+        e.stopPropagation();
+        if (this.expanded.has(g.date)) this.expanded.delete(g.date); else this.expanded.add(g.date);
+        this.render();
+      };
+      btns.createEl("button", { text: "打开", cls: "gd-mini-btn" }).onclick = (e) => { e.stopPropagation(); this.plugin.openDay(anyKey); };
+      btns.createEl("button", { text: "版本", cls: "gd-mini-btn" }).onclick = (e) => {
+        e.stopPropagation();
+        const f = g.items[0] && g.items[0].file;
+        if (f) new SnapshotModal(this.app, this.plugin, f).open();
+      };
+
+      let img = null;
+      for (const p of parts) { const hit = this.firstImg(p.parsed.cells); if (hit) { img = hit; break; } }
+      const mainBox = card.createDiv({ cls: "gd-tl-mainbox" });
+      if (img) {
+        const thumb = mainBox.createDiv({ cls: "gd-tl-thumb" });
+        thumb.style.backgroundImage = `url("${img.url}")`;
+        thumb.setAttribute("title", img.name);
+        thumb.onclick = (e) => { e.stopPropagation(); this.plugin.openDay(anyKey); };
+      }
+      mainBox.createDiv({ cls: "gd-tl-sum", text: truncate(allText.replace(/\n+/g, " · "), 110) || "（空）" });
+
+      try {
+        const f0 = g.items[0] && g.items[0].file;
+        if (f0) {
+          const snaps = await this.plugin.history.list(f0);
+          if (snaps.length) {
+            const sr = card.createDiv({ cls: "gd-tl-snaps-line" });
+            sr.createSpan({ text: `改过 ${snaps.length} 次 · 最近 ${snaps[0].time}` });
+            const hb = sr.createEl("button", { text: "看修改", cls: "gd-mini-btn" });
+            hb.onclick = () => new SnapshotModal(this.app, this.plugin, f0).open();
+          }
+        }
+      } catch (e) { /* ignore */ }
+
+      if (this.expanded.has(g.date)) {
+        const box = card.createDiv({ cls: "gd-tl-detail" });
+        for (const p of parts) {
+          const tag = p.it.suffix ? "第 " + p.it.suffix + " 篇" : "主篇";
+          const r = box.createDiv({ cls: "gd-tl-cell" });
+          r.createEl("strong", { text: tag });
+          r.createSpan({ text: truncate(p.parsed.cells.map((c) => c.title).join(" / "), 60) });
+          const open2 = r.createEl("button", { text: "打开", cls: "gd-mini-btn" });
+          open2.onclick = (e) => { e.stopPropagation(); this.plugin.openDay(p.it.file.basename); };
+        }
+      }
+    }
+
+    if (!shown) {
+      this.listEl.createDiv({
+        cls: "gd-empty",
+        text: kw ? "没有匹配的日记" : (shownDay ? "这一天还没有日记，去写一篇吧" : "这个范围内没有日记"),
+      });
+    }
+  }
+}
+
+/* 标签页宿主：一个标签页一份面板 */
+class TimelineView extends ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    this.plugin = plugin;
+    this.panel = null;
+  }
+  getViewType() { return VIEW_TIMELINE; }
+  getDisplayText() { return "日记时间线"; }
+  getIcon() { return ICON_TIMELINE; }
+
+  async onOpen() {
+    if (!this.panel) this.panel = new TimelinePanel(this.plugin, { float: false });
+    this.panel.openInPane(this.contentEl);
+    this.plugin.registerTimelinePanel(this.panel);
+  }
+  onClose() {
+    if (this.panel) { this.plugin.unregisterTimelinePanel(this.panel); this.panel.close(); }
+  }
+
+  /* 兼容旧调用 */
+  setActive(key) { if (this.panel) this.panel.setActive(key); }
+  refresh() { if (this.panel) this.panel.refresh(); }
+  render() { if (this.panel) this.panel.render(); }
+}
+
+
+/* ---- 08-settings.js ---- */
+/* ============ 设置面板 · 模板编辑器 ============ */
+
+class TemplateEditorModal extends Modal {
+  constructor(app, plugin, tpl, isNew) {
+    super(app);
+    this.plugin = plugin;
+    this.tpl = tpl ? deepClone(tpl) : { name: "新模板", cells: [{ title: "新格子", cs: 1, rs: 1, h: 0, accent: "", border: "", sticker: "" }] };
+    this.isNew = !!isNew;
+    this.originalName = this.isNew ? "" : this.tpl.name;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.addClass("gd-modal"); contentEl.addClass("gd-tpl-editor");
+    if (this.modalEl) this.modalEl.style.width = "min(720px, 92vw)";
+    contentEl.createEl("h3", { text: this.isNew ? "新建模板" : `编辑「${this.tpl.name}」` });
+    new Setting(contentEl).setName("模板名称").addText((t) => t.setValue(this.tpl.name).onChange((v) => { this.tpl.name = v; }));
+    contentEl.createDiv({ cls: "gd-set-note", text: "每一格就是九宫格里的一个方块。标题可以写成一句问句，比如「今天最开心的一刻」。占列/占行决定它占几个格子大小。" });
+
+    const list = contentEl.createDiv({ cls: "gd-tpl-cells" });
+    const head = list.createDiv({ cls: "gd-tpl-cells-head" });
+    for (const h of ["标题", "占列", "占行", "高度", ""]) head.createEl("span", { text: h });
+    this.rowsEl = list.createDiv({ cls: "gd-tpl-rows" });
+    this.drawRows();
+
+    const foot = contentEl.createDiv({ cls: "gd-modal-actions" });
+    const addBtn = foot.createEl("button", { text: "+ 添加格子" });
+    addBtn.onclick = () => { this.tpl.cells.push({ title: "新格子", cs: 1, rs: 1, h: 0, accent: "", border: "", sticker: "" }); this.drawRows(); };
+    foot.createEl("button", { text: "取消" }).onclick = () => this.close();
+    foot.createEl("button", { text: "保存", cls: "mod-cta" }).onclick = () => this.commit();
+  }
+  drawRows() {
+    const rows = this.rowsEl;
+    rows.empty();
+    this.tpl.cells.forEach((c, i) => {
+      const row = rows.createDiv({ cls: "gd-tpl-row" });
+      const t = row.createEl("input", { cls: "gd-input" }); t.value = c.title || "";
+      t.oninput = () => { c.title = t.value; };
+      const cs = row.createEl("input", { cls: "gd-input gd-num", attr: { type: "number", min: "1", max: "6" } }); cs.value = String(c.cs || 1);
+      cs.onchange = () => { c.cs = clamp(cs.value, 1, 6); };
+      const rs = row.createEl("input", { cls: "gd-input gd-num", attr: { type: "number", min: "1", max: "6" } }); rs.value = String(c.rs || 1);
+      rs.onchange = () => { c.rs = clamp(rs.value, 1, 6); };
+      const h = row.createEl("input", { cls: "gd-input gd-num", attr: { type: "number", min: "0", max: "1200" } }); h.value = String(c.h || 0);
+      h.onchange = () => { c.h = clamp(h.value, 0, 1200); };
+      row.createEl("button", { text: "×", cls: "gd-mini-btn", attr: { title: "删除这一格" } }).onclick = () => {
+        this.tpl.cells.splice(i, 1);
+        this.drawRows();
+      };
+    });
+  }
+  async commit() {
+    const name = (this.tpl.name || "").trim();
+    if (!name) { new Notice("模板名称不能为空"); return; }
+    this.tpl.name = name;
+    const arr = this.plugin.settings.templates;
+    const idx = arr.findIndex((t) => t.name === this.originalName);
+    if (this.isNew || idx < 0) arr.push(this.tpl);
+    else arr[idx] = this.tpl;
+    await this.plugin.saveSettings();
+    this.close();
+    this.plugin.openSettings();
+    new Notice("模板已保存");
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
+/* ============ 设置面板 ============ */
+
+class GridSettingTab extends PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+    this.tab = "theme";
+  }
+  get s() { return this.plugin.settings; }
+  display() {
+    const { containerEl: el } = this;
+    el.empty();
+    el.addClass("gd-settings");
+    el.addClass("gd-theme-" + (this.s.theme === "paper" ? "paper" : this.s.theme === "magazine" ? "magazine" : this.s.theme === "bento" ? "bento" : this.s.theme === "mono" ? "mono" : "card"));
+    el.style.setProperty("--gd-accent", this.s.accent || "#c2704f");
+    el.style.setProperty("--gd-font-size", (this.s.fontSize || 15) + "px");
+    el.createEl("h2", { text: "格间日记 · 设置" });
+    const tabs = el.createDiv({ cls: "gd-set-tabs" });
+    const defs = [
+      ["theme", "主题"], ["home", "主页"], ["dir", "目录"], ["layout", "排布"],
+      ["calendar", "日历"], ["float", "悬浮窗"], ["timeline", "流线图"],
+      ["template", "模板"], ["paste", "粘贴"], ["history", "历史"],
+    ];
+    for (const [key, name] of defs) {
+      const b = tabs.createEl("button", { text: name, cls: "gd-set-tab" + (this.tab === key ? " is-on" : "") });
+      b.onclick = () => { this.tab = key; this.display(); };
+    }
+    const panel = el.createDiv({ cls: "gd-set-panel" });
+    if (this.tab === "theme") this.themePane(panel);
+    else if (this.tab === "home") this.homePane(panel);
+    else if (this.tab === "dir") this.dirPane(panel);
+    else if (this.tab === "layout") this.layout(panel);
+    else if (this.tab === "calendar") this.calendar(panel);
+    else if (this.tab === "float") this.floatTab(panel);
+    else if (this.tab === "timeline") this.timelinePane(panel);
+    else if (this.tab === "template") this.template(panel);
+    else if (this.tab === "paste") this.paste(panel);
+    else this.history(panel);
+  }
+  save() { return this.plugin.saveSettings(); }
+  refresh(reload) { this.plugin.refreshAll(reload); }
+  /* 目录项改动后重建左侧栏（结构变了要 build，内容变了只需 render） */
+  rebuildSidebar() {
+    const sb = this.plugin.sidebar;
+    if (!sb) return;
+    try {
+      if (typeof sb.build === "function") sb.build();
+      if (typeof sb.render === "function") sb.render();
+    } catch (e) { console.warn("[格间日记] 重建目录失败", e); }
+  }
+  folders() {
+    const set = new Set(["/"]);
+    for (const f of this.app.vault.getFiles()) set.add(f.parent ? f.parent.path : "/");
+    return Array.from(set).sort();
+  }
+
+  /* ---------- 常规 ---------- */
+  /* ══════════ 主题（v4）══════════ */
+  /* HSL 字符串 → hex（<input type=color> 只吃 hex） */
+  _rgbOfHsl(hsl) {
+    const m = /hsl\(\s*([\d.]+)\s+(\d.+)%\s+(\d.+)%\s*\)/.exec(String(hsl));
+    if (!m) return "#ffffff";
+    const h = Number(m[1]) / 360, s = Number(m[2]) / 100, l = Number(m[3]) / 100;
+    const hue2rgb = (pp, qq, tt) => {
+      let t2 = tt; if (t2 < 0) t2 += 1; if (t2 > 1) t2 -= 1;
+      if (t2 < 1 / 6) return pp + (qq - pp) * 6 * t2;
+      if (t2 < 1 / 2) return qq;
+      if (t2 < 2 / 3) return pp + (qq - pp) * (2 / 3 - t2) * 6;
+      return pp;
+    };
+    let r, g, b;
+    if (s === 0) r = g = b = l;
+    else {
+      const qq = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const pp = 2 * l - qq;
+      r = hue2rgb(pp, qq, h + 1 / 3);
+      g = hue2rgb(pp, qq, h);
+      b = hue2rgb(pp, qq, h - 1 / 3);
+    }
+    const hx = (v) => Math.round(v * 255).toString(16).padStart(2, "0");
+    return "#" + hx(r) + hx(g) + hx(b);
+  }
+
+  themePane(p) {
+    const s = this.s;
+    p.createEl("h3", { text: "主题" });
+    p.createDiv({
+      cls: "gd-set-hint",
+      text: "一个主题管全部视觉：底色、字体、线体、图标、格子、排版。选一套全部跟着变，改一处全联动。主题存在「" +
+        (s.themeDir || "主题") + "」文件夹里，是普通 .json 文件，可备份、可跨设备带走。",
+    });
+
+    /* —— 当前主题 —— */
+    const curBox = p.createDiv({ cls: "gd-theme-cur" });
+    const curName = s.activeTheme || "";
+    curBox.createSpan({ cls: "gd-theme-badge", text: curName ? "当前主题" : "未套用主题" });
+    curBox.createSpan({ cls: "gd-theme-note", text: curName || "下面各项各自生效（散项模式）" });
+    if (curName) {
+      const b = curBox.createEl("button", { cls: "gd-mini-btn", text: "版本历史 / 回滚" });
+      b.onclick = () => this.plugin.openThemeHistory();
+    }
+
+    /* —— 选择主题 —— */
+    new Setting(p)
+      .setName("套用主题")
+      .setDesc("选一个，立刻套用；再改下面的细节，就是在这个主题上改。")
+      .addDropdown(async (d) => {
+        d.addOption("", "（散项模式，不用主题）");
+        const list = await this.plugin.themes.list();
+        for (const th of list) d.addOption(th.name, th.name + "（v" + th.version + "）");
+        d.setValue(s.activeTheme || "");
+        d.onChange(async (v) => {
+          if (!v) {
+            s.activeTheme = "";
+            await this.save();
+            this.display();
+            return;
+          }
+          const r = await this.plugin.themes.apply(v);
+          if (r) this.display();
+        });
+      })
+      .addButton((b) => b.setButtonText("存成新主题…").onClick(() => {
+        new PromptModal(this.app, "存成新主题", "主题名字", s.activeTheme || "我的主题", async (v) => {
+          await this.plugin.saveThemeAs(v, "从设置页新建");
+          this.display();
+        }).open();
+      }))
+      .addButton((b) => b.setButtonText("把改动存回去").onClick(() => {
+        if (!s.activeTheme) { new Notice("先选一个主题"); return; }
+        new PromptModal(this.app, "更新主题", "这次改了什么（备注）", "", async (v) => {
+          await this.plugin.updateActiveTheme(v);
+          this.display();
+        }).open();
+      }));
+
+    /* —— 项目切换 —— */
+    new Setting(p).setName("切项目时连视觉一起换")
+      .setDesc("开着：每个项目记住自己的一套主题/皮肤/边框/底色，切过去就换回来。关掉：全局共用一套视觉。")
+      .addToggle((x) => x.setValue(s.projectCarryLayout !== false).onChange(async (v) => {
+        s.projectCarryLayout = v;
+        await this.save();
+      }));
+
+    /* —— 主题文件位置 —— */
+    new Setting(p)
+      .setName("主题文件夹")
+      .setDesc("相对库根目录。换设备时连同这个文件夹一起拷走即可。")
+      .addText((t) => t.setValue(s.themeDir || "主题").setPlaceholder("主题")
+        .onChange(async (v) => { s.themeDir = v.trim() || "主题"; await this.save(); }))
+      .addExtraButton((b) => b.setIcon("folder-open").setTooltip("打开文件夹").onClick(async () => {
+        await this.plugin.themes.ensureDir();
+        const f = this.app.vault.getAbstractFileByPath(this.plugin.themes.dir);
+        if (f) this.app.workspace.getLeaf(true).openFile(f.path);
+      }))
+      .addExtraButton((b) => b.setIcon("refresh-cw").setTooltip("重新安装内置六套预设").onClick(async () => {
+        const n = await this.plugin.themes.installPresets();
+        new Notice(n ? "已补装 " + n + " 套预设" : "六套预设都已存在");
+        this.display();
+      }));
+
+    /* —— 启动时自动套用 —— */
+    new Setting(p)
+      .setName("启动时自动套用当前主题")
+      .setDesc("关掉的话，每次启动用 data.json 里的散项值。")
+      .addToggle((t) => t.setValue(s.autoApplyTheme !== false)
+        .onChange(async (v) => { s.autoApplyTheme = v; await this.save(); }));
+
+    /* —————— 底色 —————— */
+    p.createEl("h4", { text: "底色" });
+    new Setting(p).setName("形态")
+      .setDesc("纯色最安静；渐变有层次；图片最活；纹理最像纸。")
+      .addDropdown((d) => {
+        d.addOption("color", "纯色");
+        d.addOption("gradient", "渐变");
+        d.addOption("image", "图片");
+        d.addOption("texture", "纹理");
+        d.setValue(s.bgMode || "color");
+        d.onChange(async (v) => { s.bgMode = v; await this.save(); this.display(); });
+      });
+    if (!s.bgMode || s.bgMode === "color") {
+      new Setting(p).setName("底色颜色").addText((t) => {
+        t.setValue(s.bgColor || "#ffffff");
+        t.inputEl.type = "color";
+        t.onChange(async (v) => { s.bgColor = v; await this.save(); });
+      }).addExtraButton((b) => b.setIcon("eraser").setTooltip("恢复默认（透明）")
+        .onClick(async () => { s.bgColor = ""; await this.save(); this.display(); }));
+    }
+    if (s.bgMode === "gradient") {
+      new Setting(p).setName("渐变")
+        .setDesc('CSS 渐变，例如 linear-gradient(160deg,#f4f6f9 0%,#eef2f7 100%)')
+        .addText((t) => t.setValue(s.bgGradient || "").setPlaceholder("linear-gradient(...)")
+          .onChange(async (v) => { s.bgGradient = v; await this.save(); }));
+    }
+    if (s.bgMode === "image") {
+      new Setting(p).setName("主页的旧版背景图")
+        .setDesc("库内图片路径，或用右边按钮选。")
+        .addText((t) => t.setValue(s.bgImage || "").setPlaceholder("日记/attachments/xxx.png")
+          .onChange(async (v) => { s.bgImage = v; await this.save(); }))
+        .addButton((b) => b.setButtonText("选图…").onClick(async () => {
+          const f = await chooseLocalFile({ accept: "image/*" });
+          if (!f) return;
+          const dir = this.plugin.attachDir();
+          await this.plugin.ensureFolder(dir);
+          const p2 = normalizePath(dir + "/" + Date.now() + "-" + (f.name || "bg.png"));
+          await this.app.vault.adapter.writeBinary(p2, await f.arrayBuffer());
+          s.bgImage = p2; await this.save(); this.display();
+        }));
+    }
+    if (s.bgMode === "texture") {
+      new Setting(p).setName("纹理").addDropdown((d) => {
+        for (const [v, n] of [["none", "无"], ["graph", "方格纸"], ["dots", "点点阵"], ["lines", "细横线"]]) d.addOption(v, n);
+        d.setValue(s.bgTexture || "none");
+        d.onChange(async (v) => { s.bgTexture = v; await this.save(); });
+      });
+    }
+
+    /* —— 底图按月/按周换色（T-04）—— */
+    p.createEl("h4", { text: "底图颜色节奏" });
+    p.createDiv({ cls: "gd-set-hint", text: "按周或按月自动换底色 —— 比如十一月一种色、十二月另一种。优先级高于上面的固定底色。" });
+    new Setting(p).setName("换色节奏").addDropdown((d) => {
+      d.addOption("off", "不换（用上面的固定底色）");
+      d.addOption("week", "按周换（周一起，七天七色）");
+      d.addOption("month", "按月换（一个月一种色）");
+      d.setValue(s.bgRhythm || "week");
+      d.onChange(async (v) => { s.bgRhythm = v; await this.save(); this.plugin.applyAllTheme(); this.display(); });
+    });
+
+    if ((s.bgRhythm || "week") === "month") {
+      const box = p.createDiv({ cls: "gd-month-grid" });
+      const cur = s.bgByMonth || {};
+      for (let m = 1; m <= 12; m++) {
+        const key = String(m).padStart(2, "0");
+        const cell = box.createDiv({ cls: "gd-month-cell" });
+        cell.createDiv({ cls: "gd-month-label", text: m + " 月" });
+        const inp = cell.createEl("input");
+        inp.type = "color";
+        inp.value = cur[key] || MONTH_PALETTE[key];
+        inp.onchange = async () => {
+          s.bgByMonth = Object.assign({}, s.bgByMonth || {}, { [key]: inp.value });
+          await this.save();
+          this.plugin.applyAllTheme();
+        };
+      }
+      new Setting(p).setName("批量").addButton((b) => b.setButtonText("随机整套一年").onClick(async () => {
+        const out = {};
+        for (let m = 1; m <= 12; m++) {
+          const key = String(m).padStart(2, "0");
+          const h = (m * 31) % 360;
+          out[key] = "hsl(" + h + " 28% 96%)";
+        }
+        s.bgByMonth = out;
+        await this.save();
+        this.plugin.applyAllTheme();
+        this.display();
+      })).addButton((b) => b.setButtonText("恢复默认").onClick(async () => {
+        s.bgByMonth = {};
+        await this.save();
+        this.plugin.applyAllTheme();
+        this.display();
+      }));
+    }
+
+    if ((s.bgRhythm || "week") === "week") {
+      const wd = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+      const box = p.createDiv({ cls: "gd-month-grid" });
+      const cur = s.bgByWeek || {};
+      /* bgByWeek 用周序号作 key，这里给的是「按星期几」的简版：落到当前周的序号上太绕，
+         所以这一排是「色板」，作为未指定时的默认值预览。 */
+      for (let i = 0; i < 7; i++) {
+        const cell = box.createDiv({ cls: "gd-month-cell" });
+        cell.createDiv({ cls: "gd-month-label", text: wd[i] });
+        const inp = cell.createEl("input");
+        inp.type = "color";
+        inp.value = this._rgbOfHsl(WEEK_PALETTE[i]);
+        inp.dataset.wd = String(i);
+        inp.onchange = async () => {
+          s.bgByWeek = s.bgByWeek || {};
+          s.bgByWeek["wd" + i] = inp.value;
+          await this.save();
+          this.plugin.applyAllTheme();
+        };
+      }
+      p.createDiv({ cls: "gd-set-hint", text: "按周换色时，同一周内七天各用一个色。改这里会立刻反映到当前打开的那一天。" });
+    }
+
+    /* —— 跟随 Obsidian 主题 + 背景视频（B1）—— */
+    p.createEl("h4", { text: "背景：跟随 Obsidian 主题 / 背景视频" });
+    new Setting(p).setName("跟随 Obsidian 主题")
+      .setDesc("Obsidian 切到深色时，日记底色和字色自动换深。")
+      .addToggle((x) => x.setValue(!!s.bgFollowObsidian).onChange(async (v) => {
+        s.bgFollowObsidian = v; await this.save(); this.plugin.applyAllTheme(); this.display();
+      }));
+    if (s.bgFollowObsidian) {
+      new Setting(p).setName("跟随时的模糊").setDesc("0 = 不模糊。")
+        .addSlider((x) => x.setLimits(0, 24, 1).setValue(s.bgFollowBlur || 0).setDynamicTooltip()
+          .onChange(async (v) => { s.bgFollowBlur = v; await this.save(); this.plugin.applyAllTheme(); }));
+    }
+    new Setting(p).setName("背景视频")
+      .setDesc(s.bgVideo ? "当前：" + s.bgVideo.split("/").pop() : "选一段 mp4 / webm，会静音循环铺在底层。")
+      .addButton((b) => b.setButtonText("选视频…").onClick(async () => {
+        const f = await chooseLocalFile({ accept: "" });
+        if (!f) return;
+        if (!isVideoSrc(f.name)) { new Notice("这不是视频文件（mp4 / webm / ogv / mov / m4v / mkv）"); return; }
+        const dir = this.plugin.attachDir();
+        await this.plugin.ensureFolder(dir);
+        const path = normalizePath(dir + "/" + f.name);
+        try {
+          if (await this.app.vault.adapter.exists(path)) {
+            s.bgVideo = path;
+          } else {
+            await this.app.vault.adapter.writeBinary(path, await f.arrayBuffer());
+            s.bgVideo = path;
+          }
+          s.bgMode = "image";
+          await this.save();
+          this.plugin.applyAllTheme();
+          this.display();
+          new Notice("背景视频已设好");
+        } catch (e) { new Notice("设背景视频失败：" + (e && e.message ? e.message : e)); }
+      }))
+      .addExtraButton((b) => b.setIcon("trash").setTooltip("去掉背景视频").onClick(async () => {
+        s.bgVideo = ""; await this.save(); this.plugin.applyAllTheme(); this.display();
+      }));
+    new Setting(p).setName("背景视频循环").addToggle((x) => x.setValue(s.bgVideoLoop !== false)
+      .onChange(async (v) => { s.bgVideoLoop = v; await this.save(); this.plugin.applyAllTheme(); }));
+
+    /* —— 图片填充 + 合并层（B2 / B4）—— */
+    p.createEl("h4", { text: "图片层：填充方式 / 合并" });
+    new Setting(p).setName("图片填充")
+      .setDesc("居中裁剪 = 铺满但裁边；完整显示 = 留白不裁；拉伸 = 变形铺满；九宫格 = 四角不拉伸。")
+      .addDropdown((d) => {
+        for (const [v, n] of [["cover", "居中裁剪"], ["contain", "完整显示"], ["fill", "拉伸"], ["nine", "九宫格"]]) d.addOption(v, n);
+        d.setValue(s.photoFit || "cover").onChange(async (v) => { s.photoFit = v; await this.save(); this.plugin.applyAllTheme(); this.display(); });
+      });
+    if ((s.photoFit || "cover") === "nine") {
+      new Setting(p).setName("九宫格切片").setDesc("角上不被拉伸的像素数。")
+        .addSlider((x) => x.setLimits(4, 120, 2).setValue(s.nineSlice || 24).setDynamicTooltip()
+          .onChange(async (v) => { s.nineSlice = v; await this.save(); this.plugin.applyAllTheme(); }));
+    }
+    new Setting(p).setName("背景与照片合并成一层")
+      .setDesc("现在「背景」和「照片」是两层，叠在一起会出重影；打开这个就只画一张图。")
+      .addToggle((x) => x.setValue(!!s.mergeBgImg).onChange(async (v) => {
+        s.mergeBgImg = v; await this.save(); this.plugin.applyAllTheme(); this.display();
+      }));
+
+    /* —— 复用别天的壁纸（B3）—— */
+    new Setting(p).setName("复用别一天的图")
+      .setDesc("打开某一天，把它的封面 / 照片搬过来用。")
+      .addButton((b) => b.setButtonText("从某一天复用…").onClick(() => {
+        const v = this.plugin.gridView();
+        if (!v) { new Notice("先打开一篇日记"); return; }
+        v.reuseCoverFromDay();
+      }));
+
+    /* —— 一键重置排版（B7）—— */
+    new Setting(p).setName("重置这一篇的排版")
+      .setDesc("只恢复封面、层位置、边框、皮肤；格子里的文字一个字都不动。")
+      .addButton((b) => b.setButtonText("重置…").setWarning().onClick(() => {
+        const v = this.plugin.gridView();
+        if (!v) { new Notice("先打开一篇日记"); return; }
+        v.resetLayout();
+      }));
+
+    /* —— 动图 / 视频 / 轮播（T-06 / T-07）—— */
+    p.createEl("h4", { text: "图片层：动图 · 视频 · 轮播" });
+    p.createDiv({ cls: "gd-set-hint", text: "CSS 的 background-image 放不了视频，插件会在底层叠一个静音循环的 <video>。移动端默认不启用视频（省电）。" });
+    new Setting(p).setName("允许视频壁纸")
+      .setDesc("桌面端有效；移动端自动禁用。")
+      .addToggle((x) => x.setValue(!!s.videoEnabled).onChange(async (v) => { s.videoEnabled = v; await this.save(); }));
+    new Setting(p).setName("视频体积上限").setDesc("超过就不让放，避免卡。")
+      .addSlider((x) => x.setLimits(5, 200, 5).setValue(s.videoMaxMB || 20).setDynamicTooltip()
+        .onChange(async (v) => { s.videoMaxMB = v; await this.save(); }));
+    new Setting(p).setName("视频时长上限").setDesc("秒。")
+      .addSlider((x) => x.setLimits(5, 300, 5).setValue(s.videoMaxSec || 60).setDynamicTooltip()
+        .onChange(async (v) => { s.videoMaxSec = v; await this.save(); }));
+    new Setting(p).setName("轮播壁纸")
+      .setDesc("像 Windows 的「幻灯片放映」：选一组图，按间隔自动换。")
+      .addDropdown((d) => {
+        d.addOption("open", "每次打开换一张");
+        d.addOption("30s", "30 秒");
+        d.addOption("5m", "5 分钟");
+        d.addOption("day", "每天换一张");
+        d.setValue(s.carouselEvery || "open");
+        d.onChange(async (v) => { s.carouselEvery = v; await this.save(); });
+      })
+      .addButton((b) => b.setButtonText("选一组图…").onClick(() => {
+        const v = this.plugin.gridView();
+        if (!v) { new Notice("先打开一篇日记"); return; }
+        v.pickCarousel();
+      }))
+      .addButton((b) => b.setButtonText("换下一张").onClick(() => {
+        const v = this.plugin.gridView();
+        if (v && v.nextCarousel()) new Notice("已换下一张");
+        else new Notice("还没有轮播组，或只有一张图");
+      }));
+    if ((s.carouselList || []).length) {
+      p.createDiv({ cls: "gd-set-hint", text: "当前轮播组：" + s.carouselList.length + " 张，正显示第 " + ((Number(s.carouselIndex) || 0) + 1) + " 张。" });
+    }
+
+    /* —————— 字体 —————— */
+    p.createEl("h4", { text: "字体" });
+    new Setting(p).setName("字族").setDesc('留空跟随 Obsidian；可填 "LXGW WenKai" 之类。')
+      .addText((t) => t.setValue(s.fontFamily || "").setPlaceholder("留空使用默认字体")
+        .onChange(async (v) => { s.fontFamily = v; await this.save(); }));
+    new Setting(p).setName("字号").addSlider((x) => x.setLimits(10, 26, 1).setValue(s.fontSize || 15).setDynamicTooltip()
+      .onChange(async (v) => { s.fontSize = v; await this.save(); }));
+    new Setting(p).setName("字色").addText((t) => {
+      t.setValue(s.fontColor || "#3b342c");
+      t.inputEl.type = "color";
+      t.onChange(async (v) => { s.fontColor = v; await this.save(); });
+    }).addExtraButton((b) => b.setIcon("eraser").setTooltip("恢复默认")
+      .onClick(async () => { s.fontColor = ""; await this.save(); this.display(); }));
+    new Setting(p).setName("行高").addSlider((x) => x.setLimits(1.2, 2.6, 0.05).setValue(s.lineHeight || 1.7).setDynamicTooltip()
+      .onChange(async (v) => { s.lineHeight = v; await this.save(); }));
+    new Setting(p).setName("字距").setDesc("单位 px，0 = 默认。")
+      .addSlider((x) => x.setLimits(-1, 6, 0.5).setValue(s.letterSpacing || 0).setDynamicTooltip()
+        .onChange(async (v) => { s.letterSpacing = v; await this.save(); }));
+    new Setting(p).setName("主页的字重").addSlider((x) => x.setLimits(100, 900, 100).setValue(s.fontWeight || 400).setDynamicTooltip()
+      .onChange(async (v) => { s.fontWeight = v; await this.save(); }));
+
+    /* —————— 线体 —————— */
+    p.createEl("h4", { text: "线体" });
+    p.createDiv({ cls: "gd-set-hint", text: "这一组管所有线：格子边框、目录层级线、时间线轴线、日历网格线。改一处全联动。" });
+    new Setting(p).setName("线色").addText((t) => {
+      t.setValue(s.lineColor || "#dddddd");
+      t.inputEl.type = "color";
+      t.onChange(async (v) => { s.lineColor = v; await this.save(); });
+    }).addExtraButton((b) => b.setIcon("eraser").setTooltip("恢复默认")
+      .onClick(async () => { s.lineColor = ""; await this.save(); this.display(); }));
+    new Setting(p).setName("线宽").addSlider((x) => x.setLimits(0.5, 4, 0.5).setValue(s.lineWidth || 1).setDynamicTooltip()
+      .onChange(async (v) => { s.lineWidth = v; await this.save(); }));
+    new Setting(p).setName("线型").addDropdown((d) => {
+      for (const [v, n] of [["solid", "实线"], ["dashed", "虚线"], ["dotted", "点线"]]) d.addOption(v, n);
+      d.setValue(s.lineStyle || "solid");
+      d.onChange(async (v) => { s.lineStyle = v; await this.save(); });
+    });
+
+    /* —————— 格子 —————— */
+    p.createEl("h4", { text: "格子" });
+    new Setting(p).setName("风格").addDropdown((d) => {
+      for (const [v, n] of THEMES) d.addOption(v, n);
+      d.setValue(s.theme || "card");
+      d.onChange(async (v) => { s.theme = v; await this.save(); this.display(); });
+    });
+    new Setting(p).setName("边框").addDropdown((d) => {
+      for (const [v, n] of BORDERS) d.addOption(v, n);
+      d.setValue(s.defaultBorder || "hair");
+      d.onChange(async (v) => { s.defaultBorder = v; await this.save(); });
+    });
+    new Setting(p).setName("主页的圆角").addSlider((x) => x.setLimits(0, 28, 1).setValue(s.radius || 14).setDynamicTooltip()
+      .onChange(async (v) => { s.radius = v; await this.save(); }));
+    new Setting(p).setName("间距").addSlider((x) => x.setLimits(0, 48, 1).setValue(s.gap || 14).setDynamicTooltip()
+      .onChange(async (v) => { s.gap = v; await this.save(); }));
+    new Setting(p).setName("内边距").addSlider((x) => x.setLimits(4, 72, 1).setValue(s.pad || 20).setDynamicTooltip()
+      .onChange(async (v) => { s.pad = v; await this.save(); }));
+    new Setting(p).setName("主页的强调色").addText((t) => {
+      t.setValue(s.accent || "#c2704f");
+      t.inputEl.type = "color";
+      t.onChange(async (v) => { s.accent = v; await this.save(); });
+    });
+    new Setting(p).setName("不透明度").addSlider((x) => x.setLimits(0.3, 1, 0.05).setValue(s.cardOpacity || 1).setDynamicTooltip()
+      .onChange(async (v) => { s.cardOpacity = v; await this.save(); }));
+
+    /* 自定义 CSS —— 用户明确说这块他自己管，这里只放跳转 */
+    p.createEl("h4", { text: "自定义 CSS" });
+    p.createDiv({ cls: "gd-set-hint", text: "这一项归你自己写，主题系统不碰它。到「外观 → 自定义 CSS」里编辑。" });
+
+    /* —————— 预设 —————— */
+    p.createEl("h4", { text: "六套内置预设" });
+    p.createDiv({ cls: "gd-set-hint", text: "下面是点一下就能套的预设。想改就改完再「存成新主题」，不会覆盖预设。" });
+    const grid = p.createDiv({ cls: "gd-preset-grid" });
+    const presets = (typeof THEME_PRESETS !== "undefined" ? THEME_PRESETS : []);
+    (async () => {
+      const list = await this.plugin.themes.list();
+      for (const pr of presets) {
+        const has = list.some((x) => x.name === pr.name);
+        const card = grid.createDiv({ cls: "gd-preset-card" + (s.activeTheme === pr.name ? " is-on" : "") });
+        card.createDiv({ cls: "gd-preset-name", text: pr.name });
+        card.createDiv({ cls: "gd-preset-note", text: pr.note });
+        const swatch = card.createDiv({ cls: "gd-preset-swatch" });
+        swatch.style.background = pr.tokens.bgColor || "#fff";
+        if (pr.tokens.bgGradient) swatch.style.background = pr.tokens.bgGradient;
+        const bar = card.createDiv({ cls: "gd-preset-bar" });
+        bar.style.background = pr.tokens.accent || "#c2704f";
+        const b = card.createEl("button", { cls: "gd-mini-btn", text: has ? "套用" : "装并套用" });
+        b.onclick = async () => {
+          if (!has) await this.plugin.themes.installPresets();
+          await this.plugin.themes.apply(pr.name);
+          this.plugin.applyAllTheme();
+          this.display();
+        };
+      }
+    })();
+  }
+
+  /* ---------- 主页 ---------- */
+  homePane(p) {
+    p.createEl("h3", { text: "主页" });
+    p.createDiv({ cls: "gd-set-hint", text: "主页＝九宫格那一页。这里管它的底色、字体、封面、格子、座右铭、头像。" });
+    p.createEl("h4", { text: "主页基础" });
+    new Setting(p).setName("主页的日记文件夹").setDesc("所有日期 md 都放这里；目录、日历、流线图都读这个文件夹。").addDropdown((d) => {
+      for (const f of this.folders()) d.addOption(f === "/" ? "" : f, f === "/" ? "库根目录" : f);
+      d.setValue(this.s.rootFolder || "").onChange(async (v) => { this.s.rootFolder = v; await this.save(); this.refresh(); });
+    });
+    new Setting(p).setName("主页自动创建今天的日记").addToggle((t) => t.setValue(this.s.autoCreateToday).onChange(async (v) => { this.s.autoCreateToday = v; await this.save(); }));
+    new Setting(p).setName("主页手机上强制单列").addToggle((t) => t.setValue(this.s.mobileOneColumn).onChange(async (v) => { this.s.mobileOneColumn = v; await this.save(); this.refresh(); }));
+    this.homeLook(p);
+  }
+
+  /* 目录里靠后的几项（从常规搬过来） */
+  dirExtras(p) {
+    new Setting(p).setName("目录显示：左侧栏").addToggle((t) => t.setValue(this.s.showSidebar).onChange(async (v) => { this.s.showSidebar = v; await this.save(); this.plugin.applySidebar(); }));
+    new Setting(p).setName("目录显示：最近文件").addToggle((t) => t.setValue(this.s.showRecentFiles !== false).onChange(async (v) => { this.s.showRecentFiles = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("目录显示：文件夹树连线").addToggle((t) => t.setValue(this.s.showTreeLines !== false).onChange(async (v) => { this.s.showTreeLines = v; await this.save(); this.refresh(); }));
+  }
+
+  /* 包一层，把「目录」和搬过来的几项合起来 */
+  dirPane(p) {
+    this.treePane(p);
+    p.createEl("h4", { text: "目录显示" });
+    this.dirExtras(p);
+  }
+
+  /* ---------- 流线图（新开） ---------- */
+  timelinePane(p) {
+    p.createEl("h3", { text: "流线图" });
+    p.createDiv({ cls: "gd-set-hint", text: "流线图＝右侧那条时间轴。它按天列，点开一天能看到那天插了什么、改过几次、能不能回退。" });
+    p.createEl("h4", { text: "流线图位置" });
+    new Setting(p).setName("流线图放在哪").setDesc("右侧栏＝一边写字一边看；主区标签页＝占一整页。").addDropdown((d) => {
+      d.addOption("right", "右侧栏"); d.addOption("left", "左侧栏"); d.addOption("tab", "主区标签页");
+      d.setValue(this.s.timelinePlacement).onChange(async (v) => { this.s.timelinePlacement = v; await this.save(); new Notice("重新打开插件后生效"); });
+    });
+    new Setting(p).setName("流线图宽度").setDesc("右侧栏太窄会显示成细长条；调宽一点更像正方形。").addSlider((sl) => sl.setLimits(180, 420, 10).setValue(this.s.timelineWidth || 260).setDynamicTooltip()
+      .onChange(async (v) => { this.s.timelineWidth = v; await this.save(); this.plugin.applyTimeline(); }));
+    new Setting(p).setName("流线图条目接近方形").setDesc("开着：每一条的缩略图和卡片都是方的，不再是扁长条。").addToggle((t) => t.setValue(this.s.timelineSquare !== false).onChange(async (v) => { this.s.timelineSquare = v; await this.save(); this.plugin.refreshAllTimelinePanels && this.plugin.refreshAllTimelinePanels(); }));
+    p.createEl("h4", { text: "流线图内容" });
+    new Setting(p).setName("流线图显示缩略轴").setDesc("顶部那条按天排的小圆点，用来快速跳日期。").addToggle((t) => t.setValue(this.s.showCalendarAxis).onChange(async (v) => { this.s.showCalendarAxis = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("流线图点开预览显示在原文上方").setDesc("开着：点一条，预览铺在这篇原文的正上方（视觉在上、文字在下）。关掉：就用原来的浮窗。").addToggle((t) => t.setValue(this.s.timelinePreviewAbove !== false).onChange(async (v) => { this.s.timelinePreviewAbove = v; await this.save(); }));
+  }
+
+  /* ---------- 外观（五套风格 / 边框 / 封面 / 贴纸） ---------- */
+  homeLook(p) {
+    new Setting(p).setName("主页的页面风格").setDesc("五套风格都可自由调色，切换不影响日记内容。").addDropdown((d) => {
+      for (const [v, n] of THEMES) d.addOption(v, n);
+      d.setValue(this.s.theme || "card").onChange(async (v) => { this.s.theme = v; await this.save(); this.refresh(); });
+    });
+    new Setting(p).setName("主页的格子边框").setDesc("「纸胶带」是手账感最强的一档：格子顶部一条斜纹色带。").addDropdown((d) => {
+      for (const [v, n] of BORDERS) d.addOption(v, n);
+      d.setValue(this.s.defaultBorder || "hair").onChange(async (v) => {
+        this.s.defaultBorder = v;
+        await this.save();
+        const g = this.plugin.gridView();
+        if (g) { g.layout.border = v; g.save(true); }
+        this.refresh(true);
+      });
+    });
+    new Setting(p).setName("主页的强调色").addText((t) => {
+      t.setValue(this.s.accent).onChange(async (v) => { if (/^#[0-9a-f]{6}$/i.test(v)) { this.s.accent = v; await this.save(); this.refresh(); } });
+      t.inputEl.type = "color";
+    });
+    new Setting(p).setName("主页的圆角").addSlider((s) => s.setLimits(0, 28, 1).setValue(this.s.radius).setDynamicTooltip().onChange(async (v) => { this.s.radius = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页的卡片不透明度").addSlider((s) => s.setLimits(0.3, 1, 0.05).setValue(this.s.cardOpacity).setDynamicTooltip().onChange(async (v) => { this.s.cardOpacity = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页的正文字号").addSlider((s) => s.setLimits(10, 26, 1).setValue(this.s.fontSize).setDynamicTooltip().onChange(async (v) => { this.s.fontSize = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页的行距").addSlider((s) => s.setLimits(1.2, 2.6, 0.05).setValue(this.s.lineHeight || 1.7).setDynamicTooltip().onChange(async (v) => { this.s.lineHeight = v; await this.save(); this.refresh(); }));
+    /* ── 正文排版（纸书感）── */
+    p.createEl("h4", { text: "正文排版" });
+    new Setting(p)
+      .setName("主页的首行缩进")
+      .setDesc("中文纸书传统：每段开头空两格。0 = 不缩进。")
+      .addSlider((s) => s.setLimits(0, 4, 0.5).setValue(this.s.paraIndent == null ? 2 : this.s.paraIndent).setDynamicTooltip()
+        .onChange(async (v) => { this.s.paraIndent = v; await this.save(); this.refresh(); }));
+    new Setting(p)
+      .setName("主页的段落间距")
+      .setDesc("两段之间空多少（单位 em，1em = 一个字高）。建议 0.8–1。")
+      .addSlider((s) => s.setLimits(0, 2, 0.1).setValue(this.s.paraGap == null ? 0.8 : this.s.paraGap).setDynamicTooltip()
+        .onChange(async (v) => { this.s.paraGap = v; await this.save(); this.refresh(); }));
+    new Setting(p)
+      .setName("主页的标题下方间距")
+      .setDesc("标题和正文之间的空隙，单独控制，不和段落间距叠加。")
+      .addSlider((s) => s.setLimits(0, 1.5, 0.1).setValue(this.s.paraFontGap == null ? 0.5 : this.s.paraFontGap).setDynamicTooltip()
+        .onChange(async (v) => { this.s.paraFontGap = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页的字重").addSlider((s) => s.setLimits(100, 900, 100).setValue(this.s.fontWeight || 400).setDynamicTooltip().onChange(async (v) => { this.s.fontWeight = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页的字体").setDesc("留空跟随 Obsidian；可填 \"LXGW WenKai\" 之类。").addText((t) => t.setValue(this.s.fontFamily).setPlaceholder("留空使用默认字体").onChange(async (v) => { this.s.fontFamily = v; await this.save(); this.refresh(); }));
+
+    p.createEl("h4", { text: "封面图" });
+    p.createDiv({ cls: "gd-set-note", text: "封面优先用单篇里设置的；没设就找 frontmatter 的 cover/banner；再没有就按下面的「兜底」来。0 高度＝不要封面。" });
+    new Setting(p).setName("主页显示封面").addToggle((t) => t.setValue(this.s.showCover).onChange(async (v) => { this.s.showCover = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页封面高度").addSlider((s) => s.setLimits(0, 1200, 10).setValue(this.s.coverHeight).setDynamicTooltip().onChange(async (v) => { this.s.coverHeight = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页没有封面图时").addDropdown((d) => {
+      d.addOption("gradient", "用强调色渐变（推荐，不会破图）");
+      d.addOption("firstImage", "自动取正文第一张图");
+      d.addOption("none", "不显示封面条");
+      d.setValue(this.s.coverFallback).onChange(async (v) => { this.s.coverFallback = v; await this.save(); this.refresh(); });
+    });
+
+    p.createEl("h4", { text: "记笔记的手感" });
+    new Setting(p).setName("主页输入时格子轻微抬起").addToggle((t) => t.setValue(this.s.hoverLift).onChange(async (v) => { this.s.hoverLift = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页空格子显示引导问句").setDesc("九宫格日记的关键：每格用一句话提示你该写什么。").addToggle((t) => t.setValue(this.s.showPromptHint).onChange(async (v) => { this.s.showPromptHint = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页引导问句库").addDropdown((d) => {
+      for (const k of Object.keys(PROMPT_SETS)) d.addOption(k, k);
+      d.setValue(this.s.promptSet).onChange(async (v) => { this.s.promptSet = v; await this.save(); this.refresh(); });
+    });
+    new Setting(p).setName("主页格子底部字数进度纹").addToggle((t) => t.setValue(this.s.showWordTicker).onChange(async (v) => { this.s.showWordTicker = v; await this.save(); this.refresh(); }));
+
+    p.createEl("h4", { text: "动图" });
+    p.createDiv({ cls: "gd-set-note", text: "GIF / WebP / APNG 拖进格子就会动。图存在 日记/attachments/ 里，跟着库同步。" });
+    new Setting(p).setName("主页动图播放方式").addDropdown((d) => {
+      d.addOption("always", "一直播（推荐）");
+      d.addOption("hover", "悬停才播（省电）");
+      d.setValue(this.s.animPlayMode).onChange(async (v) => { this.s.animPlayMode = v; await this.save(); this.refresh(); });
+    });
+    new Setting(p).setName("主页动图大小提示阈值（MB）").setDesc("超过这个大小的动图插入时会提醒一句（不影响插入）。").addSlider((s) => s.setLimits(1, 50, 1).setValue(this.s.animMaxMB).setDynamicTooltip().onChange(async (v) => { this.s.animMaxMB = v; await this.save(); }));
+
+    p.createEl("h4", { text: "背景与自定义 CSS" });
+    const imgs = this.app.vault.getFiles().filter((f) => /\.(png|jpe?g|gif|webp|svg)$/i.test(f.path));
+    new Setting(p).setName("主页的旧版背景图").setDesc("旧版功能，选库里的一张图当整页底纹（低透明度，不挡字）。").addDropdown((d) => {
+      d.addOption("", "（无）");
+      for (const f of imgs) d.addOption(f.path, f.path);
+      const cur = this.s.background || "";
+      if (cur && !imgs.some((f) => f.path === cur)) d.addOption(cur, `${cur}　← 文件不存在`);
+      d.setValue(cur).onChange(async (v) => { this.s.background = v; await this.save(); this.refresh(); });
+    });
+    p.createEl("label", { text: "自定义 CSS（高级）", cls: "gd-field-label" });
+    const ta = p.createEl("textarea", { cls: "gd-css-input", attr: { placeholder: ".gd-cell { border-width: 2px; }" } });
+    ta.value = this.s.customCss || "";
+    ta.oninput = debounce(async () => { this.s.customCss = ta.value; await this.save(); this.plugin.applyCustomCss(); }, 400);
+    new Setting(p).setName("主页默认开启 Markdown 预览").addToggle((t) => t.setValue(this.s.renderMarkdown).onChange(async (v) => { this.s.renderMarkdown = v; await this.save(); }));
+
+    new Setting(p).setName("主页封面可拖动取景").setDesc("开着的时候，在封面上按住拖动就能选你想显示的那一块。").addToggle((t) => t.setValue(this.s.showCoverPos !== false).onChange(async (v) => { this.s.showCoverPos = v; await this.save(); }));
+
+    p.createEl("h4", { text: "座右铭栏（封面右侧）" });
+    new Setting(p).setName("主页显示座右铭栏").setDesc("封面右边一列，写一句每天想看到的话。默认关，开了才有。").addToggle((t) => t.setValue(this.s.showMotto).onChange(async (v) => { this.s.showMotto = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页默认座右铭").setDesc("每天都可以在封面上单独改；这里是不改时用的那句。").addTextArea((ta) => {
+      ta.setPlaceholder("比如：今天也只做一件事，做好它。");
+      ta.setValue(this.s.motto || "").onChange(async (v) => { this.s.motto = v; await this.save(); this.refresh(); });
+    });
+    new Setting(p).setName("主页座右铭对齐").addDropdown((d) => {
+      d.addOption("left", "左对齐");
+      d.addOption("center", "居中");
+      d.addOption("right", "右对齐");
+      d.setValue(this.s.mottoAlign || "left").onChange(async (v) => { this.s.mottoAlign = v; await this.save(); this.refresh(); });
+    });
+    new Setting(p).setName("主页座右铭字号").addSlider((s) => s.setLimits(11, 28, 1).setValue(this.s.mottoSize || 15).setDynamicTooltip().onChange(async (v) => { this.s.mottoSize = v; await this.save(); this.refresh(); }));
+
+    p.createEl("h4", { text: "封面标志（左下角头像）" });
+    new Setting(p).setName("主页显示封面标志").setDesc("封面上传图之前一直缺这个位置；现在可以放头像/标记/小图。").addToggle((t) => t.setValue(this.s.showAvatar).onChange(async (v) => { this.s.showAvatar = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页标志文字").setDesc("没上传图片时显示 1–2 个字。留空则自动用今天的日期首字。").addText((txt) => {
+      txt.setPlaceholder("格");
+      txt.setValue(this.s.avatarText || "").onChange(async (v) => { this.s.avatarText = v; await this.save(); this.refresh(); });
+    });
+    new Setting(p).setName("主页标志大小").addSlider((s) => s.setLimits(24, 96, 2).setValue(this.s.avatarSize || 44).setDynamicTooltip().onChange(async (v) => { this.s.avatarSize = v; await this.save(); this.refresh(); }));
+
+    p.createEl("h4", { text: "封面舞台（四层自由布局）" });
+    p.createDiv({ cls: "gd-set-note", text: "打开之后，封面从「一个框装一张图」变成一块舞台，上面叠四层：背景、照片、座右铭、标志。每层各自独立移动缩放，互不连坐 —— 拖图片不影响文本框，拖背景也不动别的。" });
+    new Setting(p).setName("主页使用四层舞台").setDesc("关掉就回到旧版封面（一个框 + 右侧座右铭栏）。老日记不会因此改变外观。")
+      .addToggle((tg) => tg.setValue(!!this.s.showStage).onChange(async (v) => { this.s.showStage = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页舞台高度").addSlider((sl) => sl.setLimits(120, 1200, 10).setValue(this.s.stageHeight || 220).setDynamicTooltip()
+      .onChange(async (v) => { this.s.stageHeight = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页推板步长").setDesc("舞台上按一次方向键挪多少（百分比）。")
+      .addDropdown((d) => {
+        for (const v of LAYER_STEPS) d.addOption(String(v), v + "%");
+        d.setValue(String(this.s.layerStep || 5)).onChange(async (v) => { this.s.layerStep = Number(v); await this.save(); });
+      });
+
+    p.createEl("h4", { text: "座右铭（舞台上的文字层）" });
+    new Setting(p).setName("主页座右铭文字颜色").setDesc("留空跟随主题。舞台上自动加描边光晕，深浅背景都能读。")
+      .addColorPicker((c) => c.setValue(this.s.mottoColor || "#2f3237").onChange(async (v) => { this.s.mottoColor = v; await this.save(); this.refresh(); }))
+      .addExtraButton((b) => b.setIcon("rotate-ccw").setTooltip("跟随主题").onClick(async () => { this.s.mottoColor = ""; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页座右铭不透明度").addSlider((sl) => sl.setLimits(20, 100, 1).setValue(Math.round((this.s.mottoOpacity == null ? 1 : this.s.mottoOpacity) * 100)).setDynamicTooltip()
+      .onChange(async (v) => { this.s.mottoOpacity = v / 100; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页的字重").addSlider((sl) => sl.setLimits(300, 900, 100).setValue(this.s.mottoWeight || 600).setDynamicTooltip()
+      .onChange(async (v) => { this.s.mottoWeight = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页座右铭描边光晕").setDesc("在深色图上写白字、浅色图上写黑字都靠它，建议开着。")
+      .addToggle((tg) => tg.setValue(this.s.mottoShadow !== false).onChange(async (v) => { this.s.mottoShadow = v; await this.save(); this.refresh(); }));
+
+    p.createEl("h4", { text: "标志（舞台上的头像层）" });
+    new Setting(p).setName("主页标志相框样式").setDesc("五款：无 / 细描边 / 双环 / 光晕 / 虚线。")
+      .addDropdown((d) => {
+        d.addOption("none", "无");
+        d.addOption("thin", "细描边");
+        d.addOption("double", "双环");
+        d.addOption("glow", "光晕");
+        d.addOption("dash", "虚线");
+        d.setValue(this.s.markRing || "none").onChange(async (v) => { this.s.markRing = v; await this.save(); this.refresh(); });
+      });
+    new Setting(p).setName("主页标志下方名字").setDesc("留空则不显示。也可以每篇单独在舞台右键里改。")
+      .addText((tx) => tx.setPlaceholder("比如：小格").setValue(this.s.markName || "").onChange(async (v) => { this.s.markName = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("主页标志大小").addSlider((sl) => sl.setLimits(24, 140, 2).setValue(this.s.markSize || 56).setDynamicTooltip()
+      .onChange(async (v) => { this.s.markSize = v; await this.save(); this.refresh(); }));
+
+    new Setting(p).setName("主页批量设置封面…").setDesc("一次给很多天套同一张壁纸，不用一篇篇来。").addButton((b) => b.setButtonText("打开").onClick(() => this.plugin.openBatchCover()));
+  }
+
+  /* ---------- 目录（双面板） ---------- */
+  treePane(p) {
+    const s = this.s;
+    p.createEl("h3", { text: "目录" });
+    p.createDiv({ cls: "gd-set-hint", text: "目录就是左侧那条：点文件夹名会弹菜单，排序、只看什么、怎么分组、新建文件夹都在里面。" });
+
+    p.createEl("h4", { text: "目录的形态" });
+    new Setting(p).setName("目录上下双面板")
+      .setDesc("上面是文件夹，下面是这个文件夹里的笔记。关掉就退回一条通列表。")
+      .addToggle((x) => x.setValue(s.treeTwoPane !== false).onChange(async (v) => {
+        s.treeTwoPane = v; await this.save(); this.rebuildSidebar();
+      }));
+    new Setting(p).setName("目录上下面板比例")
+      .setDesc("上面那块占多高。也可以直接在目录里拖中间那条线。")
+      .addSlider((x) => x.setLimits(15, 85, 1).setValue(Math.round((s.treePaneRatio || 0.42) * 100)).setDynamicTooltip()
+        .onChange(async (v) => {
+          s.treePaneRatio = v / 100; await this.save();
+          const sb = this.plugin.sidebar;
+          if (sb && sb.applySplit) sb.applySplit(s.treePaneRatio);
+        }));
+
+    p.createEl("h4", { text: "目录的条目" });
+    new Setting(p).setName("目录显示封面缩略图")
+      .setDesc("每条左边一张小图，取这一天日记里的第一张图（没有就用封面）。")
+      .addToggle((x) => x.setValue(s.treeThumb !== false).onChange(async (v) => {
+        s.treeThumb = v; await this.save(); this.rebuildSidebar();
+      }));
+    new Setting(p).setName("目录紧凑模式")
+      .setDesc("一行一条，不显示摘要，能一次看到更多。")
+      .addToggle((x) => x.setValue(!!s.treeCompact).onChange(async (v) => {
+        s.treeCompact = v; await this.save(); this.rebuildSidebar();
+      }));
+    new Setting(p).setName("目录显示篇数与字数")
+      .setDesc("文件夹右边显示有几篇；每条右边显示星期和字数。")
+      .addToggle((x) => x.setValue(s.treeShowStats !== false).onChange(async (v) => {
+        s.treeShowStats = v; await this.save(); this.rebuildSidebar();
+      }));
+    new Setting(p).setName("目录默认怎么分组")
+      .setDesc("「今天 / 昨天 / 前七天 / 更早」最贴近日常找东西的习惯。")
+      .addDropdown((d) => {
+        d.addOption("smart", "今天 / 昨天 / 前七天 / 更早");
+        d.addOption("month", "按月份");
+        d.addOption("none", "不分组，一条通到底");
+        d.setValue(s.treeGroupMode || "smart").onChange(async (v) => {
+          s.treeGroupMode = v; await this.save(); this.rebuildSidebar();
+        });
+      });
+    new Setting(p).setName("目录行间分隔符")
+      .setDesc("把每一行隔开，可选线体或小图案。")
+      .addDropdown((d) => {
+        for (const [v, n] of [["none", "不要"], ["line", "细线"], ["dash", "虚线"], ["dot", "圆点"], ["wave", "齿线"], ["star", "星"], ["heart", "心"], ["leaf", "叶"], ["sun", "日"], ["arrow", "箭头"], ["char", "自定义字符"], ["image", "自定义图片"]]) d.addOption(v, n);
+        d.setValue(s.treeSepStyle || "none").onChange(async (v) => {
+          s.treeSepStyle = v; await this.save(); this.rebuildSidebar(); this.display();
+        });
+      });
+    if (s.treeSepStyle === "char" || s.treeSepStyle === "image") {
+      new Setting(p).setName(s.treeSepStyle === "image" ? "分隔图片路径或网址" : "分隔字符")
+        .setDesc(s.treeSepStyle === "image" ? "库内路径（如 日记/attachments/sep.png）或以 http 开头的网址。" : "填一个字符，比如 · 或 ／")
+        .addText((tx) => tx.setPlaceholder(s.treeSepStyle === "image" ? "日记/attachments/sep.png" : "·")
+          .setValue(s.treeSepChar || "")
+          .onChange(async (v) => { s.treeSepChar = v.trim(); await this.save(); this.rebuildSidebar(); }));
+    }
+
+    p.createEl("h4", { text: "目录的文件夹" });
+    p.createDiv({ cls: "gd-set-note", text: "每个文件夹可以有自己的颜色和图标：在目录里右键文件夹 → 这个文件夹的外观。这里只管整体行为。" });
+    new Setting(p).setName("目录文件夹右侧数量徽标")
+      .addToggle((x) => x.setValue(s.treeShowBadge !== false).onChange(async (v) => {
+        s.treeShowBadge = v; await this.save(); this.rebuildSidebar();
+      }));
+    new Setting(p).setName("目录允许拖拽移动")
+      .setDesc("把一条笔记拖到文件夹上就移过去。")
+      .addToggle((x) => x.setValue(s.treeDragMove !== false).onChange(async (v) => {
+        s.treeDragMove = v; await this.save();
+      }));
+    new Setting(p).setName("目录显示被隐藏的文件夹")
+      .setDesc("在目录里隐藏过的文件夹，打开这个才会重新出现。")
+      .addToggle((x) => x.setValue(!!s.treeShowHidden).onChange(async (v) => {
+        s.treeShowHidden = v; await this.save(); this.rebuildSidebar();
+      }));
+    const hidden = Array.isArray(s.treeHiddenFolders) ? s.treeHiddenFolders : [];
+    new Setting(p).setName("目录已隐藏的文件夹（" + hidden.length + " 个）")
+      .setDesc(hidden.length ? hidden.join("、" ) : "还没有隐藏任何文件夹。")
+      .addButton((b) => b.setButtonText("全部恢复").onClick(async () => {
+        s.treeHiddenFolders = [];
+        await this.save();
+        this.rebuildSidebar();
+        this.display();
+      }));
+
+    new Setting(p).setName("目录里也显示其它文件")
+      .setDesc("除了日记，把库里别的 md 也列出来（附件目录不会混进来）。")
+      .addToggle((x) => x.setValue(s.treeShowOtherFiles !== false).onChange(async (v) => {
+        s.treeShowOtherFiles = v; await this.save(); this.rebuildSidebar();
+      }));
+    new Setting(p).setName("目录保留底部三个按钮")
+      .setDesc("原本底部有「时间线 / 日历 / 设置」，默认收起来了。")
+      .addToggle((x) => x.setValue(!!s.treeShowFoot).onChange(async (v) => {
+        s.treeShowFoot = v; await this.save(); this.rebuildSidebar();
+      }));
+
+    p.createEl("h4", { text: "目录的附件" });
+    new Setting(p).setName("附件文件夹")
+      .setDesc("插图、头像、封面都存这里，和日记正文分开。相对日记根目录。")
+      .addText((x) => x.setValue(s.attachFolder || "attachments").onChange(async (v) => {
+        s.attachFolder = v.trim() || "attachments"; await this.save();
+      }));
+  }
+
+  /* ---------- 排布（左右滚 / 翻页） ---------- */
+  layout(p) {
+    p.createDiv({ cls: "gd-set-note", text: "默认是上下滚。想做成九宫格那样一屏一屏翻，用「左右翻页」；只想左右拉就用「左右滚动」。手机上会自动退回单列。" });
+    new Setting(p).setName("排布方式").addDropdown((d) => {
+      for (const [v, n] of GRID_FLOWS) d.addOption(v, n);
+      d.setValue(this.s.flow).onChange(async (v) => { this.s.flow = v; await this.save(); this.refresh(); });
+    });
+    new Setting(p).setName("列数（上下滚时）").addSlider((s) => s.setLimits(1, 6, 1).setValue(this.s.columns).setDynamicTooltip().onChange(async (v) => { this.s.columns = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("格子宽度（横向时）").setDesc("横向滚动/翻页时每一列的固定宽度。").addSlider((s) => s.setLimits(190, 560, 10).setValue(this.s.cellWidth).setDynamicTooltip().onChange(async (v) => { this.s.cellWidth = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("横向时每屏几行").addSlider((s) => s.setLimits(1, 6, 1).setValue(this.s.flowRows).setDynamicTooltip().onChange(async (v) => { this.s.flowRows = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("翻页一屏几列").addSlider((s) => s.setLimits(1, 6, 1).setValue(this.s.pageCols).setDynamicTooltip().onChange(async (v) => { this.s.pageCols = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("翻页吸附").setDesc("翻完一页自动对齐到页边界。").addToggle((t) => t.setValue(this.s.pagedSnap).onChange(async (v) => { this.s.pagedSnap = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("基础行高").addSlider((s) => s.setLimits(80, 400, 10).setValue(this.s.rowHeight).setDynamicTooltip().onChange(async (v) => { this.s.rowHeight = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("格子间距").addSlider((s) => s.setLimits(0, 48, 2).setValue(this.s.gap).setDynamicTooltip().onChange(async (v) => { this.s.gap = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("页面内边距").addSlider((s) => s.setLimits(4, 72, 2).setValue(this.s.pad).setDynamicTooltip().onChange(async (v) => { this.s.pad = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("中央格强调").setDesc("格数 ≥ 9 时，把正中间那格描边加粗（曼陀罗九宫格的做法）。").addToggle((t) => t.setValue(this.s.centerCell).onChange(async (v) => { this.s.centerCell = v; await this.save(); this.refresh(); }));
+  }
+
+  /* ---------- 悬浮窗 ---------- */
+  floatTab(p) {
+    p.createDiv({ cls: "gd-set-note", text: "悬浮窗不占主编辑区：在别的笔记里也能随手写今天那一格，写完关掉。位置和大小会记住。快捷键可在「快捷键」里搜「悬浮窗」自定。" });
+    new Setting(p).setName("启用悬浮窗").addToggle((t) => t.setValue(this.s.floatEnabled).onChange(async (v) => { this.s.floatEnabled = v; await this.save(); }));
+    new Setting(p).setName("默认尺寸").addDropdown((d) => {
+      d.addOption("s", "小（480×420）"); d.addOption("m", "中（720×660）"); d.addOption("l", "大（1000×760）");
+      d.setValue(this.s.floatSize).onChange(async (v) => { this.s.floatSize = v; await this.save(); });
+    });
+    new Setting(p).setName("拖到边缘时半收").addToggle((t) => t.setValue(this.s.floatEdgeDock).onChange(async (v) => { this.s.floatEdgeDock = v; await this.save(); }));
+    new Setting(p).setName("打开 Obsidian 时自动拉起").setDesc("需要之前用过悬浮窗（记住过位置）才会自动出现。").addToggle((t) => t.setValue(!!this.s.floatRect).setDisabled(!this.s.floatRect).onChange(async (v) => {
+      if (!v) this.s.floatRect = null;
+      await this.save();
+    }));
+    const row = p.createDiv({ cls: "gd-modal-actions" });
+    row.createEl("button", { text: "现在打开悬浮窗", cls: "mod-cta" }).onclick = () => this.plugin.float.open(todayStr());
+    row.createEl("button", { text: "关闭悬浮窗" }).onclick = () => this.plugin.float.close();
+    row.createEl("button", { text: "重置位置与大小" }).onclick = async () => { this.s.floatRect = null; await this.save(); this.plugin.float.close(); new Notice("已重置，下次打开在默认位置"); };
+
+    p.createEl("h4", { text: "悬浮窗外观" });
+    p.createDiv({ cls: "gd-set-hint", text: "日历浮窗默认是半透明，叠在正文上两边的字会互相干扰。这里换成一个实底：选个颜色、调不透明度、需要的话再加一点磨砂。" });
+
+    new Setting(p).setName("背景色").setDesc("留空 = 跟随主题底色；想要纯粹的白就选 #ffffff。")
+      .addColorPicker((c) => c.setValue(this.s.calFloatBg || "#ffffff").onChange(async (v) => {
+        this.s.calFloatBg = v; await this.save(); this.plugin.applyCalFloatLook();
+      }))
+      .addExtraButton((b) => b.setIcon("rotate-ccw").setTooltip("改用主题底色").onClick(async () => {
+        this.s.calFloatBg = ""; await this.save(); this.plugin.applyCalFloatLook();
+      }));
+
+    new Setting(p).setName("不透明度").setDesc("100% 完全不透；低于 70% 又容易看不清字。")
+      .addSlider((sl) => sl.setLimits(40, 100, 1).setValue(Math.round((this.s.calFloatOpacity == null ? 0.96 : this.s.calFloatOpacity) * 100)).setDynamicTooltip().onChange(async (v) => {
+        this.s.calFloatOpacity = v / 100; await this.save(); this.plugin.applyCalFloatLook();
+      }));
+
+    new Setting(p).setName("磨砂").setDesc("0 = 不磨砂。数值越大，浮窗后面的内容越模糊（低配机器上会掉帧）。")
+      .addSlider((sl) => sl.setLimits(0, 24, 1).setValue(this.s.calFloatBlur || 0).setDynamicTooltip().onChange(async (v) => {
+        this.s.calFloatBlur = v; await this.save(); this.plugin.applyCalFloatLook();
+      }));
+
+    new Setting(p).setName("投影").addToggle((t) => t.setValue(this.s.calFloatShadow !== false).onChange(async (v) => {
+      this.s.calFloatShadow = v; await this.save(); this.plugin.applyCalFloatLook();
+    }));
+
+    const row2 = p.createDiv({ cls: "gd-modal-actions" });
+    row2.createEl("button", { text: "打开日历浮窗", cls: "mod-cta" }).onclick = () => { this.plugin._allowBootFloat = true; this.plugin.openCalendarFloat(); };
+    row2.createEl("button", { text: "关闭日历浮窗" }).onclick = () => this.plugin.closeCalendarFloat();
+    row2.createEl("button", { text: "重置日历浮窗外观" }).onclick = async () => {
+      this.s.calFloatBg = ""; this.s.calFloatOpacity = 0.96; this.s.calFloatBlur = 0; this.s.calFloatShadow = true;
+      await this.save(); this.plugin.applyCalFloatLook(); this.display(); new Notice("已恢复默认外观");
+    };
+
+    p.createEl("h4", { text: "悬浮窗标题" });
+    new Setting(p).setName("标题文字").setDesc("原「格间日记」浮窗已改叫「灵感笔记」，跟日历浮窗区分。")
+      .addText((tx) => tx.setValue(this.s.floatTitle || "灵感笔记").onChange(async (v) => {
+        this.s.floatTitle = String(v || "").trim() || "灵感笔记"; await this.save();
+      }));
+
+    p.createEl("h4", { text: "启动行为" });
+    p.createEl("div", {
+      cls: "setting-item-description",
+      text: "这两项默认都是关的。以前只要「上次用过」就会每次启动都弹出来，所以现在改成必须你手动打开。",
+    });
+    new Setting(p)
+      .setName("启动时自动弹日历浮窗")
+      .setDesc("关着的话，启动就是干净的主界面；要用的时候点侧栏日历图标或命令面板。")
+      .addToggle((tg) =>
+        tg.setValue(this.s.calFloatAutoOpen === true).onChange(async (v) => {
+          this.s.calFloatAutoOpen = v;
+          await this.save();
+        })
+      );
+    new Setting(p)
+      .setName("启动时自动弹灵感笔记")
+      .setDesc("同上。灵感笔记随时可以按快捷键或用命令叫出来，不必开机就占屏幕。")
+      .addToggle((tg) =>
+        tg.setValue(this.s.floatAutoOpen === true).onChange(async (v) => {
+          this.s.floatAutoOpen = v;
+          await this.save();
+        })
+      );
+  }
+
+  /* ---------- 日历 ---------- */
+  calendar(p) {
+    p.createDiv({ cls: "gd-set-note", text: "日历 = 骨架 × 纹理。骨架决定日期怎么排（5 种），纹理决定底子怎么画（6 种），两者随意组合就是 30 种外观。农历、节气、节日都不联网，年份 1900–2100 全内置。" });
+
+    p.createEl("h4", { text: "日历骨架（日期怎么排）" });
+    new Setting(p).setName("骨架").addDropdown((d) => {
+      for (const [v, n] of CAL_SKELETONS) d.addOption(v, n);
+      d.setValue(this.s.calSkeleton).onChange(async (v) => { this.s.calSkeleton = v; await this.save(); this.calRefresh(); });
+    });
+    new Setting(p)
+      .setName("日历的月视图形态")
+      .setDesc("默认单月；想要两张月历并排（参考台历那种）就切双月。这是可选项，不影响界面其他部分。")
+      .addDropdown((d) => {
+        d.addOption("single", "单月");
+        d.addOption("dual", "双月并排");
+        d.setValue(this.s.calSkeleton === "dual" ? "dual" : "single").onChange(async (v) => {
+          if (v === "dual") {
+            if (this.s.calSkeleton !== "dual") this.s.calPrevSkeleton = this.s.calSkeleton || "grid";
+            this.s.calSkeleton = "dual";
+          } else {
+            this.s.calSkeleton = (this.s.calPrevSkeleton && this.s.calPrevSkeleton !== "dual") ? this.s.calPrevSkeleton : "grid";
+          }
+          await this.save();
+          this.calRefresh();
+          this.refresh();
+        });
+      });
+
+    new Setting(p).setName("一周从哪天开始").addDropdown((d) => {
+      d.addOption("1", "周一"); d.addOption("0", "周日");
+      d.setValue(String(this.s.calWeekStart)).onChange(async (v) => {
+        this.s.calWeekStart = Number(v); await this.save(); this.calRefresh();
+      });
+    });
+
+    p.createEl("h4", { text: "日历纹理（底子）" });
+    new Setting(p).setName("纹理").addDropdown((d) => {
+      for (const [v, n] of CAL_TEXTURES) d.addOption(v, n);
+      d.setValue(this.s.calTexture).onChange(async (v) => { this.s.calTexture = v; await this.save(); this.calRefresh(); });
+    });
+
+    p.createEl("h4", { text: "日历的农历与节日" });
+    new Setting(p).setName("日历的农历粒度").setDesc("「只显示初一十五」信息量最少，不会被小字塞满。").addDropdown((d) => {
+      d.addOption("none", "不显示"); d.addOption("major", "只显示初一 / 十五"); d.addOption("full", "每天都显示");
+      d.setValue(this.s.calLunarMode).onChange(async (v) => { this.s.calLunarMode = v; await this.save(); this.calRefresh(); });
+    });
+    new Setting(p).setName("节假日 / 工作日着色")
+      .setDesc("按内置的 2025–2027 法定节假日表：节假日标红、调休上班标灰、周末淡蓝。")
+      .addToggle((x) => x.setValue(s.calShowHoliday !== false).onChange(async (v) => {
+        s.calShowHoliday = v; await this.save(); this.calRefresh();
+      }));
+    new Setting(p).setName("日历显示节气").addToggle((t2) => t2.setValue(this.s.calShowTerm).onChange(async (v) => { this.s.calShowTerm = v; await this.save(); this.calRefresh(); }));
+    new Setting(p).setName("日历显示节日").setDesc("农历节日优先，其次公历节日，最后才是节气。").addToggle((t2) => t2.setValue(this.s.calShowFestival).onChange(async (v) => { this.s.calShowFestival = v; await this.save(); this.calRefresh(); }));
+
+    p.createEl("h4", { text: "日历底图" });
+    new Setting(p)
+      .setName("日历底图")
+      .setDesc("可以从电脑里选、从库里挑，也可以直接填一个网络图片地址。建议用浅色图，深色图会自动压一层蒙层保证字能看清。")
+      .addButton((b) => b.setButtonText("裁剪…").onClick(() => this.plugin.cropCalWall()))
+      .addButton((b) => b.setButtonText("从电脑选…").onClick(async () => { await this.plugin.pickCalWallpaper("file"); }))
+      .addButton((b) => b.setButtonText("从库里挑…").onClick(() => this.plugin.pickCalWallpaper("vault")))
+      .addButton((b) => b.setButtonText("用网络图…").onClick(() => this.plugin.pickCalWallpaper("url")));
+    new Setting(p).setName("底图预览")
+      .setDesc("设好之后这里会显示缩略图，方便确认到底有没有生效。")
+      .addButton((b) => b.setButtonText("刷新预览").onClick(() => { this.plugin.showCalWallPreview(); this.refresh(); }));
+    new Setting(p).setName("日历清理底图").addButton((b) => b.setButtonText("去掉").setWarning().onClick(async () => { this.s.calWallpaper = ""; await this.save(); this.calRefresh(); }));
+    new Setting(p).setName("日历底图摆位").addDropdown((d) => {
+      for (const [v, n] of CAL_WALL_POS) d.addOption(v, n);
+      d.setValue(this.s.calWallpaperPos).onChange(async (v) => { this.s.calWallpaperPos = v; await this.save(); this.calRefresh(); });
+    });
+    new Setting(p).setName("日历底图透明度").addSlider((sl) => sl.setLimits(10, 100, 5).setValue(Math.round(this.s.calWallpaperOpacity * 100)).setDynamicTooltip().onChange(async (v) => { this.s.calWallpaperOpacity = v / 100; await this.save(); this.calRefresh(); }));
+    new Setting(p).setName("日历底图模糊（px）").addSlider((sl) => sl.setLimits(0, 12, 1).setValue(this.s.calWallpaperBlur).setDynamicTooltip().onChange(async (v) => { this.s.calWallpaperBlur = v; await this.save(); this.calRefresh(); }));
+
+    p.createEl("h4", { text: "日历的形态与位置" });
+    new Setting(p).setName("日历的打开方式").setDesc("浮窗可以拖、可以贴边、Esc 关掉，位置会记住。").addDropdown((d) => {
+      d.addOption("tab", "主区标签页"); d.addOption("float", "浮动面板");
+      d.setValue(this.s.calPanel).onChange(async (v) => {
+        this.s.calPanel = v; await this.save();
+        if (v === "float") this.plugin.openCalendarFloat();
+        else this.plugin.closeCalendarFloat();
+      });
+    });
+    new Setting(p).setName("标签页位置").addDropdown((d) => {
+      d.addOption("tab", "主区标签页"); d.addOption("right", "右侧栏");
+      d.setValue(this.s.calendarPlacement).onChange(async (v) => { this.s.calendarPlacement = v; await this.save(); });
+    });
+    new Setting(p).setName("显示轴视图").setDesc("标签页顶部那条近 90 天的小圆点，按当天字数决定大小。").addToggle((t2) => t2.setValue(this.s.showCalendarAxis).onChange(async (v) => { this.s.showCalendarAxis = v; await this.save(); const c = this.plugin.calendar; if (c) c.rebuild(); }));
+  }
+
+  calRefresh() {
+    if (this.plugin.calPanel && this.plugin.calPanel.el) this.plugin.calPanel.render();
+    const c = this.plugin.calendar;
+    if (c && c.panel && c.panel.el) c.panel.render();
+  }
+
+  /* ---------- 表格 ---------- */
+  /* 表格皮肤已并入各项目的「线体」，这里不再单独出现。 */
+
+  /* ---------- 模板 ---------- */
+  template(p) {
+    p.createDiv({ cls: "gd-set-note", text: "模板按种类分组显示，顺序是：主页 → 目录 → 日历 → 悬浮窗 → 格子 → 表格。同一类里可以用 ↑ ↓ 调整先后；新建日记用的是「默认模板」。种类只影响分组，不改格子的行为。" });
+    new Setting(p).setName("默认模板").setDesc("新建日记时用它。").addDropdown((d) => {
+      for (const t of sortTemplates(this.s.templates)) d.addOption(t.name, t.name);
+      d.setValue(this.s.activeTemplate).onChange(async (v) => { this.s.activeTemplate = v; await this.save(); });
+    });
+
+    const nameOfKind = (k) => (TEMPLATE_KINDS.find((x) => x[0] === k) || ["", "格子"])[1];
+    let lastKind = "";
+    this.s.templates.forEach(() => {});
+    const ordered = sortTemplates(this.s.templates);
+    for (let oi = 0; oi < ordered.length; oi++) {
+      const t = ordered[oi];
+      const i = this.s.templates.indexOf(t);
+      const k = templateKind(t);
+      if (k !== lastKind) {
+        lastKind = k;
+        const kh = p.createDiv({ cls: "gd-set-kind" });
+        kh.createSpan({ text: nameOfKind(k) });
+        kh.createSpan({ cls: "gd-side-count", text: String(this.s.templates.filter((x) => templateKind(x) === k).length) });
+      }
+      const row = p.createDiv({ cls: "gd-set-tpl-row" });
+      const info = row.createDiv();
+      info.createEl("strong", { text: t.name });
+      info.createDiv({ cls: "gd-tpl-sub", text: `${(t.cells || []).length} 格 · ${truncate((t.cells || []).map((c) => c.title).join(" / "), 70)}` });
+      const acts = row.createDiv({ cls: "gd-set-row-acts" });
+      const kindSel = acts.createEl("select", { cls: "gd-select gd-mini-select" });
+      for (const [v, n] of TEMPLATE_KINDS) kindSel.createEl("option", { text: n, attr: { value: v } });
+      kindSel.value = k;
+      kindSel.onchange = async () => {
+        t.kind = kindSel.value;
+        await this.save(); this.display();
+      };
+      acts.createEl("button", { text: "↑", cls: "gd-mini-btn", attr: { title: "在这一类里往前排" } }).onclick = async () => {
+        this.swapTemplate(t, -1);
+        await this.save(); this.display();
+      };
+      acts.createEl("button", { text: "↓", cls: "gd-mini-btn", attr: { title: "在这一类里往后排" } }).onclick = async () => {
+        this.swapTemplate(t, 1);
+        await this.save(); this.display();
+      };
+      acts.createEl("button", { text: "编辑", cls: "gd-mini-btn" }).onclick = () => new TemplateEditorModal(this.app, this.plugin, t, false).open();
+      acts.createEl("button", { text: "套用到今天", cls: "gd-mini-btn" }).onclick = () => new TemplateModal(this.app, this.plugin).open();
+      acts.createEl("button", { text: "删除", cls: "gd-mini-btn gd-danger" }).onclick = () => new ConfirmModal(this.app, "删除模板？", `「${t.name}」会被移除，已写好的日记不受影响。`, async () => {
+        const at = this.s.templates.indexOf(t);
+        if (at >= 0) this.s.templates.splice(at, 1);
+        if (!this.s.templates.length) this.s.templates.push(deepClone(DEFAULT_SETTINGS.templates[0]));
+        if (!this.s.templates.some((x) => x.name === this.s.activeTemplate)) this.s.activeTemplate = this.s.templates[0].name;
+        await this.save(); this.display();
+      }).open();
+    }
+    const foot = p.createDiv({ cls: "gd-modal-actions" });
+    foot.createEl("button", { text: "+ 新建模板", cls: "mod-cta" }).onclick = () => new TemplateEditorModal(this.app, this.plugin, null, true).open();
+    foot.createEl("button", { text: "从当前日记布局生成模板" }).onclick = () => {
+      const v = this.plugin.gridView();
+      if (!v) { new Notice("请先打开日记"); return; }
+      new PromptModal(this.app, "保存当前布局", "模板名称", `布局 ${todayStr()}`, async (name) => {
+        this.s.templates.push({
+          name: name.trim() || `布局 ${todayStr()}`,
+          cells: v.cells.map((c) => ({ title: c.title, cs: c.cs, rs: c.rs, h: c.h, accent: c.accent, border: c.border, sticker: c.sticker })),
+        });
+        await this.save(); this.display(); new Notice("已保存");
+      }).open();
+    };
+  }
+
+  /* ---------- 粘贴 ---------- */
+  paste(p) {
+    this.pasteFilter(p);
+    p.createDiv({ cls: "gd-set-note", text: "在格子视图的空白处直接 Ctrl+V，会弹出解析窗口；安卓上点工具栏「粘贴生成」再贴文本。所有拆分结果都能逐条改标题、调顺序、去掉不要的段落。" });
+    new Setting(p).setName("默认识别方式").addDropdown((d) => {
+      for (const [v, n] of PASTE_MODES) d.addOption(v, n);
+      d.setValue(this.s.pasteMode).onChange(async (v) => { this.s.pasteMode = v; await this.save(); });
+    });
+    new Setting(p).setName("默认写入方式").addDropdown((d) => {
+      for (const [v, n] of PASTE_TARGETS) d.addOption(v, n);
+      d.setValue(this.s.pasteTarget).onChange(async (v) => { this.s.pasteTarget = v; await this.save(); });
+    });
+    new Setting(p).setName("空行分段时首行作标题").addToggle((t) => t.setValue(this.s.pasteFirstLineAsTitle).onChange(async (v) => { this.s.pasteFirstLineAsTitle = v; await this.save(); }));
+    new Setting(p).setName("自定义分隔符").setDesc("例如填 --- 表示用单独一行的 --- 切段；留空关闭。").addText((t) => t.setValue(this.s.pasteSeparator).setPlaceholder("留空").onChange(async (v) => { this.s.pasteSeparator = v; await this.save(); }));
+    p.createDiv({ cls: "gd-set-note", text: "自动识别顺序：Markdown 表格 → ## / 【】/ 标题： → 空行分段 → 整段一格。含冒号但带句号的正文行不会被误判成标题。" });
+    p.createDiv({ cls: "gd-modal-actions" }).createEl("button", { text: "打开粘贴窗口试一下", cls: "mod-cta" }).onclick = () => new PasteModal(this.app, this.plugin, "").open();
+  }
+
+  /* ---------- 粘贴：过滤器 ---------- */
+  pasteFilter(p) {
+    p.createDiv({ cls: "gd-set-note", text: "这些过滤在「粘贴生成」弹窗里也会实时生效：先按你的规则过滤，再识别标题。留空表示不启用。" });
+    new Setting(p).setName("从这一行开始").setDesc("填一个词（比如「今日事件」），它前面的寒暄、说明都会被丢掉。").addText((tx) => tx
+      .setPlaceholder("例如：今日事件")
+      .setValue(this.s.pasteKeepFrom || "")
+      .onChange(async (v) => { this.s.pasteKeepFrom = v.trim(); await this.save(); }));
+    new Setting(p).setName("只保留含这些词的分段").setDesc("逗号分隔；空 = 不启用。").addText((tx) => tx
+      .setPlaceholder("例如：今日,反思")
+      .setValue((this.s.pasteKeepKeywords || []).join(","))
+      .onChange(async (v) => { this.s.pasteKeepKeywords = v.split(/[,，]/).map((x) => x.trim()).filter(Boolean); await this.save(); }));
+    new Setting(p).setName("丢掉含这些词的分段").setDesc("逗号分隔；优先级高于「只保留」。").addText((tx) => tx
+      .setPlaceholder("例如：广告,推广")
+      .setValue((this.s.pasteDropKeywords || []).join(","))
+      .onChange(async (v) => { this.s.pasteDropKeywords = v.split(/[,，]/).map((x) => x.trim()).filter(Boolean); await this.save(); }));
+    new Setting(p).setName("格式过滤").setDesc("text = 去掉 Markdown 记号只留文字；plain = 再去掉图片与链接。").addDropdown((d) => {
+      for (const [v, n] of [["all", "原样保留"], ["text", "去 Markdown 记号"], ["plain", "去图片与链接"]]) d.addOption(v, n);
+      d.setValue(this.s.pasteFormatFilter || "all").onChange(async (v) => { this.s.pasteFormatFilter = v; await this.save(); });
+    });
+    new Setting(p).setName("只留标题行").setDesc("做模板骨架时用：正文全部丢掉，只留下标题。").addToggle((tg) => tg
+      .setValue(!!this.s.pasteKeepHeadingOnly)
+      .onChange(async (v) => { this.s.pasteKeepHeadingOnly = v; await this.save(); }));
+  }
+
+  /* ---------- 历史 ---------- */
+  history(p) {
+    p.createDiv({ cls: "gd-set-note", text: `快照目录（在笔记库里）：.obsidian/plugins/${PLUGIN_ID}/history/<日期>/<时间戳>.md。存的是改动前的原文，随时能对比、恢复。` });
+    new Setting(p).setName("自动留快照").addToggle((t) => t.setValue(this.s.autoSnapshot).onChange(async (v) => { this.s.autoSnapshot = v; await this.save(); }));
+    new Setting(p).setName("每篇保留版本数").addSlider((s) => s.setLimits(3, 200, 1).setValue(this.s.snapshotsPerDay).setDynamicTooltip().onChange(async (v) => { this.s.snapshotsPerDay = v; await this.save(); }));
+    new Setting(p).setName("自动快照最小间隔（秒）").setDesc("连续打字时避免生成太多版本。").addSlider((s) => s.setLimits(5, 300, 5).setValue(this.s.snapshotThrottle).setDynamicTooltip().onChange(async (v) => { this.s.snapshotThrottle = v; await this.save(); }));
+    const row = p.createDiv({ cls: "gd-modal-actions" });
+    row.createEl("button", { text: "立即备份全部日记", cls: "mod-cta" }).onclick = () => this.plugin.history.backupAll();
+    row.createEl("button", { text: "打开今天的历史" }).onclick = () => {
+      const f = this.app.vault.getAbstractFileByPath(`${normalizePath(this.s.rootFolder || "日记")}/${todayStr()}.md`);
+      if (f instanceof TFile) new SnapshotModal(this.app, this.plugin, f).open();
+      else new Notice("今天还没有日记");
+    };
+    row.createEl("button", { text: "清空全部快照", cls: "gd-danger" }).onclick = () => new ConfirmModal(this.app, "清空全部快照？", "所有历史版本会被永久删除，当前日记不受影响。建议先做一次「立即备份全部日记」之外的人工备份。", async () => {
+      const n = await this.plugin.history.clearAll();
+      new Notice(`已清空 ${n} 个快照`);
+    }).open();
+  }
+}
+
+
+/* ---- 08-view-table.js ---- */
+/* ============================================================
+ * 表格视图（B6）：左目录 + 右表格
+ *  - 左边是日记清单（点了跳到那一天）
+ *  - 右边把这一天的每格拆成一行：格子名 | 内容 | 贴纸
+ *  - 内容走 Markdown，所以图片、动图都能显示
+ *  - 五款皮肤可选（写在 layout.skin 上，跟九宫格共用）
+ * ============================================================ */
+
+class TableView extends ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    this.plugin = plugin;
+    this.key = "";
+    this.date = "";
+    this.cells = [];
+    this.h1 = "";
+    this.file = null;
+    this.previewMode = true;
+    this.el = null;
+    this.dirEl = null;
+    this.tblEl = null;
+  }
+
+  getViewType() { return VIEW_TABLE; }
+  getDisplayText() { return "日记表格"; }
+  getIcon() { return "table"; }
+  getState() { return { key: this.key }; }
+  async setState(st) { if (st && st.key) this.pendingKey = st.key; }
+
+  async onOpen() {
+    this.contentEl.addClass("gd-root");
+    this.contentEl.addClass("gd-table-root");
+    if (IS_MOBILE) this.contentEl.addClass("is-mobile");
+    this.build();
+    await this.openKey(this.pendingKey || todayStr());
+  }
+
+  build() {
+    const el = this.contentEl;
+    el.empty();
+    this.el = el;
+
+    const top = el.createDiv({ cls: "gd-tbl-top" });
+    const ttl = top.createDiv({ cls: "gd-tbl-title" });
+    ttl.createEl("strong", { text: this.key || "表格" });
+    ttl.createSpan({ cls: "gd-tbl-sub", text: "" });
+    const acts = top.createDiv({ cls: "gd-tbl-acts" });
+    const mk = (txt, tip, fn) => {
+      const b = acts.createEl("button", { cls: "gd-tbtn", text: txt, attr: { title: tip } });
+      b.onclick = fn;
+    };
+    mk("‹", "前一天", () => this.openKey(shiftDate(this.date || todayStr(), -1)));
+    mk("今天", "回到今天", () => this.openKey(todayStr()));
+    mk("›", "后一天", () => this.openKey(shiftDate(this.date || todayStr(), 1)));
+    mk("皮肤", "换表格样式", (e) => this.skinMenu(e));
+    mk("进格子", "用九宫格打开这一天", () => this.plugin.openDay(this.key));
+
+    const body = el.createDiv({ cls: "gd-tbl-body" });
+    this.dirEl = body.createDiv({ cls: "gd-tbl-dir" });
+    this.tblEl = body.createDiv({ cls: "gd-tbl-main" });
+  }
+
+  async openKey(key) {
+    const s = this.plugin.settings;
+    this.key = key || todayStr();
+    const dm = /^(\d{4})-(\d{2})-(\d{2})/.exec(this.key);
+    this.date = dm ? dm[0] : todayStr();
+    const folder = normalizePath(s.rootFolder || "日记");
+    const path = `${folder}/${this.key}.md`;
+    const f = this.app.vault.getAbstractFileByPath(path);
+    this.file = f instanceof TFile ? f : null;
+    if (this.file) {
+      const raw = await this.app.vault.cachedRead(this.file);
+      const parsed = parseDay(raw, s.headingLevel || 2);
+      this.cells = normalizeCells(parsed.cells, parsed.layout, s);
+      this.h1 = parsed.h1;
+      this.layout = parsed.layout || {};
+    } else {
+      this.cells = [];
+      this.h1 = this.key;
+      this.layout = {};
+    }
+    if (this.el) {
+      const t = this.el.querySelector(".gd-tbl-title strong");
+      if (t) t.setText(this.key);
+      const sub = this.el.querySelector(".gd-tbl-sub");
+      if (sub) sub.setText(`${weekdayCN(this.date)} · ${this.cells.length} 格 · ${this.cells.reduce((n, c) => n + (c.content || "").length, 0)} 字`);
+    }
+    this.renderDir();
+    await this.renderTable();
+  }
+
+  renderDir() {
+    const el = this.dirEl;
+    if (!el) return;
+    el.empty();
+    const files = this.plugin.dayFiles();
+    const head = el.createDiv({ cls: "gd-tbl-dir-head" });
+    head.createSpan({ text: "日记" });
+    head.createSpan({ cls: "gd-side-count", text: String(files.length) });
+    const list = el.createDiv({ cls: "gd-tbl-dir-list" });
+    for (const f of files.slice(0, 400)) {
+      const k = f.basename;
+      const row = list.createDiv({ cls: "gd-tbl-dir-item" + (k === this.key ? " is-active" : "") });
+      row.createSpan({ cls: "gd-tbl-dir-date", text: dateShort(k) });
+      const sfx = splitDayKey(k).suffix;
+      row.createSpan({ cls: "gd-tbl-dir-sfx", text: sfx ? "第" + sfx + "篇" : "" });
+      row.onclick = () => this.openKey(k);
+    }
+  }
+
+  async renderTable() {
+    const el = this.tblEl;
+    if (!el) return;
+    el.empty();
+    const s = this.plugin.settings;
+    const skin = (this.layout && this.layout.skin) || s.skin || "zebra";
+    const table = el.createEl("table", { cls: "gd-table gd-tbl-sheet" });
+    table.setAttr("data-skin", s.glassEnabled ? "glass" : skin);
+
+    const thead = table.createEl("thead");
+    const hr = thead.createEl("tr");
+    for (const h of ["格子", "内容", "贴纸"]) hr.createEl("th", { text: h });
+
+    const tbody = table.createEl("tbody");
+    if (!this.cells.length) {
+      const tr = tbody.createEl("tr");
+      const td = tr.createEl("td", { text: "这一天还没有日记" });
+      td.colSpan = 3;
+      td.addClass("gd-tbl-empty");
+    }
+    for (let i = 0; i < this.cells.length; i++) {
+      const c = this.cells[i];
+      const tr = tbody.createEl("tr");
+      if (c.accent) tr.style.setProperty("--gd-cell-accent", c.accent);
+
+      const tdT = tr.createEl("td", { cls: "gd-tbl-title-cell" });
+      tdT.createSpan({ cls: "gd-tbl-idx", text: String(i + 1) });
+      tdT.createSpan({ cls: "gd-tbl-name", text: c.title || "（无标题）" });
+
+      const tdC = tr.createEl("td", { cls: "gd-tbl-content-cell" });
+      if (this.previewMode) {
+        const pv = tdC.createDiv({ cls: "gd-cell-preview gd-tbl-preview" });
+        if ((c.content || "").trim()) {
+          await this.renderMarkdown(pv, c.content);
+          this.bindImages(pv);
+        } else {
+          pv.createSpan({ cls: "gd-tbl-ph", text: "（空）" });
+        }
+        pv.ondblclick = () => this.editCell(c, tdC);
+      } else {
+        const ta = tdC.createEl("textarea", { cls: "gd-cell-editor gd-tbl-ta" });
+        ta.value = c.content || "";
+        ta.oninput = () => { c.content = ta.value; this.scheduleSave(); };
+      }
+
+      const tdS = tr.createEl("td", { cls: "gd-tbl-sticker-cell" });
+      tdS.setText(c.sticker || "—");
+    }
+
+    /* 底部工具条 */
+    const foot = el.createDiv({ cls: "gd-tbl-foot" });
+    foot.createSpan({ cls: "gd-tbl-status", text: this.saving ? "保存中…" : "已保存" });
+    const b1 = foot.createEl("button", { cls: "gd-mini-btn", text: this.previewMode ? "改文字" : "看排版" });
+    b1.onclick = () => { this.previewMode = !this.previewMode; this.renderTable(); };
+    const b2 = foot.createEl("button", { cls: "gd-mini-btn", text: "导出为表格" });
+    b2.onclick = () => this.exportMarkdown();
+  }
+
+  async renderMarkdown(el, md) {
+    try {
+      if (MarkdownRenderer && MarkdownRenderer.render) {
+        await MarkdownRenderer.render(this.app, md, el, this.file ? this.file.path : "", this);
+      } else {
+        await MarkdownRenderer.renderMarkdown(md, el, this.file ? this.file.path : "", this);
+      }
+    } catch (e) {
+      el.createEl("pre", { text: md });
+    }
+  }
+
+  /* 预览里的图片：拖动改宽（和九宫格同一套：写回 |宽） */
+  bindImages(root) {
+    const imgs = root.querySelectorAll("img");
+    for (const img of imgs) {
+      img.addClass("gd-cell-img-el");
+      img.onpointerdown = (e) => {
+        const startX = e.clientX;
+        const startW = img.getBoundingClientRect().width;
+        let skip = false;
+        const move = (ev) => {
+          const w = clamp(Math.round(startW + (ev.clientX - startX)), 40, 900);
+          img.style.width = w + "px";
+          skip = true;
+        };
+        const up = () => {
+          document.removeEventListener("pointermove", move);
+          document.removeEventListener("pointerup", up);
+          if (skip) e.preventDefault();
+        };
+        document.addEventListener("pointermove", move);
+        document.addEventListener("pointerup", up);
+      };
+    }
+  }
+
+  editCell(cell, td) {
+    td.empty();
+    const ta = td.createEl("textarea", { cls: "gd-cell-editor gd-tbl-ta" });
+    ta.value = cell.content || "";
+    ta.oninput = () => { cell.content = ta.value; this.scheduleSave(); };
+    ta.focus();
+    ta.onblur = () => this.renderTable();
+  }
+
+  scheduleSave() {
+    if (this._t) clearTimeout(this._t);
+    this._t = setTimeout(() => this.saveNow(), 700);
+  }
+
+  async saveNow() {
+    if (!this.file) return;
+    if (this._t) { clearTimeout(this._t); this._t = null; }
+    this.saving = true;
+    try {
+      const s = this.plugin.settings;
+      const old = await this.app.vault.read(this.file);
+      const next = serializeDay(this.date, this.cells, {
+        fm: parseDay(old).fm,
+        h1: this.h1,
+        columns: (this.layout && this.layout.cols) || s.columns || 2,
+        level: s.headingLevel || 2,
+        border: (this.layout && this.layout.border) || s.defaultBorder || "hair",
+        skin: (this.layout && this.layout.skin) || s.skin,
+        cover: (this.layout && this.layout.cover) || "",
+        coverHeight: (this.layout && this.layout.coverHeight) || s.coverHeight,
+        layers: (this.layout && this.layout.layers) || null,
+      });
+      if (next !== old) await this.app.vault.modify(this.file, next);
+      this.plugin.notifyRefresh();
+    } catch (e) {
+      new Notice("表格保存失败：" + (e && e.message ? e.message : e));
+    } finally {
+      this.saving = false;
+      const st = this.el && this.el.querySelector(".gd-tbl-status");
+      if (st) st.setText("已保存");
+    }
+  }
+
+  skinMenu(evt) {
+    const m = new Menu();
+    for (const [id, name] of TABLE_SKINS) {
+      m.addItem((i) => i.setTitle(name).setChecked(((this.layout && this.layout.skin) || "") === id)
+        .onClick(async () => {
+          this.layout = this.layout || {};
+          this.layout.skin = id;
+          await this.saveNow();
+          this.renderTable();
+        }));
+    }
+    const e = evt && evt.clientX != null ? evt : { clientX: window.innerWidth - 200, clientY: 120 };
+    showMenuAt(m, e);
+  }
+
+  /* 导出成 Markdown 表格（可以直接粘到别处） */
+  exportMarkdown() {
+    const rows = ["| 格子 | 内容 | 贴纸 |", "| --- | --- | --- |"];
+    for (const c of this.cells) {
+      const body = (c.content || "").replace(/\n+/g, "<br>").replace(/\|/g, "\\|");
+      rows.push(`| ${(c.title || "").replace(/\|/g, "\\|")} | ${body} | ${c.sticker || ""} |`);
+    }
+    const md = rows.join("\n");
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(md);
+        new Notice("表格已复制到剪贴板");
+      } else {
+        new Notice("当前环境不能复制，已输出到控制台");
+        console.log(md);
+      }
+    } catch (e) { console.log(md); new Notice("已输出到控制台"); }
+  }
+
+  onClose() { if (this._t) clearTimeout(this._t); }
+}
+
+
+/* ---- 09-plugin.js ---- */
+/* ============ 插件主体：视图注册 · 命令 · 联动 ============ */
+
+class GridDiaryPlugin extends Plugin {
+  /* 加载期的任何异常都写进插件目录的日志，方便拿真实堆栈定位问题 */
+  _reportLoadError(where, e) {
+    const msg = "[" + (new Date().toISOString()) + "] " + where + "\n" + ((e && e.stack) || e) + "\n\n";
+    try { console.error("[格间日记]", where, e); } catch (_) { }
+    try { new Notice("格间日记加载出错（" + where + "）：" + ((e && e.message) || e), 15000); } catch (_) { }
+    try {
+      const a = this.app && this.app.vault && this.app.vault.adapter;
+      if (a && a.append) a.append(".obsidian/plugins/grid-diary/_load-error.log", msg).catch(() => { });
+    } catch (_) { }
+  }
+  async onload() {
+    try { await this._onload(); } catch (e) { this._reportLoadError("onload", e); throw e; }
+  }
+  async _onload() {
+    const saved = await this.loadData();
+    this.settings = migrateSettings(saved);
+    /* 迁移结果立刻落盘：否则每次启动都会判定「版本 < 3」而重复弹升级提示 */
+    const _oldVer = Number(saved && saved.version) || 1;
+    if (_oldVer < 3) { try { await this.saveData(this.settings); } catch (e) { /* 写失败不影响加载 */ } }
+    this.history = new HistoryManager(this);
+    this.themes = new ThemeManager(this);
+    this.templateCommandIds = [];
+    this.templateSig = "";
+    this.float = new GDFloat(this);
+    this.calPanel = null;   // 浮窗用的那一份，按需创建
+    this.tlPanels = [];     // 所有还活着的时间线面板（标签页一份 + 每个浮窗各一份）
+    this.tlFloats = [];     // 时间线浮窗的 DOM 列表（支持多开）
+    this.notifyRefresh = debounce(() => {
+      if (this.sidebarInstance && this.sidebarInstance.render) this.sidebarInstance.render();
+      if (this.timelineInstance && this.timelineInstance.refresh) this.timelineInstance.refresh();
+      this.refreshAllTimelinePanels();
+      if (this.calendarInstance) this.calendarInstance.rebuild();
+      if (this.calPanel && this.calPanel.el) this.calPanel.refresh();
+      if (this.calendarInstance && this.calendarInstance.panel) this.calendarInstance.panel.refresh();
+      if (this.float && this.float.el) this.float.refresh();
+    }, 400);
+
+    /* 注册视图必须容错：如果上一份插件实例崩溃时没走到 onunload，
+     * 它的视图类型会一直占在 Obsidian 的全局注册表里，
+     * 再次 registerView 就会抛 "Attempting to register an existing view type"，
+     * 把整个 onload 打断——这正是「插件加载失败」的根因。
+     * 所以撞名时先解注册再重试，实在不行就跳过，绝不让加载失败。 */
+    const reg = (type, factory) => {
+      try { this.registerView(type, factory); return; }
+      catch (e) {
+        __gdTrace("registerView conflict: " + type);
+        try {
+          const vr = this.app && this.app.viewRegistry;
+          if (vr && typeof vr.unregisterView === "function") vr.unregisterView(type);
+        } catch (e2) { __gdTrace("unregister failed: " + type); }
+        try { this.registerView(type, factory); return; }
+        catch (e3) { __gdTrace("registerView gave up: " + type); }
+      }
+    };
+    reg(VIEW_GRID, (leaf) => this.makeView(VIEW_GRID, leaf));
+    reg(VIEW_SIDEBAR, (leaf) => this.makeView(VIEW_SIDEBAR, leaf));
+    reg(VIEW_TIMELINE, (leaf) => this.makeView(VIEW_TIMELINE, leaf));
+    reg(VIEW_CALENDAR, (leaf) => this.makeView(VIEW_CALENDAR, leaf));
+    reg(VIEW_TABLE, (leaf) => this.makeView(VIEW_TABLE, leaf));
+    /* workspace.json 里可能还留着 v1 的标签页类型。不注册这些老名字，
+     * Obsidian 就会在那些标签上显示「插件不再活动」。 */
+    for (const [oldType, newType] of Object.entries(LEGACY_VIEWS)) {
+      reg(oldType, (leaf) => this.makeView(newType, leaf));
+    }
+    this.addSettingTab(new GridSettingTab(this.app, this));
+    this.addRibbonIcon(ICON_GRID, "打开格间日记", () => this.openDay(todayStr()));
+    this.addRibbonIcon(ICON_SIDEBAR, "日记目录", () => this.openSidebar());
+    this.addRibbonIcon(ICON_CALENDAR, "日记日历", () => this.openCalendar());
+    this.addRibbonIcon("picture-in-picture-2", "格间日记 · 悬浮窗", () => this.toggleFloat());
+    this.addRibbonIcon("calendar-clock", "格间日记 · 日历浮窗", () => { this._allowBootFloat = true; this.toggleCalendar(); });
+    this.registerCommands();
+    this.registerTemplateCommands();
+    this.applyCustomCss();
+
+    this.registerEvent(this.app.vault.on("modify", (f) => {
+      if (f instanceof TFile) this.notifyRefresh();
+    }));
+    this.registerEvent(this.app.vault.on("create", () => this.notifyRefresh()));
+    this.registerEvent(this.app.vault.on("delete", () => this.notifyRefresh()));
+    this._booting = true;
+    this.app.workspace.onLayoutReady(async () => {
+      try { await this.themes.installPresets(); } catch (e) { console.warn("[格间日记] 装预设失败", e); }
+      if (this.settings.autoApplyTheme && this.settings.activeTheme) {
+        try { await this.themes.apply(this.settings.activeTheme, true); } catch (e) { console.warn("[格间日记] 套主题失败", e); }
+      }
+      await this.migrateLegacyViews();
+      /* 用户说过：一启动就自动冒出日历，很烦。
+       * 除了「上次没关的标签页被 Obsidian 恢复」这条最容易漏掉的路，
+       * 老版视图类型迁移也可能变出一个日历。这里统一关掉。
+       * 想用时点侧栏「日历」按钮或命令面板，随时能开。 */
+      try { this.closeAllCalendarTabs("启动清理"); } catch (e) { /* 忽略 */ }
+      await this.applySidebar();
+      /* 页面上看不到图，多半是回收站改名；启动后自动修一轮（可逆） */
+      try { await this.autoFixTrashedRefs(); } catch (e) { console.warn("[格间日记] autoFixTrashedRefs", e); }
+      await this.openDay(todayStr());
+      await this.openTimeline();
+      /* 启动时一律不自动弹浮层。
+       * 曾经的条件是 floatEnabled && floatRect，结果「只要上次用过」就会每次启动都弹，
+       * 用户明确说过不要。现在必须显式打开 floatAutoOpen 才会弹。 */
+      if (this.settings.floatAutoOpen === true && this.settings.floatEnabled && !IS_MOBILE) {
+        try { await this.float.open(todayStr()); } catch (e) { /* 忽略 */ }
+      }
+      if (this.settings.calFloatAutoOpen === true && !IS_MOBILE) {
+        try { this.openCalendarFloat(); } catch (e) { /* 忽略 */ }
+      }
+      /* 启动自检：把当时的状态和已经存在的日历叶子写进日志，
+       * 下次再出现「一启动就冒出日历」，直接看这份日志就知道是谁开的。 */
+      try { this.applyTimeline(); } catch (e) { /* 忽略 */ }
+      this.logBoot();
+      this._booting = false;
+      const v = Number(saved && saved.version) || 1;
+      if (v < 3) {
+        new Notice("格间日记已升级到 3.0：九宫格支持左右翻页、封面、贴纸与动图了。旧日记原样保留，不会被动改写。", 7000);
+      }
+    });
+  }
+  /* 把某个视图类型的标签页全部关掉 */
+  closeAllCalendarTabs(why) {
+    let leaves = [];
+    try { leaves = this.app.workspace.getLeavesOfType(VIEW_CALENDAR) || []; } catch (e) { return; }
+    if (!leaves.length) return;
+    for (const l of leaves) { try { l.detach(); } catch (e) { /* ignore */ } }
+    this.logLine("启动时关掉了 " + leaves.length + " 个日历标签页（" + why + "）");
+  }
+  /* 往 _boot.log 追加一行 */
+  logLine(msg) {
+    try {
+      const base = this.app.vault.adapter.basePath || "";
+      if (!base) return;
+      require("fs").appendFileSync(base + "/.obsidian/plugins/grid-diary/_boot.log", "[" + new Date().toISOString() + "] " + msg + "\n");
+    } catch (e) { /* ignore */ }
+  }
+  /* 启动自检：记录浮层状态与已有的日历/浮窗叶子 */
+  logBoot() {
+    try {
+      const s = this.settings;
+      const calLeaves = this.app.workspace.getLeavesOfType(VIEW_CALENDAR).length;
+      const lines = [
+        "[" + new Date().toISOString() + "] 启动",
+        "  floatAutoOpen=" + String(s.floatAutoOpen),
+        "  calFloatAutoOpen=" + String(s.calFloatAutoOpen),
+        "  calPanel=" + String(s.calPanel),
+        "  floatEnabled=" + String(s.floatEnabled),
+        "  floatRect=" + JSON.stringify(s.floatRect || null),
+        "  calFloatRect=" + JSON.stringify(s.calFloatRect || null),
+        "  已有日历叶子=" + calLeaves,
+        "  浮窗已开=" + !!(this.float && this.float.el),
+        "  日历浮窗已开=" + !!this.calFloatEl,
+        "",
+      ].join("\n");
+      const base = this.app.vault.adapter.basePath || "";
+      if (!base) return;
+      const dir = base + "/.obsidian/plugins/grid-diary";
+      try { require("fs").appendFileSync(dir + "/_boot.log", lines); } catch (e) { }
+    } catch (e) { /* 自检失败不影响启动 */ }
+  }
+  onunload() {
+    const st = document.getElementById("gd-custom-css");
+    if (st) st.remove();
+    if (this.float) this.float.close();
+    try { this.closeCalendarFloat(); } catch (e) { }
+    try { this.closeAllTimelineFloats(); } catch (e) { }
+  }
+  /* 统一造视图，避免 registerView 里写四段 if */
+  makeView(type, leaf) {
+    let v = null;
+    try {
+      if (type === VIEW_GRID) { v = new GridView(leaf, this); this.gridInstance = v; }
+      else if (type === VIEW_SIDEBAR) { v = new SidebarView(leaf, this); this.sidebarInstance = v; }
+      else if (type === VIEW_CALENDAR) { v = new CalendarView(leaf, this); this.calendarInstance = v; }
+      else if (type === VIEW_TABLE) { v = new TableView(leaf, this); this.tableInstance = v; }
+      else { v = new TimelineView(leaf, this); this.timelineInstance = v; }
+    } catch (e) {
+      this._reportLoadError("makeView:" + type, e);
+      throw e;
+    }
+    /* 视图渲染期的异常不要变成白屏：接住、记日志、把错误直接显示在标签页里 */
+    const orig = v.onOpen ? v.onOpen.bind(v) : null;
+    if (orig) {
+      const self = this;
+      v.onOpen = async function () {
+        try { return await orig(); }
+        catch (e) {
+          self._reportLoadError("onOpen:" + type, e);
+          try {
+            v.contentEl.empty();
+            v.contentEl.createEl("h3", { text: "格间日记渲染出错" });
+            v.contentEl.createEl("pre", { text: ((e && e.stack) || String(e)) });
+            v.contentEl.createEl("p", { text: "详细堆栈已写入 .obsidian/plugins/grid-diary/_load-error.log" });
+          } catch (_) { }
+        }
+      };
+    }
+    return v;
+  }
+  /* 确保格间日记主视图是打开的（命令在没有视图时也能用） */
+  async activateGrid() {
+    try {
+      const leaves = this.app.workspace.getLeavesOfType(VIEW_GRID);
+      if (leaves && leaves.length) { this.app.workspace.setActiveLeaf(leaves[0], { focus: true }); return true; }
+      const leaf = this.app.workspace.getLeaf("tab");
+      await leaf.setViewState({ type: VIEW_GRID, active: true });
+      return true;
+    } catch (e) {
+      new Notice("打开格间日记失败：" + (e && e.message ? e.message : e));
+      return false;
+    }
+  }
+
+  registerCommands() {
+    /* 所有命令都套一层：出错不吞掉，弹 Notice 说清是哪条命令、什么错。
+     * 之前用户报「命令加了没反应」，就是因为异常被 Obsidian 吞了，界面上毫无提示。 */
+    const add = (id, name, fn, icon) => this.addCommand({
+      id, name,
+      ...(icon ? { icon } : { icon: "layout-grid" }),
+      callback: async (evt) => {
+        try {
+          await fn(evt);
+        } catch (e) {
+          console.error("[格间日记] 命令 " + id + " 失败", e);
+          new Notice("「" + name + "」执行失败：" + (e && e.message ? e.message : e), 8000);
+        }
+      },
+    });
+    add("open-today", "打开今天的日记", () => this.openDay(todayStr()), "calendar-check");
+    add("paste-to-grid", "粘贴纯文本生成格子", () => new PasteModal(this.app, this, "").open(), "clipboard-paste");
+    add("add-cell", "新增一个格子", async () => {
+      const v = this.gridView();
+      if (!v) { new Notice("先打开格间日记视图再新增格子"); await this.activateGrid(); return; }
+      v.addCell();
+    }, "plus-square");
+    add("apply-template", "套用格子模板", () => new TemplateModal(this.app, this).open(), "layout-template");
+    add("toggle-theme", "切换页面风格（五套）", async () => {
+      const list = THEMES.map((t) => t[0]);
+      const i = list.indexOf(this.settings.theme || "card");
+      this.settings.theme = list[(i + 1) % list.length];
+      await this.saveSettings(); this.refreshAll();
+      const nm = (THEMES.find((t) => t[0] === this.settings.theme) || ["", "现代卡片"])[1];
+      new Notice(`已切换到「${nm}」`);
+    }, "palette");
+    add("cycle-border", "切换格子边框（五种）", async () => {
+      const list = BORDERS.map((t) => t[0]);
+      const i = list.indexOf(this.settings.defaultBorder || "hair");
+      this.settings.defaultBorder = list[(i + 1) % list.length];
+      await this.saveSettings(); this.refreshAll(true);
+      const nm = (BORDERS.find((t) => t[0] === this.settings.defaultBorder) || ["", "细线"])[1];
+      new Notice(`默认边框：${nm}`);
+    }, "square");
+    add("toggle-flow", "切换上下滚 / 左右滚 / 左右翻页", async () => {
+      const list = GRID_FLOWS.map((t) => t[0]);
+      const i = list.indexOf(this.settings.flow || "vertical");
+      this.settings.flow = list[(i + 1) % list.length];
+      await this.saveSettings(); this.refreshAll();
+      const nm = (GRID_FLOWS.find((t) => t[0] === this.settings.flow) || ["", "上下滚"])[1];
+      new Notice(`排布：${nm}`);
+    }, "move-horizontal");
+    add("toggle-float", "打开 / 关闭灵感笔记悬浮窗", () => this.toggleFloat(), "sticky-note");
+    add("open-float-today", "在悬浮窗里记今天", async () => { await this.float.open(todayStr()); }, "sticky-note");
+    add("toggle-preview", "切换编辑 / Markdown 预览", async () => {
+      const v = this.gridView();
+      if (!v) { await this.activateGrid(); new Notice("已打开格间日记，再点一次即可切换预览"); return; }
+      v.previewMode = !v.previewMode; v.render();
+    }, "eye");
+    add("undo", "撤销上一次改动", () => this.history.undo(), "undo-2");
+    add("redo", "重做", () => this.history.redo(), "redo-2");
+    add("snapshot", "立即保存一个版本", async () => {
+      const v = this.gridView();
+      if (!v || !v.file) { new Notice("请先打开日记"); return; }
+      await this.history.snapshot(v.file, "手动", true);
+      new Notice("已保存快照");
+    }, "camera");
+    add("snapshots", "查看版本历史 / 恢复", () => {
+      const v = this.gridView();
+      if (v && v.file) new SnapshotModal(this.app, this, v.file).open();
+      else new Notice("请先打开日记");
+    }, "history");
+    add("backup-all", "备份全部日记到版本库", () => this.history.backupAll(), "hard-drive-download");
+    add("restore-last-deleted", "恢复最近删除的一篇日记", () => this.history.restoreLastDeleted(), "trash-2");
+    add("open-sidebar", "打开日记目录", () => this.openSidebar(), "panel-left");
+    add("toggle-calendar-float", "打开 / 关闭日历浮窗（可拖可缩放）", () => { this._allowBootFloat = true; this.toggleCalendar(); }, "calendar-clock");
+    add("open-calendar", "打开日记日历", () => this.openCalendar(), "calendar-days");
+    add("toggle-calendar", "切换日记日历（按设置走标签页或浮窗）", () => { this._allowBootFloat = true; if (this.settings.calPanel === "float") this.toggleCalendar(); else this.openCalendar(); }, "calendar-range");
+    add("open-table", "用表格打开这一天", () => this.openTable(this.keyOfGridView()), "table");
+    add("open-timeline", "打开时间线", () => this.openTimeline(), "git-branch");
+    add("open-timeline-float", "打开时间线浮窗（可多开）", () => this.openTimelineFloat(), "git-branch");
+    add("toggle-timeline-float", "切换时间线浮窗", () => this.toggleTimelineFloat(), "git-branch");
+    add("open-settings", "打开格间日记设置", () => this.openSettings(), "settings");
+    add("repair-links", "扫描并修复断链的图片（回收站改名导致）", () => this.openRepairLinks(), "link-2-off");
+    add("theme-menu", "主题：选择 / 保存 / 回滚", (evt) => this.showThemeMenu(evt), "palette");
+    add("theme-save", "主题：把当前设置存成主题", () => {
+      new PromptModal(this.app, "存成新主题", "主题名字", this.settings.activeTheme || "我的主题", async (v) => {
+        await this.saveThemeAs(v, "从当前设置新建");
+      }).open();
+    }, "save");
+    add("theme-history", "主题：版本历史 / 回滚", () => this.openThemeHistory(), "history");
+    add("new-entry", "在这一天再写一篇（壹 / 贰 / 叁…）", async () => {
+      const v = this.gridView();
+      await this.newEntryFor(v ? splitDayKey(v.key).date : todayStr());
+    }, "file-plus-2");
+    add("create-today-file", "新建今天的日记文件", async () => {
+      await this.createDayFileFor(todayStr());
+      await this.openDay(todayStr());
+      new Notice("已新建今天的日记");
+    }, "file-plus");
+    add("fill-today-with-template", "用默认模板补齐今天的格子", async () => {
+      const key = todayStr();
+      await this.createDayFileFor(key);
+      const tpl = this.settings.templates.find((t) => t.name === this.settings.activeTemplate) || this.settings.templates[0];
+      const n = await this.fillMissingCells(key, (tpl.cells || []).map((c) => c.title));
+      new Notice(n ? `已补齐 ${n} 个格子` : "今天的格子已经齐了");
+      await this.openDay(key);
+    }, "list-checks");
+    add("images-to-html", "把当前文件的图片转成通用 <img>（导出用）", async () => {
+      const f = this.app.workspace.getActiveFile();
+      if (!f) { new Notice("先打开一个文件"); return; }
+      const n = await this.convertImages(f, true);
+      new Notice(n ? `已转换 ${n} 张图片` : "没有需要转换的图片");
+    }, "image");
+    add("images-to-wiki", "把当前文件的 <img> 还原成 Obsidian 内链", async () => {
+      const f = this.app.workspace.getActiveFile();
+      if (!f) { new Notice("先打开一个文件"); return; }
+      const n = await this.convertImages(f, false);
+      new Notice(n ? `已还原 ${n} 张图片` : "没有需要还原的图片");
+    }, "image");
+  }
+
+  /* ---------- 孤儿图片链接：扫描 / 修复 ----------
+   * 症状：格子里直接显示 ".trashed-1795862815-retouch_xxx.png|420]]" 这样的源码。
+   * 原因：Obsidian 本地回收站把附件改名成 ".trashed-<id>-原名"，但 md 里的引用没跟着改；
+   *      以 "." 开头的文件被当成隐藏文件，Obsidian 不再当图片解析。
+   * 做法：把附件名改回原名（重名就加序号），再把 md 里的引用替换成新名字。 */
+
+  /* 扫出所有指向 .trashed- 文件、或指向不存在文件的图片链接 */
+  async scanBrokenLinks() {
+    const folder = normalizePath(this.settings.rootFolder || "日记");
+    const list = [];
+    for (const f of this.dayFiles()) {
+      let text = "";
+      try { text = await this.app.vault.read(f); } catch (e) { continue; }
+      const re = /(!?)\[\[([^\]|#]+?)(\|[^\]]*)?\]\]/g;
+      let m;
+      while ((m = re.exec(text))) {
+        const target = (m[2] || "").trim();
+        if (!target || /^https?:/i.test(target)) continue;
+        if (!/\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(target)) continue;
+        const base = target.split("/").pop();
+        const isTrashed = /\.trashed-\d+-/.test(base);
+        const dest = this.app.metadataCache.getFirstLinkpathDest(target, f.path);
+        if (dest && !isTrashed) continue;
+        if (!dest && !isTrashed) {
+          list.push({ file: f, raw: m[0], target, kind: "missing" });
+          continue;
+        }
+        list.push({ file: f, raw: m[0], target, kind: "trashed" });
+      }
+    }
+    return list;
+  }
+
+  /* 修：把 .trashed-xxx 改回原名，并更新所有引用 */
+  async repairBrokenLinks() {
+    const found = await this.scanBrokenLinks();
+    if (!found.length) { new Notice("没有发现断链的图片"); return; }
+    const folder = normalizePath(this.settings.rootFolder || "日记");
+    const atDir = this.attachDir();
+    let fixed = 0;
+    const skip = [];
+    const renameMap = new Map();   // 旧名 → 新名
+
+    for (const item of found) {
+      if (item.kind !== "trashed") { skip.push(item); continue; }
+      const base = item.target.split("/").pop();
+      const clean = base.replace(/^\.trashed-\d+-/, "");
+      if (!clean || clean === base) { skip.push(item); continue; }
+      if (renameMap.has(base)) { fixed++; continue; }
+
+      const oldPath = normalizePath(atDir + "/" + base);
+      const src = this.app.vault.getAbstractFileByPath(oldPath);
+      if (!src) { skip.push(item); continue; }
+
+      let newPath = normalizePath(atDir + "/" + clean);
+      if (this.app.vault.getAbstractFileByPath(newPath)) {
+        newPath = normalizePath(atDir + "/" + Date.now() + "-" + clean);
+      }
+      try {
+        await this.app.fileManager.renameFile(src, newPath);
+        renameMap.set(base, newPath.split("/").pop());
+        fixed++;
+      } catch (e) {
+        skip.push(item);
+      }
+    }
+
+    /* 逐个文件把引用换成新名 */
+    let touched = 0;
+    if (renameMap.size) {
+      for (const f of this.dayFiles()) {
+        let text = "";
+        try { text = await this.app.vault.read(f); } catch (e) { continue; }
+        let next = text;
+        for (const [oldName, newName] of renameMap) {
+          next = next.split(oldName).join(newName);
+        }
+        if (next !== text) {
+          await this.vault_modify(f, next);
+          touched++;
+        }
+      }
+    }
+
+    this.refreshAll(true);
+    const msg = [
+      `修好 ${fixed} 张图片，更新 ${touched} 篇日记`,
+      skip.length ? `另有 ${skip.length} 处要你手动处理` : "",
+    ].filter(Boolean).join("；");
+    new Notice(msg, 8000);
+  }
+
+  /* ---------- 自动修复被回收站改名的封面 / 照片 ----------
+   * 用户报「图片他就是无法渲染出来」，实测 layout.cover 里存着
+   *   "日记/attachments/.trashed-1794403037-IMG_20261010_213121.jpg"
+   * 这种路径 . 开头 = 隐藏文件，Obsidian 一律不当图片解析，所以怎么点都是空的。
+   * 这里在启动后跑一次：把附件名改回原名，再把新名写回 layout。 */
+  async autoFixTrashedRefs() {
+    const atDir = this.attachDir();
+    const renameMap = new Map();       // 旧文件名 → 新文件名
+    const touched = [];
+    for (const f of this.dayFiles()) {
+      let raw = "";
+      try { raw = await this.app.vault.read(f); } catch (e) { continue; }
+      if (raw.indexOf(".trashed-") < 0) continue;
+      const parsed = parseDay(raw, this.settings.headingLevel);
+      const lay = normalizeLayout(parsed.layout, this.settings);
+      let changed = false;
+      for (const k of ["cover", "photo"]) {
+        const v = lay[k];
+        if (!v || typeof v !== "string") continue;
+        const base = v.split("/").pop();
+        if (!/\.trashed-\d+-/.test(base)) continue;
+        if (renameMap.has(base)) { lay[k] = atDir + "/" + renameMap.get(base); changed = true; continue; }
+        const clean = base.replace(/^\.trashed-\d+-/, "");
+        const oldPath = normalizePath(atDir + "/" + base);
+        const src = this.app.vault.getAbstractFileByPath(oldPath);
+        if (!src) continue;             // 文件本身没了，留着不动
+        let newPath = normalizePath(atDir + "/" + clean);
+        if (this.app.vault.getAbstractFileByPath(newPath)) newPath = normalizePath(atDir + "/" + Date.now() + "-" + clean);
+        try {
+          await this.app.fileManager.renameFile(src, newPath);
+          const newName = newPath.split("/").pop();
+          renameMap.set(base, newName);
+          lay[k] = newPath;
+          changed = true;
+        } catch (e) { /* 改不动就跳过，不影响启动 */ }
+      }
+      if (!changed) continue;
+      try {
+        const cells = normalizeCells(parsed.cells, lay, this.settings);
+        const md = serializeDay(splitDayKey(f.basename).date, cells, {
+          fm: parsed.fm, h1: parsed.h1,
+          columns: lay.cols || (parsed.layout && parsed.layout.cols) || this.settings.columns,
+          level: this.settings.headingLevel, layout: lay,
+        });
+        await this.app.vault.modify(f, md);
+        touched.push(f.basename);
+      } catch (e) { /* ignore */ }
+    }
+    /* 正文里的 ![[.trashed-xxx]] 也一起换掉 */
+    if (renameMap.size) {
+      for (const f of this.dayFiles()) {
+        let raw = "";
+        try { raw = await this.app.vault.read(f); } catch (e) { continue; }
+        if (raw.indexOf(".trashed-") < 0) continue;
+        let next = raw;
+        for (const [oldName, newName] of renameMap) next = next.split(oldName).join(newName);
+        if (next !== raw) {
+          try { await this.app.vault.modify(f, next); if (!touched.includes(f.basename)) touched.push(f.basename); } catch (e) { }
+        }
+      }
+    }
+    if (touched.length) {
+      console.log("[格间日记] 已修复回收站改名的图片引用：", touched.join(", "));
+      new Notice("修好了 " + renameMap.size + " 张图（回收站改名导致显示不出来），涉及 " + touched.length + " 篇日记", 6000);
+      this.refreshAll(true);
+    }
+    return touched.length;
+  }
+
+  /* 命令里用：先扫再问，允许用户自己决定 */
+  async openRepairLinks() {
+    const found = await this.scanBrokenLinks();
+    if (!found.length) { new Notice("没有发现断链的图片，一切正常"); return; }
+    const lines = found.slice(0, 8).map((x) => "· " + x.target).join("\n");
+    new ConfirmModal(this.app, "发现 " + found.length + " 处断链",
+      "多为 Obsidian 回收站改名（.trashed-…）后引用没跟着改。\n修法是把附件名改回原名，并同步更新笔记里的引用。\n\n" + lines + (found.length > 8 ? "\n…" : ""),
+      () => this.repairBrokenLinks(), "修好它们").open();
+  }
+
+  /* 小包装：vault.modify 包一层，方便统一打点 */
+  async vault_modify(file, data) {
+    try { await this.app.vault.modify(file, data); }
+    catch (e) { new Notice("写入失败：" + e.message); }
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+    this.applyCustomCss();
+    this.registerTemplateCommands();
+    try { this.applyTimeline(); } catch (e) { /* 忽略 */ }
+  }
+  registerTemplateCommands() {
+    const sig = this.settings.templates.map((t) => `${t.name}:${(t.cells || []).map((c) => c.title).join(",")}`).join("|");
+    if (sig === this.templateSig) return;
+    this.templateSig = sig;
+    /* 公开 API 没有 removeCommand，旧版只能走内部 commands；两条路都试，失败也不影响加载 */
+    const rm = (id) => {
+      try {
+        if (typeof this.removeCommand === "function") this.removeCommand(id);
+        else if (this.app.commands && typeof this.app.commands.removeCommand === "function") this.app.commands.removeCommand(id);
+      } catch (e) { /* ignore */ }
+    };
+    for (const id of this.templateCommandIds) rm(id);
+    this.templateCommandIds = [];
+    for (const tpl of this.settings.templates) {
+      const id = `insert-template-${tpl.name.replace(/[^\w\u4e00-\u9fa5]+/g, "-")}`;
+      this.addCommand({
+        id, name: `插入模板：${tpl.name}`,
+        callback: async () => {
+          const key = todayStr();
+          await this.createDayFileFor(key);
+          const n = await this.fillMissingCells(key, (tpl.cells || []).map((c) => c.title));
+          new Notice(n ? `已补齐 ${n} 个格子` : "这个模板的格子已经有了");
+          await this.openDay(key);
+        },
+      });
+      this.templateCommandIds.push(id);
+    }
+  }
+  async ensureFolder(path) {
+    const p = normalizePath(path);
+    if (!p || p === "/") return;
+    let cur = "";
+    for (const part of p.split("/")) {
+      cur = cur ? `${cur}/${part}` : part;
+      const exists = await this.app.vault.adapter.exists(cur);
+      if (!exists) { try { await this.app.vault.adapter.mkdir(cur); } catch (e) { /* ignore */ } }
+    }
+  }
+
+  /* 附件目录：日记根 / 设置的子目录名（默认 attachments） */
+  attachDir() {
+    const root = this.settings.rootFolder || "日记";
+    const sub = (this.settings.attachFolder || "attachments").replace(/^\/+|\/+$/g, "");
+    return normalizePath(sub ? root + "/" + sub : root);
+  }
+  dayFiles() {
+    const root = normalizePath(this.settings.rootFolder || "日记");
+    const prefix = (root && root !== "/") ? root + "/" : "";
+    return this.app.vault.getFiles()
+      .filter((f) => f.extension === "md" && f.path.startsWith(prefix) && !f.path.slice(prefix.length).includes("/") && DATE_RE.test(f.name))
+      .sort((a, b) => {
+        const da = splitDayKey(a.basename), db = splitDayKey(b.basename);
+        if (da.date !== db.date) return db.date.localeCompare(da.date);
+        const va = cnValue(da.suffix), vb = cnValue(db.suffix);
+        return (Number.isFinite(va) ? va : 999) - (Number.isFinite(vb) ? vb : 999);
+      });
+  }
+  /* 新建一篇日记：优先用自己写的 md 模板文件，其次用插件内的格子模板 */
+  async createDayFileFor(key) {
+    const { date } = splitDayKey(key);
+    const folder = normalizePath(this.settings.rootFolder || "日记");
+    const path = `${folder}/${key}.md`;
+    const existing = this.app.vault.getAbstractFileByPath(path);
+    if (existing instanceof TFile) return existing;
+    await this.ensureFolder(folder);
+    let text = "";
+    const tplPath = (this.settings.dailyTemplatePath || "").trim();
+    if (tplPath) {
+      const f = this.app.vault.getAbstractFileByPath(normalizePath(tplPath));
+      if (f instanceof TFile) {
+        text = buildFromMdTemplate(key, date, await this.app.vault.read(f));
+      } else new Notice(`模板文件不存在：${tplPath}`);
+    }
+    if (!text) {
+      const tpl = this.settings.templates.find((t) => t.name === this.settings.activeTemplate) || this.settings.templates[0];
+      text = buildFromTemplate(date, tpl || { cells: [] }, this.settings.headingLevel).md;
+    }
+    return await this.app.vault.create(path, text);
+  }
+  /* 同一天再写一篇：主篇 → 壹 → 贰 … 最多 99 篇。
+   * 不能只信 dayFiles()：vault 的文件索引是异步刷新的，刚 create 出来的那一篇
+   * 可能还没进索引，于是第二次点「＋篇」又算出同一个后缀、命中 createDayFileFor
+   * 的「已存在就返回」，看起来就像「加不上第二篇」。
+   * 所以这里逐个后缀去问 getAbstractFileByPath，拿到真正没被占用的那个。 */
+  async newEntryFor(date) {
+    const d = splitDayKey(date).date || date;
+    const folder = normalizePath(this.settings.rootFolder || "日记");
+    const used = new Set(
+      this.dayFiles()
+        .filter((f) => splitDayKey(f.basename).date === d)
+        .map((f) => splitDayKey(f.basename).suffix)
+    );
+    let suffix = "";
+    for (let i = 1; i <= 99; i++) {
+      const s = cnNumber(i);
+      if (!s || used.has(s)) continue;
+      if (this.app.vault.getAbstractFileByPath(`${folder}/${d}${s}.md`)) { used.add(s); continue; }
+      suffix = s;
+      break;
+    }
+    if (!suffix) { new Notice("这一天的篇数已经满了（99 篇）"); return; }
+    const key = d + suffix;
+    const f = await this.createDayFileFor(key);
+    if (!f) { new Notice("新建失败：没有拿到文件"); return; }
+    await this.openDay(key);
+    new Notice(`已新建第 ${suffix} 篇`);
+  }
+  /* 用模板补齐缺失的格子，已有内容一格不动 */
+  async fillMissingCells(key, titles) {
+    const f = this.app.vault.getAbstractFileByPath(`${normalizePath(this.settings.rootFolder || "日记")}/${key}.md`);
+    if (!(f instanceof TFile)) { new Notice("这一天还没有文件"); return 0; }
+    const parsed = parseDay(await this.app.vault.read(f), this.settings.headingLevel);
+    const exist = new Set(parsed.cells.map((c) => c.title));
+    let added = 0;
+    for (const t of titles) {
+      if (!exist.has(t)) {
+        parsed.cells.push({ title: t, content: "", cs: 1, rs: 1, h: 0, accent: "", border: "", sticker: "" });
+        added++;
+      }
+    }
+    if (added) {
+      await this.history.snapshot(f, "补齐格子前", true);
+      const cells = parsed.cells.map((c) => ({ ...c, cs: c.cs || 1, rs: c.rs || 1, h: c.h || 0, accent: c.accent || "" }));
+      await this.app.vault.modify(f, serializeDay(splitDayKey(key).date, cells, {
+        fm: parsed.fm, h1: parsed.h1, columns: this.settings.columns,
+        level: this.settings.headingLevel, layout: parsed.layout,
+      }));
+      this.refreshAll(true);
+    }
+    return added;
+  }
+  /* 旧版同款命令，但只认图片后缀：日记里有 .epub 之类附件，不能被转成 <img> */
+  async convertImages(file, toHtml) {
+    let count = 0;
+    const before = await this.app.vault.read(file);
+    if (toHtml) await this.history.snapshot(file, "转 <img> 前", true);
+    const folder = normalizePath(this.settings.rootFolder || "日记");
+    await this.app.vault.process(file, (data) => {
+      const r = convertImageText(data, toHtml, folder);
+      count = r.count;
+      return r.text;
+    });
+    if (count) this.history.pushUndo(file, before, toHtml ? "图片转 HTML" : "图片还原内链");
+    return count;
+  }
+  gridView() {
+    const l = this.app.workspace.getLeavesOfType(VIEW_GRID)[0];
+    return l && (l.view instanceof GridView) ? l.view : null;
+  }
+  get sidebar() { return this.sidebarInstance || null; }
+  get timeline() { return this.timelineInstance || null; }
+  get calendar() { return this.calendarInstance || null; }
+  get table() { return this.tableInstance || null; }
+
+  /* 用表格形态打开某一天（左目录 + 右表格） */
+  async openTable(key) {
+    let leaf = this.app.workspace.getLeavesOfType(VIEW_TABLE)[0];
+    if (!leaf) leaf = this.app.workspace.getLeaf(true);
+    if (!leaf) { new Notice("打不开表格视图"); return; }
+    await leaf.setViewState({ type: VIEW_TABLE, state: { key: key || todayStr() }, active: true });
+    this.app.workspace.revealLeaf(leaf);
+    const v = leaf.view;
+    if (v && v.openKey) await v.openKey(key || todayStr());
+  }
+
+  async openDay(key) {
+    let leaf = this.app.workspace.getLeavesOfType(VIEW_GRID)[0];
+    if (!leaf) leaf = this.app.workspace.getLeaf(true);
+    if (!leaf) { new Notice("打不开日记视图：请先切换到有主编辑区的布局"); return; }
+    await leaf.setViewState({ type: VIEW_GRID, active: true });
+    this.app.workspace.revealLeaf(leaf);
+    const view = leaf.view;
+    if (view instanceof GridView) await view.openDay(key);
+    if (this.timeline) this.timeline.setActive(key);
+    if (this.float && this.float.el) this.float.refresh(key);
+    this.notifyRefresh();
+  }
+  async openCalendar() {
+    let leaf = this.app.workspace.getLeavesOfType(VIEW_CALENDAR)[0];
+    if (!leaf) {
+      leaf = this.settings.calendarPlacement === "right"
+        ? (this.app.workspace.getRightLeaf(false) || this.app.workspace.getLeaf(true))
+        : this.app.workspace.getLeaf(true);
+    }
+    if (!leaf) { new Notice("打不开日历视图"); return; }
+    await leaf.setViewState({ type: VIEW_CALENDAR, active: true });
+    this.app.workspace.revealLeaf(leaf);
+  }
+  /* 同一天里下一个可用的中文后缀（壹 / 贰 / 叁…），不建文件只算名字 */
+  nextKeyFor(date) {
+    const d = splitDayKey(date).date || date;
+    const folder = normalizePath(this.settings.rootFolder || "日记");
+    const used = new Set(
+      this.dayFiles().filter((f) => splitDayKey(f.basename).date === d).map((f) => splitDayKey(f.basename).suffix)
+    );
+    for (let i = 1; i <= 99; i++) {
+      const s = cnNumber(i);
+      if (!s || used.has(s)) continue;
+      if (this.app.vault.getAbstractFileByPath(folder + "/" + d + s + ".md")) { used.add(s); continue; }
+      return d + s;
+    }
+    return d;
+  }
+
+  /* 日历：在标签页和浮窗之间切换 */
+  /* 命令面板里的「日历浮窗」永远开浮窗，不受 calPanel 设置影响
+   * （用户要求：日历是悬浮窗模式也要在命令里面） */
+  toggleCalendar() {
+    if (this.calFloatEl) this.closeCalendarFloat();
+    else this.openCalendarFloat();
+  }
+
+  openCalendarFloat() {
+
+    if (this.calFloatEl) { return; }
+    if (!this.calPanel) this.calPanel = new CalendarPanel(this);
+    const wrap = document.createElement("div");
+    wrap.addClass("gd-root");
+    wrap.addClass("gd-cal-float");
+    wrap.addClass("gd-theme-" + (this.settings.theme || "card"));
+    const r = this.settings.calFloatRect || {};
+    const w = clamp(r.width || 760, 380, 1400);
+    const h = clamp(r.height || 620, 320, 1100);
+    const vw = window.innerWidth, vh = window.innerHeight;
+    wrap.style.width = w + "px";
+    wrap.style.height = h + "px";
+    wrap.style.left = clamp(r.left != null ? r.left : vw - w - 40, 0, Math.max(0, vw - w)) + "px";
+    wrap.style.top = clamp(r.top != null ? r.top : 80, 0, Math.max(0, vh - h)) + "px";
+    /* B5：壁纸不铺满整块，只在顶部占一条 banner，内容往下排，绝不重合 */
+    if (this.settings.calFloatWallOnTop) wrap.addClass("is-walltop");
+
+    /* 纯色底 + 可调透明度 + 磨砂（用户反馈"背景透明度太多，看不清字"） */
+    const bg = this.settings.calFloatBg;
+    if (bg) wrap.style.setProperty("--gd-cal-float-bg", bg);
+    wrap.style.setProperty("--gd-cal-float-op", String(clamp(this.settings.calFloatOpacity == null ? 0.96 : this.settings.calFloatOpacity, 0.4, 1)));
+    wrap.style.setProperty("--gd-cal-float-blur", clamp(this.settings.calFloatBlur || 0, 0, 24) + "px");
+    if (this.settings.calFloatShadow === false) wrap.addClass("is-no-shadow");
+    document.body.appendChild(wrap);
+    this.calFloatEl = wrap;
+
+    /* 拖动条 */
+    const bar = wrap.createDiv({ cls: "gd-cal-float-bar" });
+    bar.createDiv({ cls: "gd-cal-float-title", text: "日历" });
+    const closeBtn = bar.createEl("button", { cls: "gd-cal-float-x", text: "×" });
+    closeBtn.onclick = () => this.closeCalendarFloat();
+    let drag = null;
+    bar.addEventListener("pointerdown", (e) => {
+      if (e.target === closeBtn) return;
+      drag = { x: e.clientX, y: e.clientY, l: parseFloat(wrap.style.left) || 0, t: parseFloat(wrap.style.top) || 0 };
+      wrap.addClass("is-dragging");
+      bar.setPointerCapture(e.pointerId);
+    });
+    bar.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      wrap.style.left = clamp(drag.l + e.clientX - drag.x, 0, window.innerWidth - 120) + "px";
+      wrap.style.top = clamp(drag.t + e.clientY - drag.y, 0, window.innerHeight - 80) + "px";
+    });
+    bar.addEventListener("pointerup", (e) => {
+      if (!drag) return;
+      drag = null;
+      wrap.removeClass("is-dragging");
+      try { bar.releasePointerCapture(e.pointerId); } catch (err) { }
+      this.saveCalFloatRect(wrap);
+    });
+    this._calEsc = (e) => { if (e.key === "Escape") this.closeCalendarFloat(); };
+    window.addEventListener("keydown", this._calEsc);
+
+    /* 缩放柄（原来只有拖动，没有缩放，用户报"日历无法缩小放大"） */
+    const grip = wrap.createDiv({ cls: "gd-cal-grip", attr: { title: "拖动缩放（双击回到默认大小）" } });
+    let rsz = null;
+    grip.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+      rsz = { x: e.clientX, y: e.clientY, w: wrap.offsetWidth, h: wrap.offsetHeight };
+      wrap.addClass("is-resizing");
+      grip.setPointerCapture(e.pointerId);
+    });
+    grip.addEventListener("pointermove", (e) => {
+      if (!rsz) return;
+      wrap.style.width = clamp(Math.round(rsz.w + e.clientX - rsz.x), 320, 1400) + "px";
+      wrap.style.height = clamp(Math.round(rsz.h + e.clientY - rsz.y), 260, 1100) + "px";
+    });
+    grip.addEventListener("pointerup", (e) => {
+      if (!rsz) return;
+      rsz = null;
+      wrap.removeClass("is-resizing");
+      try { grip.releasePointerCapture(e.pointerId); } catch (err) { }
+      this.saveCalFloatRect(wrap);
+    });
+    grip.addEventListener("dblclick", () => {
+      wrap.style.width = "760px";
+      wrap.style.height = "620px";
+      this.saveCalFloatRect(wrap);
+    });
+
+    const host = wrap.createDiv({ cls: "gd-cal-float-body" });
+    this.calPanel.inFloat = true;
+    this.calPanel.openInPane(host);
+  }
+
+  saveCalFloatRect(wrap) {
+    if (!wrap) return;
+    this.settings.calFloatRect = {
+      left: parseFloat(wrap.style.left) || 0,
+      top: parseFloat(wrap.style.top) || 0,
+      width: wrap.offsetWidth,
+      height: wrap.offsetHeight,
+    };
+    this.saveSettings();
+  }
+
+  /* 外观参数改了要立刻反映到已经开着的浮窗上 */
+  applyCalFloatLook() {
+    const w = this.calFloatEl;
+    if (!w) return;
+    const bg = this.settings.calFloatBg;
+    if (bg) w.style.setProperty("--gd-cal-float-bg", bg);
+    else w.style.removeProperty("--gd-cal-float-bg");
+    w.style.setProperty("--gd-cal-float-op", String(clamp(this.settings.calFloatOpacity == null ? 0.96 : this.settings.calFloatOpacity, 0.4, 1)));
+    w.style.setProperty("--gd-cal-float-blur", clamp(this.settings.calFloatBlur || 0, 0, 24) + "px");
+    if (this.settings.calFloatShadow === false) w.addClass("is-no-shadow");
+    else w.removeClass("is-no-shadow");
+  }
+
+  closeCalendarFloat() {
+    if (this._calEsc) { window.removeEventListener("keydown", this._calEsc); this._calEsc = null; }
+    if (this.calPanel) this.calPanel.close();
+    if (this.calFloatEl) { this.calFloatEl.remove(); this.calFloatEl = null; }
+  }
+
+  toggleFloat() {
+    if (!this.float.el) this.float.open(this.gridView() ? this.gridView().key : todayStr());
+    else this.float.close();
+  }
+  /* 把 v1 残留的标签页改成 v3 类型，并去掉重复的目录 / 时间线标签。
+   * 不直接改 workspace.json（Obsidian 正在运行时会把它覆盖回去），
+   * 而是在启动完成后用官方 API 迁移，Obsidian 自己会把结果写回。 */
+  async migrateLegacyViews() {
+    for (const [oldType, newType] of Object.entries(LEGACY_VIEWS)) {
+      let leaves = [];
+      try { leaves = this.app.workspace.getLeavesOfType(oldType) || []; } catch (e) { continue; }
+      for (const l of leaves) {
+        try { await l.setViewState({ type: newType, active: false }); }
+        catch (e) { /* 失效标签忽略：别名已注册，至少不会显示「插件不再活动」 */ }
+      }
+    }
+    for (const type of [VIEW_SIDEBAR, VIEW_TIMELINE, VIEW_CALENDAR]) {
+      const leaves = this.app.workspace.getLeavesOfType(type) || [];
+      for (const l of leaves.slice(1)) { try { l.detach(); } catch (e) { /* ignore */ } }
+    }
+  }
+  async applySidebar() {
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_SIDEBAR);
+    if (!this.settings.showSidebar) {
+      for (const l of leaves) l.detach();
+      return;
+    }
+    for (const l of leaves.slice(1)) { try { l.detach(); } catch (e) { /* ignore */ } }
+    await this.openSidebar(false);
+  }
+  async openSidebar(activate) {
+    let leaf = this.app.workspace.getLeavesOfType(VIEW_SIDEBAR)[0];
+    if (!leaf) {
+      leaf = this.app.workspace.getLeftLeaf(false);
+      if (!leaf) leaf = this.app.workspace.getLeftLeaf(true);
+    }
+    if (!leaf) return;
+    await leaf.setViewState({ type: VIEW_SIDEBAR, active: activate === true });
+    if (activate === true) this.app.workspace.revealLeaf(leaf);
+  }
+  /* ---------- 时间线面板登记（标签页 + 多个浮窗共用同一套渲染） ---------- */
+  registerTimelinePanel(p) {
+    if (!p) return;
+    if (this.tlPanels.indexOf(p) < 0) this.tlPanels.push(p);
+  }
+  unregisterTimelinePanel(p) {
+    const i = this.tlPanels.indexOf(p);
+    if (i >= 0) this.tlPanels.splice(i, 1);
+  }
+  refreshAllTimelinePanels() {
+    for (const p of this.tlPanels.slice()) {
+      try { if (!p.dead) p.refresh(); } catch (e) { }
+    }
+  }
+
+  /* ---------- 时间线浮窗（照搬日历浮窗：自绘 fixed 浮层，可拖可缩放，支持多开） ---------- */
+  openTimelineFloat(initialKey) {
+    if (IS_MOBILE) { new Notice("手机上请用标签页形式的时间线"); return null; }
+    const panel = new TimelinePanel(this, { float: true });
+    const wrap = document.createElement("div");
+    wrap.addClass("gd-root");
+    wrap.addClass("gd-tl-float");
+    wrap.addClass("gd-theme-" + (this.settings.theme || "card"));
+
+    const base = this.settings.tlFloatRect || {};
+    const n = this.tlFloats.length;
+    const w = clamp(base.width || 420, 280, 1200);
+    const h = clamp(base.height || 620, 260, 1100);
+    const vw = window.innerWidth, vh = window.innerHeight;
+    wrap.style.width = w + "px";
+    wrap.style.height = h + "px";
+    wrap.style.left = clamp((base.left != null ? base.left : vw - w - 60) - n * 26, 0, Math.max(0, vw - w)) + "px";
+    wrap.style.top = clamp((base.top != null ? base.top : 90) + n * 26, 0, Math.max(0, vh - h)) + "px";
+
+    /* 标题条 */
+    const bar = wrap.createDiv({ cls: "gd-tl-float-bar" });
+    bar.createSpan({ cls: "gd-tl-float-title", text: "时间线" });
+    const btns = bar.createDiv({ cls: "gd-tl-float-btns" });
+    const dup = btns.createEl("button", { cls: "gd-tl-float-btn", text: "＋", attr: { title: "再开一个时间线浮窗" } });
+    dup.onclick = (e) => { e.stopPropagation(); this.openTimelineFloat(initialKey); };
+    const pinch = btns.createEl("button", { cls: "gd-tl-float-btn", text: "▭", attr: { title: "回到默认大小" } });
+    pinch.onclick = (e) => {
+      e.stopPropagation();
+      wrap.style.width = "420px";
+      wrap.style.height = "620px";
+      this.saveTlFloatRect(wrap);
+    };
+    const x = btns.createEl("button", { cls: "gd-tl-float-btn", text: "✕", attr: { title: "关闭这个时间线" } });
+    x.onclick = (e) => { e.stopPropagation(); this.closeTimelineFloat(wrap); };
+
+    /* 拖动 */
+    let drag = null;
+    bar.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || e.target.closest("button")) return;
+      const r = wrap.getBoundingClientRect();
+      drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      bar.setPointerCapture && bar.setPointerCapture(e.pointerId);
+      wrap.addClass("is-dragging");
+    });
+    bar.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      wrap.style.left = clamp(e.clientX - drag.dx, 0, window.innerWidth - wrap.offsetWidth) + "px";
+      wrap.style.top = clamp(e.clientY - drag.dy, 0, window.innerHeight - wrap.offsetHeight) + "px";
+    });
+    const endDrag = () => {
+      if (!drag) return;
+      drag = null;
+      wrap.removeClass("is-dragging");
+      this.saveTlFloatRect(wrap);
+    };
+    bar.addEventListener("pointerup", endDrag);
+    bar.addEventListener("pointercancel", endDrag);
+
+    /* 内容 */
+    const host = wrap.createDiv({ cls: "gd-tl-float-body" });
+    panel.openInPane(host);
+    if (initialKey) panel.setActive(initialKey);
+
+    /* 右下角缩放柄 */
+    const grip = wrap.createDiv({ cls: "gd-tl-grip", attr: { title: "拖动改大小" } });
+    let rs = null;
+    grip.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      const r = wrap.getBoundingClientRect();
+      rs = { x: e.clientX, y: e.clientY, w: r.width, h: r.height };
+      grip.setPointerCapture && grip.setPointerCapture(e.pointerId);
+      wrap.addClass("is-resizing");
+    });
+    grip.addEventListener("pointermove", (e) => {
+      if (!rs) return;
+      wrap.style.width = clamp(rs.w + (e.clientX - rs.x), 280, window.innerWidth) + "px";
+      wrap.style.height = clamp(rs.h + (e.clientY - rs.y), 260, window.innerHeight) + "px";
+    });
+    const endRs = () => {
+      if (!rs) return;
+      rs = null;
+      wrap.removeClass("is-resizing");
+      this.saveTlFloatRect(wrap);
+    };
+    grip.addEventListener("pointerup", endRs);
+    grip.addEventListener("pointercancel", endRs);
+
+    document.body.appendChild(wrap);
+    this.tlFloats.push(wrap);
+    this.registerTimelinePanel(panel);
+    panel._wrap = wrap;
+    this.saveTlFloatRect(wrap);
+    return panel;
+  }
+
+  saveTlFloatRect(wrap) {
+    if (!wrap) return;
+    this.settings.tlFloatRect = {
+      left: parseInt(wrap.style.left, 10) || 0,
+      top: parseInt(wrap.style.top, 10) || 0,
+      width: wrap.offsetWidth || 420,
+      height: wrap.offsetHeight || 620,
+    };
+    this.saveSettings();
+  }
+
+  closeTimelineFloat(wrap) {
+    if (!wrap) return;
+    const i = this.tlFloats.indexOf(wrap);
+    const panel = this.tlPanels.find((p) => p._wrap === wrap);
+    if (panel) { this.unregisterTimelinePanel(panel); try { panel.close(); } catch (e) { } }
+    if (i >= 0) this.tlFloats.splice(i, 1);
+    wrap.remove();
+  }
+
+  closeAllTimelineFloats() {
+    for (const w of this.tlFloats.slice()) {
+      try { this.closeTimelineFloat(w); } catch (e) { }
+    }
+    this.tlFloats = [];
+  }
+
+  toggleTimelineFloat() {
+    if (this.tlFloats.length) this.closeAllTimelineFloats();
+    else this.openTimelineFloat(this.timeline && this.timeline.panel ? this.timeline.panel.activeKey : "");
+  }
+
+  /* 流线图的宽度 + 方形开关：写到 body 上的 CSS 变量，标签页和浮窗一起生效 */
+  applyTimeline() {
+    try {
+      const b = document.body;
+      const w = clamp(Number(this.settings.timelineWidth) || 260, 180, 420);
+      b.style.setProperty("--gd-tl-w", w + "px");
+      b.classList.toggle("gd-tl-square", this.settings.timelineSquare !== false);
+      b.classList.toggle("gd-tl-preview-above", this.settings.timelinePreviewAbove !== false);
+    } catch (e) { /* 忽略 */ }
+    try { this.refreshAllTimelinePanels(); } catch (e) { /* 忽略 */ }
+  }
+
+  async openTimeline() {
+    let leaf = this.app.workspace.getLeavesOfType(VIEW_TIMELINE)[0];
+    if (!leaf) {
+      const p = this.settings.timelinePlacement;
+      if (p === "left") leaf = this.app.workspace.getLeftLeaf(false);
+      else if (p === "tab") leaf = this.app.workspace.getLeaf(true);
+      else leaf = this.app.workspace.getRightLeaf(false) || this.app.workspace.getRightLeaf(true);
+    }
+    if (!leaf) return;
+    await leaf.setViewState({ type: VIEW_TIMELINE, active: false });
+  }
+
+  /* ---- 批量封面：把 BatchCoverModal 打开（I-01 断点修复）----
+   * 之前 05-view-grid.js 与 08-settings.js 都在调 openBatchCover()，
+   * 但这里从来没定义过，点菜单直接 TypeError，看起来就是「功能没做」。 */
+  /* 给某一天设封面：传 File 会先存进 attachments，传字符串则当库内路径 */
+  async setCoverFor(key, fileOrPath, height) {
+    if (!key) return;
+    let path = "";
+    if (typeof fileOrPath === "string") path = fileOrPath;
+    else if (fileOrPath) {
+      try {
+        const folder = this.attachDir();
+        await this.ensureFolder(folder);
+        const safe = fileOrPath.name.replace(/[\\/:*?"<>|]/g, "_");
+        let p2 = `${folder}/${safe}`;
+        if (await this.app.vault.adapter.exists(p2)) p2 = `${folder}/${Date.now()}-${safe}`;
+        const buf = await fileOrPath.arrayBuffer();
+        await this.app.vault.adapter.writeBinary(p2, buf);
+        path = p2;
+      } catch (e) { new Notice("存图片失败：" + (e && e.message ? e.message : e)); return; }
+    }
+    const f = this.app.vault.getAbstractFileByPath(normalizePath(`${this.settings.rootFolder || "日记"}/${key}.md`));
+    if (!(f instanceof TFile)) { new Notice("这天还没有日记"); return; }
+    try {
+      const raw = await this.app.vault.read(f);
+      const parsed = parseDay(raw, this.settings.headingLevel);
+      const lay = normalizeLayout(parsed.layout, this.settings);
+      lay.cover = path;
+      if (height) lay.coverHeight = clamp(height, 0, 320);
+      lay.coverPos = "";
+      const cells = normalizeCells(parsed.cells, lay, this.settings);
+      const text = serializeDay(key, cells, {
+        fm: parsed.fm, h1: parsed.h1, columns: lay.cols || this.settings.columns,
+        level: this.settings.headingLevel, layout: lay,
+      });
+      await this.app.vault.modify(f, text);
+      new Notice(path ? "封面已设好" : "封面已移除");
+      this.refreshAll(true);
+    } catch (e) { new Notice("设置封面失败：" + (e && e.message ? e.message : e)); }
+  }
+  /* 库内路径 / 网络地址 → 可直接放进 <img>.src 的地址 */
+  /* 日历底图裁剪：框的宽高比按面板当前尺寸 */
+  cropCalWall() {
+    const s = this.settings;
+    const p = s.calWallpaper || "";
+    if (!p) { new Notice("还没有日历底图"); return; }
+    const url = this.thumbUrl(p);
+    if (!url) { new Notice("底图读不出来"); return; }
+    const el = (this.calPanel && this.calPanel.el) || null;
+    const w = (el && el.clientWidth) || 600;
+    const h = (el && el.clientHeight) || 600;
+    openCrop(this.app, {
+      url,
+      ratio: w / Math.max(h, 1),
+      crop: s.calWallCrop || null,
+      title: "裁剪日历底图",
+      onOk: async (c) => {
+        s.calWallCrop = c || null;
+        await this.saveSettings();
+        this.refreshCalendar();
+        new Notice(c ? "底图已裁剪" : "底图恢复整张");
+      },
+    });
+  }
+
+  thumbUrl(src) {
+    if (!src) return "";
+    if (/^https?:/i.test(src)) return src;
+    try {
+      const f = this.app.metadataCache.getFirstLinkpathDest(normalizePath(src), "");
+      return f ? this.app.vault.getResourcePath(f) : "";
+    } catch (e) { return ""; }
+  }
+
+  /* ---- 日历底图：三个来源（电脑 / 库里 / 网络），都不依赖浮窗是否打开 ---- */
+  async pickCalWallpaper(kind) {
+    const s = this.settings;
+    if (kind === "url") {
+      new PromptModal(this.app, "用网络图片当底图", "图片地址（http/https 开头）", s.calWallpaper || "", async (v) => {
+        const u = String(v || "").trim();
+        if (!u) { new Notice("没有填地址"); return; }
+        if (!/^https?:\/\//i.test(u)) { new Notice("要以 http:// 或 https:// 开头"); return; }
+        s.calWallpaper = u;
+        await this.saveSettings();
+        this.refreshCalendar();
+        new Notice("底图已换成网络图片");
+      }).open();
+      return;
+    }
+    if (kind === "vault") {
+      const imgs = this.app.vault.getFiles().filter((f) => /^(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(f.extension));
+      if (!imgs.length) { new Notice("库里还没有图片，先用「从电脑选…」传一张"); return; }
+      const m = new Menu();
+      for (const f of imgs.slice(-40).reverse()) {
+        m.addItem((i) => i.setTitle(f.basename).setIcon("image").onClick(async () => {
+          s.calWallpaper = f.path;
+          await this.saveSettings();
+          this.refreshCalendar();
+          new Notice("底图已设好：" + f.basename);
+        }));
+      }
+      const at = { clientX: window.innerWidth / 2 - 120, clientY: 160, preventDefault() { }, currentTarget: document.body };
+      showMenuAt(m, at);
+      return;
+    }
+    /* 默认：从电脑里选 */
+    const f = await chooseLocalFile({ accept: "image/*", title: "选一张日历底图" });
+    if (!f) { new Notice("没有选图"); return; }
+    try {
+      const folder = this.attachDir();
+      await this.ensureFolder(folder);
+      const safe = String(f.name || "cover.png").replace(/[\\/:*?"<>|]/g, "_");
+      let path = `${folder}/${safe}`;
+      if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+      const buf = await f.arrayBuffer();
+      await this.app.vault.adapter.writeBinary(path, buf);
+      /* 写完立刻回读一次，确认文件真的在磁盘上（曾经出现过"设了但没生效"） */
+      const ok = await this.app.vault.adapter.exists(path);
+      if (!ok) { new Notice("图片写进去了但读不到：" + path); return; }
+      s.calWallpaper = path;
+      await this.saveSettings();
+      this.refreshCalendar();
+      new Notice("底图已设好：" + safe);
+    } catch (e) {
+      new Notice("设底图失败：" + (e && e.message ? e.message : e));
+      console.error("[格间日记] pickCalWallpaper", e);
+    }
+  }
+
+  /* 让所有在显示的日历（浮窗 / 标签页）立刻重画 */
+  refreshCalendar() {
+    try { if (this.calPanel && this.calPanel.el) { this.calPanel.buildIndex(); this.calPanel.render(); } } catch (e) { }
+    try {
+      const c = this.calendarInstance;
+      if (c && c.panel && c.panel.el) { c.panel.buildIndex(); c.panel.render(); }
+    } catch (e) { }
+  }
+
+  /* 给设置页用的缩略图（回执信息，避免"点了没反应"） */
+  showCalWallPreview() {
+    const p = this.settings.calWallpaper;
+    if (!p) { new Notice("现在没有底图"); return; }
+    new Notice("当前底图：" + p, 6000);
+  }
+
+  openBatchCover() {
+    new BatchCoverModal(this.app, this).open();
+  }
+
+  /* ---- 批量皮肤 / 边框：逐篇改 layout 再写回 ----
+   * skin 传空字符串表示只改边框，border 同理。days=0 表示全部。 */
+  async applySkinToAll(skin, border, days, keys) {
+    const cut = days > 0 ? shiftDate(todayStr(), -days) : "";
+    const only = Array.isArray(keys) && keys.length ? new Set(keys) : null;
+    let ok = 0, fail = 0;
+    for (const f of this.dayFiles()) {
+      const key = f.basename;
+      if (only && !only.has(key)) continue;
+      if (cut && splitDayKey(key).date < cut) continue;
+      try {
+        const raw = await this.app.vault.read(f);
+        const parsed = parseDay(raw, this.settings.headingLevel);
+        const lay = normalizeLayout(parsed.layout, this.settings);
+        if (skin) lay.skin = skin;
+        if (border) lay.border = border;
+        const cells = normalizeCells(parsed.cells, parsed.layout, this.settings);
+        const md = serializeDay(splitDayKey(key).date, cells, {
+          fm: parsed.fm, h1: parsed.h1,
+          columns: (parsed.layout && parsed.layout.cols) || this.settings.columns,
+          level: this.settings.headingLevel,
+          layout: lay,
+        });
+        await this.app.vault.modify(f, md);
+        ok++;
+      } catch (e) { fail++; }
+    }
+    new Notice(`已更新 ${ok} 篇的样式` + (fail ? `，${fail} 篇失败` : ""));
+    this.refreshAll();
+  }
+
+  /* ══════════ 主题系统（v4）══════════ */
+
+  /* 全部视图统一刷新视觉（套主题后调用） */
+  applyAllTheme() {
+    this.applyCustomCss();
+    const g = this.gridView();
+    if (g) { g.applyTheme(); g.render(); }
+    if (this.sidebar) this.sidebar.render();
+    if (this.timeline) this.timeline.refresh();
+    this.refreshAllTimelinePanels();
+    if (this.calPanel && this.calPanel.el) this.calPanel.render();
+    const cal = this.calendarInstance;
+    if (cal && cal.panel) cal.panel.render();
+    if (this.float && this.float.el) this.float.refresh();
+  }
+
+  /* 从当前设置抓 tokens 存成主题 */
+  async saveThemeAs(name, note) {
+    const n = String(name || "").trim();
+    if (!n) { new Notice("主题名不能为空"); return; }
+    const tok = this.themes.grab();
+    const saved = await this.themes.save(n, tok, note || "");
+    this.settings.activeTheme = n;
+    await this.saveSettings();
+    new Notice("已保存主题「" + n + "」· 第 " + saved.version + " 版");
+    return saved;
+  }
+
+  /* 覆盖当前主题 */
+  async updateActiveTheme(note) {
+    const n = this.settings.activeTheme;
+    if (!n) { new Notice("先在主题菜单里选一个主题，或「存成新主题」"); return; }
+    const tok = this.themes.grab();
+    const saved = await this.themes.save(n, tok, note || "更新");
+    new Notice("已更新「" + n + "」· 第 " + saved.version + " 版");
+    return saved;
+  }
+
+  /* 主题菜单（顶栏 / 格子工具条 / 命令共用） */
+  async showThemeMenu(evt) {
+    const list = await this.themes.list();
+    const menu = new Menu();
+    const cur = this.settings.activeTheme || "";
+    menu.addItem((i) => i.setTitle(cur ? "当前：" + cur : "当前：未套用主题（散项）")
+      .setIcon("palette").setDisabled(true));
+    menu.addSeparator();
+    if (!list.length) {
+      menu.addItem((i) => i.setTitle("还没有主题文件，点下面「存成新主题」")
+        .setIcon("info").setDisabled(true));
+    }
+    for (const t of list) {
+      menu.addItem((i) => i.setTitle((t.name === cur ? "✓ " : "") + t.name + "  (v" + t.version + ")")
+        .setIcon(t.name === cur ? "check" : "circle")
+        .onClick(async () => {
+          await this.themes.apply(t.name);
+          this.applyAllTheme();
+        }));
+    }
+    menu.addSeparator();
+    menu.addItem((i) => i.setTitle("存成新主题…").setIcon("save").onClick(async () => {
+      new PromptModal(this.app, "存成新主题", "主题名字", this.settings.activeTheme || "我的主题", async (v) => {
+        await this.saveThemeAs(v, "从当前设置新建");
+      }).open();
+    }));
+    menu.addItem((i) => i.setTitle("把当前改动存回主题").setIcon("save").onClick(async () => {
+      new PromptModal(this.app, "更新主题", "这次改了什么（备注）", "", async (v) => {
+        await this.updateActiveTheme(v);
+      }).open();
+    }));
+    menu.addItem((i) => i.setTitle("版本历史 / 回滚…").setIcon("history").onClick(() => this.openThemeHistory()));
+    menu.addItem((i) => i.setTitle("打开主题文件夹").setIcon("folder-open").onClick(async () => {
+      await this.themes.ensureDir();
+      const f = this.app.vault.getAbstractFileByPath(this.themes.dir);
+      if (f) this.app.workspace.getLeaf(true).openFile(f.path);
+      else new Notice("主题文件夹还没创建");
+    }));
+    if (evt) showMenuAt(menu, evt);
+    else menu.showAtMouseEvent(new MouseEvent("click"));
+  }
+
+  /* 主题版本历史窗口 */
+  openThemeHistory() {
+    new ThemeHistoryModal(this.app, this).open();
+  }
+
+  /* 项目用到的视觉字段（切换项目时一起带走） */
+  projectSkin() {
+    const s = this.settings;
+    return {
+      theme: s.theme,
+      skin: s.skin,
+      defaultBorder: s.defaultBorder,
+      accent: s.accent,
+      bgMode: s.bgMode,
+      bgColor: s.bgColor,
+      bgGradient: s.bgGradient,
+      bgImage: s.bgImage,
+      bgTexture: s.bgTexture,
+      bgRhythm: s.bgRhythm,
+      bgByMonth: JSON.parse(JSON.stringify(s.bgByMonth || {})),
+      bgByWeek: JSON.parse(JSON.stringify(s.bgByWeek || {})),
+      fontFamily: s.fontFamily,
+      fontSize: s.fontSize,
+      fontColor: s.fontColor,
+      lineColor: s.lineColor,
+      lineWidth: s.lineWidth,
+      lineStyle: s.lineStyle,
+      radius: s.radius,
+      activeTheme: s.activeTheme,
+    };
+  }
+
+  /* 切换项目：默认连视觉一起切（用户问「项目切换要不要连布局一起切」→ 做成可开关，默认开） */
+  async switchProject(name) {
+    if (!name) return;
+    const s = this.settings;
+    if (!s.projectLayouts || typeof s.projectLayouts !== "object") s.projectLayouts = {};
+    const old = s.projectName || "日记";
+    if (s.projectCarryLayout) {
+      /* 先把旧项目现在的样子存下来 */
+      s.projectLayouts[old] = this.projectSkin();
+    }
+    s.projectName = name;
+    if (s.projectCarryLayout) {
+      const snap = s.projectLayouts[name];
+      if (snap) Object.assign(s, snap);
+    }
+    await this.saveSettings();
+    this.applyAllTheme();
+    this.refreshAll();
+    new Notice("已切到项目：" + name + (s.projectCarryLayout ? "（视觉一起换）" : ""));
+  }
+
+  openSettings() {
+    this.app.setting.open();
+    this.app.setting.openTabById(PLUGIN_ID);
+  }
+  applyCustomCss() {
+    let st = document.getElementById("gd-custom-css");
+    if (!st) {
+      st = document.createElement("style");
+      st.id = "gd-custom-css";
+      document.head.appendChild(st);
+    }
+    st.textContent = this.settings.customCss || "";
+  }
+  refreshAll(reloadFile) {
+    if (this.calPanel && this.calPanel.el) this.calPanel.refresh();
+    this.applyCustomCss();
+    const g = this.gridView();
+    if (g) {
+      g.applyTheme();
+      // 撤销 / 恢复快照后必须从磁盘重读，否则内存里的旧格子会再次覆盖回去
+      if (reloadFile && g.file) g.reload();
+      else g.render();
+    }
+    if (this.sidebar) this.sidebar.render();
+    if (this.timeline) this.timeline.render();
+    if (this.calendar) this.calendar.rebuild();
+    if (this.float && this.float.el) this.float.render();
+  }
+}
+
+
+/* ---- 99-footer.js ---- */
+/* ============ 导出 ============ */
+module.exports = GridDiaryPlugin;
+module.exports.default = GridDiaryPlugin;
+})();

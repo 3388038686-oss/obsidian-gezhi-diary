@@ -1,1 +1,26 @@
-﻿{ "name": "obsidian-grid-diary", "version": "0.1.0", "description": "Grid journal plugin for Obsidian", "main": "main.js", "scripts": { "dev": "esbuild src/main.ts --bundle --external:obsidian --format=cjs --target=es2018 --outfile=main.js --watch", "build": "esbuild src/main.ts --bundle --external:obsidian --format=cjs --target=es2018 --minify --outfile=main.js" }, "devDependencies": { "obsidian": "latest", "esbuild": "^0.24.0", "typescript": "^5.6.0", "@types/node": "^22.0.0" } }
+{
+  "name": "obsidian-grid-diary",
+  "version": "3.11.0",
+  "description": "九宫格日记：Obsidian 插件。每格一句问句当引导，支持封面图层、裁剪、贴纸、动图视频壁纸、日周月年日历与农历。",
+  "main": "main.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "deploy": "node build.mjs --deploy",
+    "test": "node test.mjs && node smoke.mjs && node domsmoke.mjs"
+  },
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "diary",
+    "journal",
+    "grid",
+    "九宫格",
+    "日记"
+  ],
+  "author": "ko",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/3388038686-oss/obsidian-gezhi-diary.git"
+  }
+}
