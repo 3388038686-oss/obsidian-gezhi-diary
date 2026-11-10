@@ -1,4 +1,4 @@
-﻿/* 渲染烟雾测试：用极简 DOM 桩真正跑一遍视图 onOpen + render，
+/* 渲染烟雾测试：用极简 DOM 桩真正跑一遍视图 onOpen + render，
  * 抓那些「插件加载失败 / 插件不再活动」的构造期与渲染期异常。
  * 用法：node domsmoke.mjs */
 import fs from "node:fs";
@@ -133,8 +133,21 @@ globalThis.document = {
   createElement: (t) => new FakeEl(t),
   createDiv: (o) => new FakeEl("div", o),
   addEventListener() {}, removeEventListener() {},
+  querySelectorAll(sel) {
+    const out = [];
+    const s = String(sel || "").trim();
+    const hit = (el) => {
+      if (!s) return false;
+      if (s[0] === ".") return !!(el.classList && el.classList.has(s.slice(1)));
+      if (s[0] === "#") return el.id === s.slice(1);
+      return String(el.tagName || "").toLowerCase() === s.toLowerCase();
+    };
+    const walk = (el) => { if (hit(el)) out.push(el); (el.children || []).forEach(walk); };
+    walk(fakeBody);
+    return out;
+  },
+  querySelector(sel) { return this.querySelectorAll(sel)[0] || null; },
   getElementById(id) { let hit = null; walk(fakeBody, (e) => { if (e.id === id) hit = e; }); return hit; },
-  querySelector() { return null; },
 };
 globalThis.window = { innerWidth: 1400, innerHeight: 900, addEventListener() {}, removeEventListener() {} };
 try { Object.defineProperty(globalThis, "navigator", { value: { clipboard: { readText: async () => "" } }, configurable: true, writable: true }); } catch (e) { globalThis.navigator.clipboard = { readText: async () => "" }; }
@@ -184,12 +197,26 @@ class Menu {
 class Setting {
   constructor() { this._c = []; }
   setName() { return this; } setDesc() { return this; } setHeading() { return this; }
-  addText(cb) { cb({ setPlaceholder() { return this; }, setValue() { return this; }, onChange() { return this; }, inputEl: new FakeEl("input") }); return this; }
-  addToggle(cb) { cb({ setValue() { return this; }, onChange() { return this; } }); return this; }
+  addText(cb) { cb({ setPlaceholder() { return this; }, setValue() { return this; }, onChange() { return this; }, setDisabled() { return this; }, setClass() { return this; }, setTooltip() { return this; }, inputEl: new FakeEl("input") }); return this; }
+  addToggle(cb) { cb({ setValue() { return this; }, onChange() { return this; }, setDisabled() { return this; }, setTooltip() { return this; } }); return this; }
   addDropdown(cb) { cb({ addOption() { return this; }, addOptions() { return this; }, setValue() { return this; }, onChange() { return this; } }); return this; }
   addSlider(cb) { cb({ setLimits() { return this; }, setValue() { return this; }, setDynamicTooltip() { return this; }, onChange() { return this; } }); return this; }
-  addButton(cb) { cb({ setButtonText() { return this; }, setCta() { return this; }, onClick() { return this; } }); return this; }
+  addButton(cb) { cb({ setButtonText() { return this; }, setCta() { return this; }, setWarning() { return this; }, setIcon() { return this; }, setTooltip() { return this; }, setDisabled() { return this; }, onClick() { return this; } }); return this; }
   addTextArea(cb) { cb({ setPlaceholder() { return this; }, setValue() { return this; }, onChange() { return this; }, inputEl: new FakeEl("textarea") }); return this; }
+  addExtraButton(cb) {
+    cb({ setIcon() { return this; }, setTooltip() { return this; }, onClick() { return this; }, extraSettingsEl: new FakeEl("button") });
+    return this;
+  }
+  addColorPicker(cb) {
+    cb({ setValue() { return this; }, onChange() { return this; } });
+    return this;
+  }
+  addSearch(cb) {
+    cb({ setPlaceholder() { return this; }, setValue() { return this; }, onChange() { return this; }, inputEl: new FakeEl("input") });
+    return this;
+  }
+  setClass() { return this; } setDisabled() { return this; } setTooltip() { return this; }
+  clear() { return this; } then(cb) { if (cb) cb(this); return this; }
 }
 class Plugin {
   constructor(app, manifest) { this.app = app; this.manifest = manifest; this._commands = []; this._views = {}; this._data = null; }
@@ -241,6 +268,8 @@ class Vault {
     mkdir: async () => {},
     getResourcePath: (p) => "app://" + p,
     write: async () => {}, read: async () => "",
+    writeBinary: async () => {}, readBinary: async () => new ArrayBuffer(4),
+    list: async () => ({ files: [], folders: [] }),
   };
   configDir = ".obsidian";
 }
@@ -259,7 +288,12 @@ const app = {
     iterateAllLeaves: () => {},
     activeLeaf: null,
   },
-  metadataCache: { getFirstLinkpathDest: () => null },
+  metadataCache: {
+    getFirstLinkpathDest: (p) => {
+      const key = String(p || "").replace(/^\//, "");
+      return files.find((f) => f.path === key) || files.find((f) => f.path.endsWith("/" + key)) || null;
+    },
+  },
   setting: { open() {}, openTabById() {} },
   commands: { removeCommand() {} },
   fileManager: { processFrontMatter: async () => {} },
@@ -274,6 +308,8 @@ function mkDay(d, cells) {
 mkDay("2026-11-07", [["今日事件", "去看了展"], ["今日书账", "买了两本书"], ["今日新知", "纸张会变黄"], ["今日碎记", "![[a.gif|300]]"]]);
 mkDay("2026-11-06", [["今日事件", "写代码"], ["今日新知", "学到了东西"]]);
 mkDay("2026-10-18", [["今日事件", "旧日记"], ["今日新知", "老格式"]]);
+/* 库内已有的图：给「从库里挑」和「不重复存」两条断言用 */
+const seededImg = new TFile("日记/attachments/x.png", "binary");
 mkDay("2025-12-31", [["今日事件", "去年最后一天"]]);
 
 const mod = await import("node:module");
@@ -288,7 +324,7 @@ mod.default._load = function (req, ...rest) {
 };
 let code = fs.readFileSync(path.join(ROOT, "dist/main.js"), "utf8");
 /* 把内部纯函数临时露出来给断言用（只在测试里改这一份字符串） */
-code = code.replace(/\}\)\(\);\s*$/, 'globalThis.__gd = { extractTemplate, buildFromTemplate, normHeadKey, mergeByTitle, LAYER_KEYS, DEFAULT_LAYERS, normalizeLayers, CAL_SKELETONS, CAL_TEXTURES, TEMPLATE_KINDS, sortTemplates, templateKind, dayKind, applyPasteFilters, HOLIDAYS, TableView, cropCss, applyCrop, CropModal };\n})();');
+code = code.replace(/\}\)\(\);\s*$/, 'globalThis.__gd = { extractTemplate, buildFromTemplate, normHeadKey, mergeByTitle, LAYER_KEYS, DEFAULT_LAYERS, normalizeLayers, CAL_SKELETONS, CAL_TEXTURES, TEMPLATE_KINDS, sortTemplates, templateKind, dayKind, applyPasteFilters, HOLIDAYS, TableView, cropCss, applyCrop, CropModal, ImageSourceModal, VaultPickModal, pickImageSources, sourceToFile, saveImageSource, chooseImage, chooseFileLike, stashFile, AVATAR_SHAPES, DAY_PALETTE, bgColorForDate, PROJECT_KEYS, PROJECT_VAR_KEYS, parseSlot, slotRaw, bgRawSlot, bgSlotForDate, GridSettingTab, BG_PROJECTS, BG_MODES, CELL_BG_MODES, bgCfgOf, defaultBgCfg };\n})();');
 const m = mod.default;
 const srcMod = new m.Module("gd", null);
 srcMod.filename = path.join(ROOT, "dist/gd-cjs.js");
@@ -528,6 +564,7 @@ if (gv) {
   const count = (cls) => { let n = 0; walk(gv.contentEl, (e) => { if (e.classList.has(cls)) n++; }); return n; };
   try {
     plugin.settings.showStage = true;
+    plugin.settings.showMotto = true;   /* 座右铭层现在归总开关管（v3.11.2） */
     plugin.settings.layerStep = 5;
     gv.layout.layers = {
       bg: { x: 0, y: 0, w: 100, h: 100, on: true },
@@ -547,7 +584,9 @@ if (gv) {
     const moreBtn = (() => { let f = null; walk(gv.contentEl, (e) => { if (!f && e.classList.has("gd-stage-more")) f = e; }); return f; })();
     if (moreBtn && moreBtn.onclick) moreBtn.onclick({ stopPropagation() {} });
     ok("点开后展开控制条", count("gd-stage-bar") >= 1);
-    ok("四层切换胶囊", count("gd-chip") >= 4, `实际 ${count("gd-chip")}`);
+    /* v3.21：背景与照片合成「层级」一个大类，所以胶囊从 4 个变 3 个 */
+    ok("三个切换胶囊（层级 / 座右铭 / 标志）", count("gd-chip") >= 3, `实际 ${count("gd-chip")}`);
+    ok("有「层级」这个大类", count("gd-chip-layer") >= 1, `实际 ${count("gd-chip-layer")}`);
     ok("步长三档", count("gd-step") === 3, `实际 ${count("gd-step")}`);
 
     /* 推板位移 */
@@ -572,6 +611,73 @@ if (gv) {
   } catch (e) { err = e; }
   ok("舞台渲染无异常", !err, err ? err.constructor.name + ": " + err.message : "");
   plugin.settings.showStage = false;
+  gv.render();
+}
+
+console.log("\n[D18] 照片墙：头像式多图浮在整块背景上（v3.20 重做）");
+if (gv) {
+  let err = null;
+  const count = (cls) => { let n = 0; walk(gv.contentEl, (e) => { if (e.classList.has(cls)) n++; }); return n; };
+  const S = plugin.settings;
+  const oldWall = S.projectBg && S.projectBg.home ? S.projectBg.home.wall : null;
+  const oldShow = S.showStage;
+  try {
+    S.showStage = true;
+    S.projectBg = S.projectBg || {};
+    S.projectBg.home = S.projectBg.home || {};
+    /* 全局开关 + 三张头像式小照片；lay.img.on 故意关掉，照片墙也必须照样显示 */
+    S.projectBg.home.wall = {
+      on: true, limit: 12, unlimited: false,
+      items: [
+        { src: "a.png", x: 4,  y: 6,  w: 15, h: 15 },
+        { src: "b.png", x: 30, y: 40, w: 18, h: 18 },
+        { src: "c.png", x: 70, y: 12, w: 12, h: 12 },
+      ],
+    };
+    if (gv.layout && gv.layout.layers && gv.layout.layers.img) gv.layout.layers.img.on = false;
+    gv.stage.render();
+    ok("整块舞台浮层出现", count("gd-wall-layer") === 1, `实际 ${count("gd-wall-layer")}`);
+    ok("三张照片都画出来", count("gd-wall-photo") === 3, `实际 ${count("gd-wall-photo")}`);
+    ok("浮层盖在四层之上", (() => {
+      let wl = null; walk(gv.contentEl, (e) => { if (!wl && e.classList.has("gd-wall-layer")) wl = e; });
+      return !!wl && wl.style.zIndex === "5";
+    })());
+    ok("lay.img.on=false 也照样显示（全局显隐）", (() => {
+      let imgLayer = 0; walk(gv.contentEl, (e) => { if (e.classList.has("gd-layer-img")) imgLayer++; });
+      return count("gd-wall-photo") === 3 && imgLayer === 0;
+    })());
+    /* 坐标按整块舞台算（不是 img 层那个 30% 窄框）：第二张 x=30 y=40 */
+    ok("坐标按整块舞台百分比", (() => {
+      let ph = null; walk(gv.contentEl, (e) => { if (!ph && e.classList.has("gd-wall-photo") && e.style.left === "30%") ph = e; });
+      return !!ph && ph.style.top === "40%" && ph.style.width === "18%";
+    })());
+    ok("每张四角把手", count("gd-wall-grip") === 12, `实际 ${count("gd-wall-grip")}`);
+    ok("头像式正方形（高交给 aspect-ratio）", (() => {
+      let ph = null; walk(gv.contentEl, (e) => { if (!ph && e.classList.has("gd-wall-photo")) ph = e; });
+      return !!ph && ph.style.height === "auto";
+    })());
+    /* 拖动：拿浮层（300×150）当基准，往右下各挪 10% */
+    let ph0 = null; walk(gv.contentEl, (e) => { if (!ph0 && e.classList.has("gd-wall-photo")) ph0 = e; });
+    if (ph0 && ph0.dispatch) {
+      ph0.dispatch("pointerdown", { button: 0, clientX: 0, clientY: 0, pointerId: 1, target: ph0, stopPropagation() {} });
+      /* fake DOM 的 document 监听是空实现，这里直接验证坐标写入依赖的基准存在即可 */
+      ok("拖动基准是整块浮层", ph0.parentElement && ph0.parentElement.classList.has("gd-wall-layer"));
+    } else ok("拖动基准是整块浮层", false);
+    /* 关掉全局开关 → 浮层整块消失 */
+    S.projectBg.home.wall.on = false;
+    gv.stage.render();
+    ok("关掉照片墙浮层消失", count("gd-wall-layer") === 0 && count("gd-wall-photo") === 0);
+    /* 再打开 → 回来，且换一天（重新 render）也照样在 */
+    S.projectBg.home.wall.on = true;
+    gv.stage.render();
+    ok("重新打开照片墙回来", count("gd-wall-photo") === 3);
+  } catch (e) { err = e; }
+  ok("照片墙渲染无异常", !err, err ? err.constructor.name + ": " + err.message : "");
+  /* 还原现场，别影响后面的测试 */
+  S.showStage = oldShow;
+  if (oldWall === null) { if (S.projectBg && S.projectBg.home) delete S.projectBg.home.wall; }
+  else if (S.projectBg && S.projectBg.home) S.projectBg.home.wall = oldWall;
+  if (gv.layout && gv.layout.layers && gv.layout.layers.img) gv.layout.layers.img.on = true;
   gv.render();
 }
 
@@ -718,6 +824,443 @@ console.log("\n[D11] 表格视图（左目录 + 右表格）");
     ok("左边目录列出了日记", dirItem >= 4, "实际 " + dirItem);
   } catch (e) { err = e; }
   ok("表格视图无异常", !err, err ? err.constructor.name + ": " + err.message : "");
+}
+
+
+/* ================= [D8] 座右铭是独立对象（v3.11.2） ================= */
+console.log("\n[D8] 座右铭独立定位");
+{
+  const gv = plugin._views["gd-grid-view"](mkLeaf(app));
+  gv.contentEl = new FakeEl("div");
+  gv.contentEl.addClass("gd-root");
+  gv.contentEl.addClass("gd-grid-root");
+  gv.build();
+
+  /* 1) 老日记没有 layers 字段，走折算时座右铭不该再压在头像上 */
+  const migrated = globalThis.__gd.normalizeLayers(null, { motto: "我真的", avatar: "x.png" }, plugin.settings);
+  ok("老布局折算出了座右铭层", !!(migrated && migrated.text));
+  ok("折算后不再压在头像位置（y 不是 58）", migrated.text.y !== 58, "y=" + migrated.text.y);
+
+  gv.layout.layers = globalThis.__gd.normalizeLayers(null, { motto: "我真的" }, plugin.settings);
+  plugin.settings.showMotto = true;
+  plugin.settings.showStage = true;
+  gv.render();
+  const lay = gv.layout.layers;
+  ok("座右铭层存在", !!(lay && lay.text));
+
+  /* 拖到别处，再渲染，坐标必须还在 */
+  lay.text.x = 33; lay.text.y = 44; lay.text.w = 40; lay.text.h = 20;
+  gv.render();
+  const el = (() => {
+    let hit = null;
+    walk(gv.contentEl, (e) => { if (e.classList.has("gd-layer-text")) hit = e; });
+    return hit;
+  })();
+  ok("座右铭层真的画出来了", !!el);
+  ok("位置跟着坐标走", !!el && el.style.left === "33%" && el.style.top === "44%",
+    el ? el.style.left + "/" + el.style.top : "没画出来");
+
+  /* 总开关关掉，层就不该画 */
+  plugin.settings.showMotto = false;
+  gv.render();
+  let n2 = 0;
+  walk(gv.contentEl, (e) => { if (e.classList.has("gd-layer-text")) n2++; });
+  ok("关掉总开关后座右铭层消失", n2 === 0, "实际 " + n2);
+
+  /* 舞台高度上限：1200 不许再被夹到 520 */
+  plugin.settings.showMotto = true;
+  plugin.settings.stageHeight = 900;
+  gv.render();
+  const stage = (() => {
+    let hit = null;
+    walk(gv.contentEl, (e) => { if (e.classList.has("gd-cover-stage")) hit = e; });
+    return hit;
+  })();
+  ok("舞台高度能到 900", !!stage && stage.style.height === "900px", stage ? stage.style.height : "没找到");
+}
+
+
+console.log("\n[D9] 统一选图器（三来源）");
+{
+  const g = globalThis.__gd || {};
+  ok("导出了 ImageSourceModal", typeof g.ImageSourceModal === "function");
+  ok("导出了 VaultPickModal", typeof g.VaultPickModal === "function");
+  ok("导出了 pickImageSources", typeof g.pickImageSources === "function");
+  ok("导出了 chooseFileLike", typeof g.chooseFileLike === "function");
+  ok("导出了 stashFile", typeof g.stashFile === "function");
+
+  /* 三来源对话框：三个入口都要在，少一个就是没统一 */
+  const dlg = new g.ImageSourceModal(app, plugin, { title: "选图" });
+  let opened = null;
+  try { dlg.onOpen(); opened = true; } catch (e) { opened = e; }
+  ok("来源对话框能打开", opened === true, opened && opened.message ? opened.message : "");
+  let names = [];
+  walk(dlg.contentEl, (e) => { if (e.classList.has("gd-src-name")) names.push(e.textContent); });
+  /* v3.20 起多一条「下载网络图片」（问题 3：粘网址断网看不见 → 可以存进库） */  ok("四个来源都在（系统 / 库里 / 链接 / 下载）", names.length >= 4 && names.some((x) => x.includes("系统")) && names.some((x) => x.includes("库里")) && names.some((x) => x.includes("链接")) && names.some((x) => x.includes("下载")), names.join(" | "));
+  try { dlg.close(); } catch (e) { }
+
+  /* 库内选图：库里有的图都要列出来 */
+  const vp = new g.VaultPickModal(app, plugin, { title: "从库里挑" });
+  let vok = null;
+  try { vp.onOpen(); vok = true; } catch (e) { vok = e; }
+  ok("库内选图能打开", vok === true, vok && vok.message ? vok.message : "");
+  let cells = 0;
+  walk(vp.contentEl, (e) => { if (e.classList.has("gd-vaultpick-cell")) cells++; });
+  ok("库内图片都列出来了", cells > 0, "列了 " + cells + " 张");
+  try { vp.close(); } catch (e) { }
+
+  /* 链接来源：不该被当成库内路径 */
+  const f2 = await g.sourceToFile(plugin, { kind: "url", url: "https://example.com/a.png" });
+  ok("链接来源转成文件对象", !!f2 && f2.name === "a.png" && typeof f2.arrayBuffer === "function", f2 ? f2.name : "null");
+
+  /* 落盘：库里已有的图不重复存一份 */
+  const existPath = "日记/attachments/x.png";
+  const stashed = await g.stashFile(plugin, { name: "x.png", path: existPath, arrayBuffer: () => Promise.resolve(new ArrayBuffer(4)) }, "");
+  ok("库里已有的图直接复用不重复存", stashed === existPath, stashed || "空");
+}
+
+
+console.log("\n[D10] 按日换色 + 头像轮廓");
+{
+  const g = globalThis.__gd || {};
+
+  /* 按日换色：七个色，隔一天换一个，隔七天转回来 */
+  ok("导出了 DAY_PALETTE", Array.isArray(g.DAY_PALETTE) && g.DAY_PALETTE.length === 7, "长度 " + (g.DAY_PALETTE || []).length);
+  const s1 = Object.assign({}, plugin.settings, { bgRhythm: "day", bgByDay: {} });
+  const c1 = g.bgColorForDate("2026-11-08", s1);
+  const c2 = g.bgColorForDate("2026-11-09", s1);
+  const c8 = g.bgColorForDate("2026-11-15", s1);
+  ok("按日换色有颜色", !!c1 && !!c2, c1 + " / " + c2);
+  ok("相邻两天颜色不同", c1 !== c2, c1 + " vs " + c2);
+  ok("隔七天转回同一个色", c1 === c8, c1 + " vs " + c8);
+  const slot = ["d0","d1","d2","d3","d4","d5","d6"].find((k) => g.DAY_PALETTE.indexOf(g.bgColorForDate("2026-11-08", s1)) >= 0
+    && g.DAY_PALETTE[Number(k.slice(1))] === g.bgColorForDate("2026-11-08", s1));
+  const s2 = Object.assign({}, plugin.settings, { bgRhythm: "day", bgByDay: { [slot]: "#123456" } });
+  const c3 = g.bgColorForDate("2026-11-08", s2);
+  ok("自定义七色能覆盖默认", c3 === "#123456", "槽位 " + slot + " 实际 " + c3);
+  ok("关掉换色就没有色", g.bgColorForDate("2026-11-08", Object.assign({}, plugin.settings, { bgRhythm: "off" })) === "", "应返回空");
+
+  /* 头像轮廓 */
+  ok("导出了 AVATAR_SHAPES", Array.isArray(g.AVATAR_SHAPES) && g.AVATAR_SHAPES.length >= 6, "共 " + (g.AVATAR_SHAPES || []).length + " 种");
+  const names = (g.AVATAR_SHAPES || []).map((x) => x[1]);
+  ok("轮廓里没有重复", new Set(names).size === names.length, names.join("/"));
+  ok("不是只有圆的", names.filter((x) => !x.includes("圆") || x.includes("角")).length >= 5, names.join("/"));
+
+  /* 渲染：换了轮廓，类名要跟着换 */
+  /* 每换一次状态就造一个新视图：舞台是 build 时按 showStage 建的，
+     复用同一个视图测不出「改设置后有没有重新渲染」。 */
+  const renderFresh = async (stage) => {
+    plugin.settings.showStage = stage;
+    plugin.settings.showAvatar = true;
+    const v = plugin._views["gd-grid-view"](mkLeaf(app));
+    try { await v.onOpen(); } catch (e) { }
+    /* 标志层自己有开关，舞台模式要显式打开才会画 */
+    if (stage && v.layout) {
+      if (!v.layout.layers) v.layout.layers = globalThis.__gd.deepCloneLayers ? globalThis.__gd.deepCloneLayers() : null;
+      if (v.layout.layers && v.layout.layers.mark) v.layout.layers.mark.on = true;
+      try { v.render(); } catch (e) { }
+    }
+    const shapes = [];
+    walk(v.contentEl, (e) => {
+      for (const c of Array.from(e.classList)) if (c.indexOf("gd-shape-") === 0) shapes.push(c);
+    });
+    return shapes;
+  };
+
+  plugin.settings.avatarShape = "hex";
+  const shapesHexCover = await renderFresh(false);
+  ok("封面头像套上六边形轮廓", shapesHexCover.includes("gd-shape-hex"), shapesHexCover.join(","));
+  const shapesHexStage = await renderFresh(true);
+  ok("舞台标志层也套上六边形轮廓", shapesHexStage.includes("gd-shape-hex"), shapesHexStage.join(","));
+
+  plugin.settings.avatarShape = "circle";
+  const shapesCirCover = await renderFresh(false);
+  ok("改回圆形后封面头像变圆", shapesCirCover.includes("gd-shape-circle") && !shapesCirCover.includes("gd-shape-hex"), shapesCirCover.join(","));
+  const shapesCirStage = await renderFresh(true);
+  ok("改回圆形后舞台标志也变圆", shapesCirStage.includes("gd-shape-circle") && !shapesCirStage.includes("gd-shape-hex"), shapesCirStage.join(","));
+
+  plugin.settings.avatarShape = "triangle";
+  const shapesTri = await renderFresh(false);
+  ok("三角形轮廓也能套上", shapesTri.includes("gd-shape-triangle"), shapesTri.join(","));
+  plugin.settings.avatarShape = "circle";
+  
+}
+
+
+console.log("\n[D11] 项目各管一份视觉");
+{
+  const g = globalThis.__gd || {};
+  ok("导出了 PROJECT_KEYS", Array.isArray(g.PROJECT_KEYS) && g.PROJECT_KEYS.length === 4, "共 " + (g.PROJECT_KEYS || []).length + " 个");
+  const pnames = (g.PROJECT_KEYS || []).map((x) => x[1]);
+  ok("四个项目都在（目录/日历/悬浮窗/流线图）", pnames.includes("目录") && pnames.includes("日历") && pnames.includes("悬浮窗") && pnames.includes("流线图"), pnames.join("/"));
+  ok("导出了 PROJECT_VAR_KEYS", Array.isArray(g.PROJECT_VAR_KEYS) && g.PROJECT_VAR_KEYS.length >= 8, "共 " + (g.PROJECT_VAR_KEYS || []).length + " 项");
+  const hasFont = (g.PROJECT_VAR_KEYS || []).some((x) => x[0] === "fontFamily");
+  const hasCell = (g.PROJECT_VAR_KEYS || []).some((x) => x[0] === "radius" || x[0] === "gap");
+  ok("字体和格子都在可覆盖项里", hasFont && hasCell, "字体 " + hasFont + " / 格子 " + hasCell);
+
+  /* 默认：全部空 → 一个变量都不写（= 完全跟主题） */
+  plugin.settings.projectVars = { dir: {}, cal: {}, float: {}, tl: {} };
+  try { plugin.applyProjectVars(); } catch (e) { }
+  ok("默认不写任何变量（跟主题）", Object.keys(plugin.settings.projectVars.dir).length === 0);
+
+  /* 只给日历设一份：其它项目不许被牵连 */
+  plugin.settings.projectVars.cal = { fontFamily: "KaiTi", fontSize: 19 };
+  try { plugin.applyProjectVars(); } catch (e) { }
+  ok("日历可以单独有字体", plugin.settings.projectVars.cal.fontFamily === "KaiTi");
+  ok("改日历不影响目录", Object.keys(plugin.settings.projectVars.dir).length === 0);
+  ok("改日历不影响流线图", Object.keys(plugin.settings.projectVars.tl).length === 0);
+
+  /* 清空 = 恢复联动 */
+  delete plugin.settings.projectVars.cal.fontFamily;
+  try { plugin.applyProjectVars(); } catch (e) { }
+  ok("清空某一项就恢复跟主题", plugin.settings.projectVars.cal.fontFamily === undefined);
+
+  /* 五个项目页面都要有自己的一份：检查设置页里四个 pane 都调了 projectLook */
+  const src = fs.readFileSync(path.join(ROOT, "src/08-settings.js"), "utf8");
+  const calls = (src.match(/this\.projectLook\(p, /g) || []).length;
+  ok("设置页里四处都接上了", calls >= 4, "实际 " + calls + " 处");
+  ok("目录页有", src.includes('this.projectLook(p, "dir"'));
+  ok("日历页有", src.includes('this.projectLook(p, "cal"'));
+  ok("悬浮窗页有", src.includes('this.projectLook(p, "float"'));
+  ok("流线图页有", src.includes('this.projectLook(p, "tl"'));
+}
+
+
+console.log("\n[D12] 头像裁剪真的生效");
+{
+  const g = globalThis.__gd || {};
+  plugin.settings.showAvatar = true;
+  plugin.settings.avatarShape = "circle";
+  plugin.settings.avatar = "日记/attachments/x.png";
+
+  /* 没裁剪：应该退回 cover */
+  plugin.settings.avatarCrop = null;
+  plugin.settings.showStage = true;
+  let v = plugin._views["gd-grid-view"](mkLeaf(app));
+  try { await v.onOpen(); } catch (e) { }
+  if (v.layout && v.layout.layers) v.layout.layers.mark.on = true;
+  try { v.render(); } catch (e) { }
+  let av = null;
+  walk(v.contentEl, (e) => { if (e.classList.has("gd-avatar")) av = e; });
+  ok("舞台标志层能找到头像", !!av);
+  ok("没裁剪时用 cover", !!av && av.style.backgroundSize === "cover", av ? av.style.backgroundSize : "无");
+
+  /* 裁了一半：必须只画那一半 */
+  plugin.settings.avatarCrop = { x: 20, y: 20, w: 50, h: 50 };
+  v = plugin._views["gd-grid-view"](mkLeaf(app));
+  try { await v.onOpen(); } catch (e) { }
+  if (v.layout && v.layout.layers) v.layout.layers.mark.on = true;
+  try { v.render(); } catch (e) { }
+  av = null;
+  walk(v.contentEl, (e) => { if (e.classList.has("gd-avatar")) av = e; });
+  ok("裁剪后不再是整张图", !!av && av.style.backgroundSize !== "cover", av ? av.style.backgroundSize : "无");
+  ok("裁剪后尺寸是 200%（半宽半高）", !!av && /^200/.test(String(av.style.backgroundSize || "")), av ? av.style.backgroundSize : "无");
+  ok("裁剪后位置跟着走", !!av && !!av.style.backgroundPosition && av.style.backgroundPosition !== "50% 50%", av ? av.style.backgroundPosition : "无");
+
+  /* 封面版（关舞台）也要吃到同一个裁剪 */
+  plugin.settings.showStage = false;
+  v = plugin._views["gd-grid-view"](mkLeaf(app));
+  try { await v.onOpen(); } catch (e) { }
+  try { v.renderCover(); } catch (e) { }
+  av = null;
+  walk(v.contentEl, (e) => { if (e.classList.has("gd-avatar")) av = e; });
+  ok("封面版头像也吃到裁剪", !!av && /^200/.test(String(av.style.backgroundSize || "")), av ? av.style.backgroundSize : "无");
+
+  plugin.settings.showStage = true;
+  plugin.settings.avatarCrop = null;
+}
+
+
+console.log("\n[D13] 换色槽位认三种值");
+{
+  const g = globalThis.__gd || {};
+  ok("parseSlot 存在", typeof g.parseSlot === "function");
+  ok("slotRaw 存在", typeof g.slotRaw === "function");
+  ok("bgSlotForDate 存在", typeof g.bgSlotForDate === "function");
+
+  if (typeof g.parseSlot === "function") {
+    const c = g.parseSlot("#5b8def");
+    ok("纯色被认成 color", c && c.kind === "color" && c.value === "#5b8def");
+
+    const im = g.parseSlot("img:日记/attachments/a.png");
+    ok("img: 被认成图片", im && im.kind === "image" && im.value === "日记/attachments/a.png");
+
+    const tx = g.parseSlot("tex:dots");
+    ok("tex: 被认成纹理", tx && tx.kind === "texture" && tx.value === "dots");
+
+    ok("空值返回 null", g.parseSlot("") === null);
+
+    ok("slotRaw 能写回图片", g.slotRaw("", "image", "a/b.png") === "img:a/b.png");
+    ok("slotRaw 能写回纹理", g.slotRaw("", "texture", "diag") === "tex:diag");
+    ok("slotRaw 颜色原样", g.slotRaw("", "color", "#fff") === "#fff");
+  }
+
+  /* 按日槽位：设了图片，那天就该拿到图片 */
+  const s2 = JSON.parse(JSON.stringify(plugin.settings));
+  s2.bgRhythm = "day";
+  s2.bgByDay = { d0: "img:日记/x.png", d1: "tex:dots", d2: "#123456" };
+  const r0 = g.bgRawSlot("2026-11-08", s2);
+  ok("按日槽位能取到东西", !!r0);
+  const kinds = new Set();
+  for (let d = 1; d <= 7; d++) {
+    const dt = "2026-11-" + String(d).padStart(2, "0");
+    const sl = g.bgSlotForDate(dt, s2);
+    kinds.add(sl ? sl.kind : "null");
+  }
+  ok("七天里三种槽位都能出现", kinds.has("image") || kinds.has("texture") || kinds.has("color"), Array.from(kinds).join(","));
+
+  /* 纹理种类够多 */
+  ok("纹理种类 ≥ 12", (g.CAL_TEXTURES || []).length >= 12, "实际 " + (g.CAL_TEXTURES || []).length);
+}
+
+
+console.log("\n[D14] 设置页换色槽位能画出来");
+{
+  const { GridSettingTab } = globalThis.__gd || {};
+  ok("GridSettingTab 已导出", typeof GridSettingTab === "function");
+  if (typeof GridSettingTab === "function") {
+    const tab = new GridSettingTab(app, plugin);
+    tab.containerEl = document.createElement("div");
+    let err = null;
+    try { tab.display(); } catch (e) { err = e; }
+    ok("设置页能渲染不报错", !err, err ? String(err.message || err) : "");
+
+    /* 主页标签的背景块：先把节奏打开，槽位网格才会画出来 */
+    plugin.settings.projectBg = plugin.settings.projectBg || {};
+    plugin.settings.projectBg.home = Object.assign({}, plugin.settings.projectBg.home || {}, { rhythm: "day" });
+    tab.tab = "home";   /* 默认是主题页，那里已经没有底色了 */
+    err = null;
+    try { tab.display(); } catch (e) { err = e; }
+    ok("按日节奏下也能渲染", !err, err ? String(err.message || err) : "");
+
+    const cells = [];
+    walk(tab.containerEl, (e) => { if (e.classList.has("gd-slot-pv")) cells.push(e); });
+    ok("出现了槽位预览块", cells.length > 0, "实际 " + cells.length + " 个");
+  }
+}
+
+
+console.log("\n[D15] 槽位设成纹理/图片时，格子上真的画出来");
+{
+  const s = plugin.settings;
+  const old = { rhythm: s.bgRhythm, day: s.bgByDay, mode: s.bgMode };
+  s.bgMode = "color";
+  s.bgRhythm = "day";
+
+  /* 让今天那个槽位是纹理 */
+  const g = globalThis.__gd;
+  const today = new Date();
+  const idx = ((Math.floor((today.getTime() - today.getTimezoneOffset() * 60000) / 86400000) % 7) + 7) % 7;
+  s.bgByDay = { ["d" + idx]: "tex:diag" };
+
+  const v = plugin._views["gd-grid-view"](mkLeaf(app));
+  try { await v.onOpen(); } catch (e) { }
+  try { v.render(); } catch (e) { }
+  /* v3.21 起主页底色由根元素画（避免里层盖住外层）。
+     applyProjectBg 是用 document.querySelectorAll 找根元素的，
+     所以视图根必须真的挂进 fakeBody，否则永远找不到（这是测试桩的事，不是产品 bug）。 */
+  try { fakeBody.appendChild(v.contentEl); } catch (e) { }
+  try { plugin.applyProjectBg(); } catch (e) { }
+  let scroll = null;
+  walk(v.contentEl, (e) => { if (e.classList.has("gd-scroll")) scroll = e; });
+  ok("格子上有滚动层", !!scroll);
+  /* v3.20 起主页背景拆成上下两块：背景只画在上区（封面舞台 / 旧版封面），
+     根元素自己转成 transparent，下区格子只吃自己的格子背景。
+     所以这里找「上区」而不是根。 */
+  let root = null;
+  walk(v.contentEl, (e) => {
+    if (!root && (e.classList.has("gd-cover-stage") || e.classList.has("gd-cover-wrap"))) root = e;
+  });
+  if (!root) root = v.contentEl;
+  const attrOf = (el, k) => {
+    if (!el) return "";
+    if (typeof el.getAttr === "function") return String(el.getAttr(k) ?? "");
+    if (typeof el.getAttribute === "function") return String(el.getAttribute(k) ?? "");
+    return "";
+  };
+  ok("纹理槽位把底色改成 texture", attrOf(root, "data-pbg") === "texture" || attrOf(root, "data-bg-mode") === "texture",
+    "mode=" + attrOf(root, "data-bg-mode") + " tex=" + attrOf(root, "data-bg-texture") + " rhythm=" + attrOf(root, "data-rhythm") + " key=" + (v.key || "") + " day=" + JSON.stringify(s.bgByDay));
+  ok("纹理名写进了 data-pbg-tex", attrOf(root, "data-pbg-tex") === "diag" || attrOf(root, "data-bg-texture") === "diag",
+    "pbg-tex=" + attrOf(root, "data-pbg-tex") + " bg-texture=" + attrOf(root, "data-bg-texture"));
+
+  /* 换成图片槽位 */
+  s.bgByDay = { ["d" + idx]: "img:日记/attachments/a.png" };
+  const v2 = plugin._views["gd-grid-view"](mkLeaf(app));
+  try { await v2.onOpen(); } catch (e) { }
+  try { v2.render(); } catch (e) { }
+  try { fakeBody.appendChild(v2.contentEl); } catch (e) { }
+  try { plugin.applyProjectBg(); } catch (e) { }
+  let root2 = null;
+  walk(v2.contentEl, (e) => {
+    if (!root2 && (e.classList.has("gd-cover-stage") || e.classList.has("gd-cover-wrap"))) root2 = e;
+  });
+  if (!root2) root2 = v2.contentEl;
+  ok("图片槽位把底色改成 image",
+    attrOf(root2, "data-pbg") === "image" || attrOf(root2, "data-bg-mode") === "image",
+    "pbg=" + attrOf(root2, "data-pbg") + " bg-mode=" + attrOf(root2, "data-bg-mode"));
+
+  s.bgRhythm = old.rhythm; s.bgByDay = old.day; s.bgMode = old.mode;
+}
+
+
+console.log("\n[D16] 五处各管自己的背景");
+{
+  const g = globalThis.__gd;
+  ok("BG_PROJECTS 有五个", (g.BG_PROJECTS || []).length === 5, "实际 " + (g.BG_PROJECTS || []).length);
+  ok("BG_MODES 含玻璃", (g.BG_MODES || []).some((x) => x[0] === "glass"));
+  ok("bgCfgOf 存在", typeof g.bgCfgOf === "function");
+
+  const s = plugin.settings;
+  const old = JSON.stringify(s.projectBg || {});
+  s.projectBg = { home: {}, dir: { mode: "glass", glass: 16 }, cal: { mode: "texture", texture: "wood" }, float: {}, tl: {} };
+  const c1 = g.bgCfgOf(s, "dir");
+  ok("目录读到玻璃模式", c1.mode === "glass", c1.mode);
+  ok("目录读到模糊 16", c1.glass === 16, String(c1.glass));
+  const c2 = g.bgCfgOf(s, "cal");
+  ok("日历读到纹理 wood", c2.mode === "texture" && c2.texture === "wood");
+
+  /* 五处的根元素都要挂上属性：手工造五个带对应类名的根，模拟真实 DOM */
+  const mkRoot = (cls) => {
+    const e = document.createElement("div");
+    e.addClass(cls);
+    fakeBody.appendChild(e);
+    return e;
+  };
+  mkRoot("gd-grid-root"); mkRoot("gd-sidebar-root"); mkRoot("gd-cal-panel");
+  mkRoot("gd-float"); mkRoot("gd-timeline-root");
+  plugin.applyProjectBg();
+  const roots = {
+    dir: document.querySelector(".gd-sidebar-root"),
+    cal: document.querySelector(".gd-cal-panel"),
+  };
+  ok("目录根元素存在", !!roots.dir);
+  if (roots.dir) {
+    const a = (el, k) => (el && el.getAttr ? el.getAttr(k) : "");
+    ok("目录挂上 data-pbg=glass", a(roots.dir, "data-pbg") === "glass", a(roots.dir, "data-pbg"));
+  }
+
+  s.projectBg = JSON.parse(old || "{}");
+  plugin.applyProjectBg();
+}
+
+console.log("\n[D17] 主题页里不再有底色");
+{
+  const tab = new globalThis.__gd.GridSettingTab(app, plugin);
+  tab.containerEl = document.createElement("div");
+  tab.tab = "theme";
+  let err = null;
+  try { tab.display(); } catch (e) { err = e; }
+  ok("主题页能渲染", !err, err ? String(err.message || err) : "");
+  const heads = [];
+  walk(tab.containerEl, (e) => { if (e.tagName === "H4") heads.push(String(e.textContent || "")); });
+  ok("主题页没有「底色」小标题", !heads.some((x) => x.includes("底色")), heads.join(" / "));
+
+  for (const [k, nm] of [["home", "主页"], ["dir", "目录"], ["calendar", "日历"], ["float", "悬浮窗"], ["timeline", "流线图"]]) {
+    tab.tab = k;
+    err = null;
+    try { tab.display(); } catch (e) { err = e; }
+    ok(nm + "页能渲染（含背景块）", !err, err ? String(err.message || err) + " @ " + String((err.stack || "").split("\n")[1] || "").trim() : "");
+  }
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败\n`);

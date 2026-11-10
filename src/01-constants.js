@@ -74,6 +74,12 @@ const CAL_TEXTURES = [
   ["lines", "细横线"],
   ["paper", "纸纹"],
   ["gradient", "渐变"],
+  ["diag", "斜纹"],
+  ["cross", "十字纹"],
+  ["noise", "噪点"],
+  ["wood", "木纹"],
+  ["marble", "大理石"],
+  ["checker", "棋格"],
 ];
 /* ---- 日历底图摆放 ----
  * 用户要的是「左上角是图片 / 右下角是图片 / 双角都放 / 整块当网格背景」 */
@@ -116,33 +122,98 @@ const TREE_COLOR_SETS = [
  * 优先级：按周 > 按月 > 主题默认底色。
  * ═══════════════════════════════════════════════════ */
 /* 12 个月色板（默认值，可在设置里改） */
+/* 按月不按 12 个月对齐（用户：「月不统一，按 9 个色来变就行」），
+   所以是 9 个槽循环，键名 m0–m8，取「今年第几个月 % 9」。 */
+const MONTH_SLOT_N = 9;
 const MONTH_PALETTE = {
-  "01": "#f2f5f9", "02": "#f7f2f4", "03": "#f1f7f1", "04": "#f8f6ef",
-  "05": "#f3f7fa", "06": "#f6f4fa", "07": "#faf5ee", "08": "#f4f7f3",
-  "09": "#f8f3f0", "10": "#f4f2f7", "11": "#f7f4ef", "12": "#f2f4f8",
+  m0: "#f2f5f9", m1: "#f7f2f4", m2: "#f1f7f1",
+  m3: "#f8f6ef", m4: "#f3f7fa", m5: "#f6f4fa",
+  m6: "#faf5ee", m7: "#f4f7f3", m8: "#f8f3f0",
 };
 
 /* 一周七色（周一起） */
 const WEEK_PALETTE = ["#f7f4ef", "#f2f6fa", "#f6f2f7", "#f2f8f4", "#faf6f0", "#f4f4fa", "#f8f2f2"];
 
+/* 按日循环的七色：跟星期无关，隔七天转一圈，所以每篇日记的底色都在慢慢走 */
+const DAY_PALETTE = ["#f7f4ef", "#f2f6fa", "#f6f2f7", "#f2f8f4", "#faf6f0", "#f4f4fa", "#f8f2f2"];
+
 /* 取某天该用的底图色：先按周，再按月 */
 function bgColorForDate(dateStr, settings) {
+  const slot = bgSlotForDate(dateStr, settings);
+  /* 槽位里放的是图或纹理时，这里没有颜色可给，交给调用方去画 */
+  if (!slot || slot.kind !== "color") return "";
+  return slot.value;
+}
+
+/* ══════════ 换色槽位：一格能存三种东西（v3.13）══════════
+ * 用户要求：光有纯色不够，还要能放图片、放纹理。
+ * 存法（都是字符串，老数据不用改）：
+ *   "#5b8def"        纯色
+ *   "img:日记/a.png" 图片
+ *   "tex:dots"       纹理（见 CAL_TEXTURES）
+ * ═══════════════════════════════════════════════════════ */
+function parseSlot(v) {
+  const s = String(v === undefined || v === null ? "" : v).trim();
+  if (!s) return null;
+  if (s.slice(0, 4) === "img:") return { kind: "image", value: s.slice(4), raw: s };
+  if (s.slice(0, 4) === "tex:") return { kind: "texture", value: s.slice(4), raw: s };
+  return { kind: "color", value: s, raw: s };
+}
+
+function slotRaw(v, kind, value) {
+  if (kind === "image") return "img:" + String(value || "");
+  if (kind === "texture") return "tex:" + String(value || "none");
+  return String(value || "");
+}
+
+/* 取某天该用的那个槽位（原样字符串，可能是自定义的，也可能是调色板兜底） */
+function bgRawSlot(dateStr, settings) {
   const s = settings || {};
   const mode = s.bgRhythm || "week";
   if (mode === "off") return "";
   const d = parseDate(dateStr);
+  if (mode === "day") {
+    const map = s.bgByDay || {};
+    const idx = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000) % 7;
+    const i2 = ((idx % 7) + 7) % 7;
+    if (map["d" + i2]) return map["d" + i2];
+    return DAY_PALETTE[i2] || "";
+  }
   if (mode === "week") {
-    const idx = (d.getDay() + 6) % 7;      // 周一起算
+    const idx = (d.getDay() + 6) % 7;
     const map = s.bgByWeek || {};
-    /* 优先「按星期几」的自定义色（设置页写的是 wd0..wd6） */
     if (map["wd" + idx]) return map["wd" + idx];
     return WEEK_PALETTE[idx] || "";
   }
-  /* month */
-  const mk = String(dateStr).slice(5, 7);
+  /* 按月：9 个槽循环（用户：「月不统一，按 9 个色来变」） */
+  const mi = (((d.getMonth() % MONTH_SLOT_N) + MONTH_SLOT_N) % MONTH_SLOT_N);
+  const key = "m" + mi;
   const map = s.bgByMonth || {};
-  if (map[mk]) return map[mk];
-  return MONTH_PALETTE[mk] || "";
+  if (map[key]) return map[key];
+  if (map[String(d.getMonth() + 1).padStart(2, "0")]) return map[String(d.getMonth() + 1).padStart(2, "0")];
+  return MONTH_PALETTE[key] || "";
+}
+
+/* 按「某一个项目」的配置取当天该用的槽位。
+   目录是主力（三档全要）；其余项目只留纯色和图片，节奏可以不开。
+   cfg 来自 bgCfgOf(settings, key)。 */
+function bgRawSlotOf(cfg, dateStr) {
+  if (!cfg || !cfg.rhythm || cfg.rhythm === "off") return "";
+  return bgRawSlot(dateStr, {
+    bgRhythm: cfg.rhythm,
+    bgByDay: cfg.byDay || {},
+    bgByWeek: cfg.byWeek || {},
+    bgByMonth: cfg.byMonth || {},
+  });
+}
+
+function bgSlotOf(cfg, dateStr) {
+  return parseSlot(bgRawSlotOf(cfg, dateStr));
+}
+
+/* 解析成 {kind, value, raw}；没设过就是 null */
+function bgSlotForDate(dateStr, settings) {
+  return parseSlot(bgRawSlot(dateStr, settings));
 }
 
 /* 按序号取色（同组内 0,1,2… 依次换色，循环） */
@@ -159,6 +230,149 @@ function treeRingRandom(setId, seed) {
   const base = ((Number(seed) || 0) * 37) % 360;
   return treeRing(base, 58, 44, n);
 }
+
+/* ══════════ 五处各自的背景（v3.14）══════════
+ * 用户要求：底图从「主题」里拿出来，分散装到五处；每处都能纯色/图片/渐变/纹理/玻璃；
+ * 格子背景也跟背景放在一起，不许再散。
+ * ═══════════════════════════════════════════════════ */
+const BG_PROJECTS = [
+  ["home", "主页", ".gd-grid-root"],
+  ["dir", "目录", ".gd-sidebar-root"],
+  ["cal", "日历", ".gd-cal-panel"],
+  ["float", "灵感", ".gd-float"],
+  ["tl", "流线图", ".gd-timeline-root"],
+];
+
+/* 一处背景的默认值 */
+function defaultBgCfg() {
+  return {
+    mode: "color",       // color / image / gradient / texture / glass
+    color: "",
+    image: "",
+    crop: null,          // 背景图 / 缩略图的裁剪框（只存百分比坐标，不剪原图）
+    gradient: "",
+    texture: "none",
+    glass: 12,           // 玻璃的模糊强度
+    glassTint: "",       // 玻璃的底色
+    video: "",           // 视频背景（库内路径），mode=video 时用
+    videoLoop: true,
+    wall: null,          // 照片墙（只主页有）：{on, items:[{src,x,y,w,h}], limit, unlimited}
+    rhythm: "off",       // off / day / week / month
+    byDay: {}, byWeek: {}, byMonth: {},
+    /* 格子背景：跟背景放在一起 */
+    cellMode: "follow",  // follow / color / image / glass
+    cellColor: "",
+    cellImage: "",
+    cellGlass: 8,
+  };
+}
+
+/* 取某一处的背景配置（补齐默认值，不改原对象） */
+function bgCfgOf(settings, key) {
+  const s = settings || {};
+  const raw = (s.projectBg && s.projectBg[key]) || {};
+  const out = defaultBgCfg();
+  for (const k of Object.keys(out)) {
+    if (raw[k] !== undefined) out[k] = raw[k];
+  }
+  /* 主页兼容老字段：老数据里背景存在全局 bgMode/bgColor… 上 */
+  if (key === "home") {
+    if (raw.mode === undefined && s.bgMode) out.mode = s.bgMode;
+    if (raw.color === undefined && s.bgColor) out.color = s.bgColor;
+    if (raw.image === undefined && s.bgImage) out.image = s.bgImage;
+    if (raw.gradient === undefined && s.bgGradient) out.gradient = s.bgGradient;
+    if (raw.texture === undefined && s.bgTexture) out.texture = s.bgTexture;
+    if (raw.rhythm === undefined && s.bgRhythm) out.rhythm = s.bgRhythm;
+    if (raw.byDay === undefined && s.bgByDay) out.byDay = s.bgByDay;
+    if (raw.byWeek === undefined && s.bgByWeek) out.byWeek = s.bgByWeek;
+    if (raw.byMonth === undefined && s.bgByMonth) out.byMonth = s.bgByMonth;
+  }
+  return out;
+}
+
+/* 照片墙：只属于主页（用户：「照片墙只独属于主页」）。
+   其余项目第二层就叫「图片」，一张，不是照片墙。 */
+function defaultWall() {
+  return { on: false, items: [], limit: 12, unlimited: false };
+}
+
+/* 目录图标来源：内置线体 / 表情 / 图片（库里选或直接粘网址） */
+const TREE_ICON_SOURCES = [
+  ["builtin", "内置图标"],
+  ["emoji", "表情"],
+  ["image", "图片（库里选或粘网址）"],
+];
+
+/* 目录行首标记：小三角与圆点二选一（用户：「点点与下标箭头是二选一」） */
+const TREE_MARK_MODES = [
+  ["caret", "小三角 ▾（点它折叠）"],
+  ["dot", "圆点 ●（点它折叠）"],
+];
+
+/* 快捷裁剪方式：所有选图入口在图片下面出这一排，选完点保存 */
+const CROP_PRESETS = [
+  ["center", "居中裁剪"],
+  ["fill", "填充"],
+  ["fit", "适应"],
+  ["stretch", "拉伸"],
+  ["tile", "平铺"],
+  ["raw", "原图"],
+];
+
+/* 背景形态清单 */
+const BG_MODES = [
+  ["color", "纯色"],
+  ["image", "图片"],
+  ["gradient", "渐变"],
+  ["texture", "纹理"],
+  ["glass", "玻璃磨砂"],
+  ["video", "视频"],
+  ["transparent", "透明（露出主题）"],
+];
+
+/* 格子背景形态清单 */
+const CELL_BG_MODES = [
+  ["follow", "跟着上面的背景"],
+  ["color", "纯色"],
+  ["image", "图片"],
+  ["glass", "玻璃磨砂"],
+];
+
+/* 四个可以单独设视觉的项目：目录 / 日历 / 悬浮窗 / 流线图 */
+const PROJECT_KEYS = [
+  ["dir", "目录", ".gd-sidebar-root"],
+  ["cal", "日历", ".gd-cal-panel"],
+  ["float", "悬浮窗", ".gd-float"],
+  ["tl", "流线图", ".gd-timeline-root"],
+];
+
+/* 每个项目能单独覆盖的项：CSS 变量名 → 说明 */
+const PROJECT_VAR_KEYS = [
+  ["bgColor", "--gd-bg-color", "底色"],
+  ["bgImage", "--gd-bg-image", "底图"],
+  ["fontFamily", "--gd-font", "字族"],
+  ["fontSize", "--gd-font-size", "字号"],
+  ["fontColor", "--gd-ink", "字色"],
+  ["lineColor", "--gd-line", "线色"],
+  ["lineWidth", "--gd-line-w", "线宽"],
+  ["accent", "--gd-accent", "强调色"],
+  ["radius", "--gd-radius", "圆角"],
+  ["gap", "--gd-gap", "间距"],
+  ["pad", "--gd-pad", "内边距"],
+  ["cellOpacity", "--gd-opacity", "不透明度"],
+];
+
+/* 头像轮廓（用户：「就是一个轮廓，只要不是圆的就行。多设计几种轮廓。」） */
+const AVATAR_SHAPES = [
+  ["circle", "圆形"],
+  ["square", "正方形"],
+  ["rounded", "圆角方"],
+  ["rect", "长方形"],
+  ["capsule", "胶囊"],
+  ["diamond", "菱形"],
+  ["hex", "六边形"],
+  ["triangle", "三角形"],
+];
 
 /* 四种格子边框（纸胶带已按用户要求删除） */
 const BORDERS = [
@@ -204,11 +418,11 @@ const PROMPT_SETS = {
  *   mark —— 头像标志
  * 老格式（cover + coverHeight + coverPos）读进来时自动折算成默认四层，不写回原文件。 */
 const LAYER_KEYS = ["bg", "img", "text", "mark"];
-const LAYER_NAMES = { bg: "背景", img: "照片", text: "座右铭", mark: "标志" };
+const LAYER_NAMES = { bg: "背景", img: "照片墙", text: "座右铭", mark: "标志" };
 const DEFAULT_LAYERS = {
   bg:   { x: 0,  y: 0,  w: 100, h: 100, on: true },
   img:  { x: 62, y: 8,  w: 30,  h: 66,  on: false },
-  text: { x: 4,  y: 58, w: 52,  h: 30,  on: false },
+  text: { x: 4,  y: 8,  w: 56,  h: 26,  on: false },
   mark: { x: 4,  y: 82, w: 12,  h: 16,  on: false },
 };
 /* 推板步长：鼠标点一下挪多少（百分比） */
@@ -335,7 +549,8 @@ const DEFAULT_SETTINGS = {
   /* 底图月/周节奏（T-04） */
   bgByMonth: {},
   bgByWeek: {},
-  bgRhythm: "week",              // week | month | off
+  bgRhythm: "week",              // day | week | month | off
+  bgByDay: {},                   // 按日换色的七色（d0..d6）
   /* 视频/动图壁纸（T-06） */
   videoEnabled: false,
   videoMaxMB: 20,
@@ -408,6 +623,9 @@ const DEFAULT_SETTINGS = {
   floatSize: "m",                // s | m | l
   floatEdgeDock: false,          // 贴边半收
   floatTitle: "灵感笔记",        // 悬浮窗标题（原「格间日记」，改名以区分日历浮窗）
+  /* 灵感自己的背景（用户：只留图片 + 透明度两项） */
+  floatBg: "",
+  floatBgOpacity: 1,
   /* 日历浮窗外观：用户要「纯色底 + 可调透明度 + 磨砂」 */
   calFloatBg: "",                // 空 = 跟随主题底色；否则 #rrggbb
   calFloatOpacity: 0.96,         // 0.4–1
@@ -419,6 +637,8 @@ const DEFAULT_SETTINGS = {
   /* 图标样式 10 种：dot 圆点 / ring 空心圈 / square 方块 / diamond 菱形 / arrow 箭头 /
    * check 对勾 / dash 短横 / star 星 / emoji 表情 / icon 图标字体 */
   treeIconStyle: "dot",
+  treeMarkMode: "caret",         // caret 小三角 / dot 圆点（二选一）
+  treeMoveMode: false,           // 移动模式（拖动文件夹换顺序）
   treeSlimTop: true,
   treeFuncBar: true,
   treeSepStyle: "none",          // 分区分隔符：none / line / dash / dot / wave / star / heart / leaf / sun / arrow
@@ -431,10 +651,15 @@ const DEFAULT_SETTINGS = {
   treeDimKeys: [],               // 被手动标灰的 key
   treeCompact: false,            // 紧凑模式：一行一个，不显示摘要
   treeThumb: true,               // 文件行显示封面缩略图
+  treeGlassTop: false,           // 目录上半（文件夹区）磨砂，默认不开＝没开销
+  treeGlassBot: false,           // 目录下半（文件区）磨砂
+  treeShowFolderPane: true,      // 目录上半「文件夹区域」显不显示
   treeShowStats: true,           // 显示篇数 / 字数
   treeHiddenFolders: [],         // 隐藏的文件夹（相对 root 的路径）
   treeFolderOrder: [],           // 文件夹手动顺序
-  treeFolderStyles: {},          // 每个文件夹独立外观 { 路径: {color, emoji, icon} }
+  treeFolderStyles: {},          // 每个文件夹独立外观 { 路径: {color, emoji, icon, img} }
+  timelineCompactTop: true,      // 流线图顶部收成一个图标
+  timelineColorDiff: true,       // 流线图按新增/删除/修改上色
   treeShowHidden: false,         // 临时显示被隐藏的文件夹
   treeFolderColor: "",           // 文件夹主色（空 = 跟随调色板）
   treeShowOtherFiles: true,
@@ -499,7 +724,19 @@ const DEFAULT_SETTINGS = {
   showAvatar: false,             // 封面左下角头像/标志
   avatar: "",                    // 头像图片路径
   avatarText: "",                // 没图时的文字标记（留空则不显示）
-  avatarSize: 44,                // 头像直径
+  avatarSize: 44,
+  avatarShape: "circle",           // circle|square|rounded|rect|capsule|diamond|hex|triangle
+  /* 每个项目自己的字体与格子（用户：「我想让他们每个人都有自己的一份」）。
+     留空 = 跟主题走；填了 = 这个项目单独用这一份，换主题也不被覆盖。 */
+  projectVars: {
+    dir: {},
+  projectBg: { home: {}, dir: {}, cal: {}, float: {}, tl: {} },
+  bgGlass: 12,
+  cellBgMode: "follow",
+  cellBgColor: "",
+  cellBgImage: "",
+  cellGlass: 8, cal: {}, float: {}, tl: {},
+  },                // 头像直径
   treeTwoPane: true,             // 目录：上文件夹 / 下文件 双面板
   treePaneRatio: 0.42,           // 上方面板占比
   treeIconFolder: "folder",      // 文件夹图标

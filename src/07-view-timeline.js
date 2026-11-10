@@ -55,9 +55,24 @@ class TimelinePanel {
     if (!el) return;
     el.empty();
 
-    const top = el.createDiv({ cls: "gd-tl-top" });
+    const s = this.plugin.settings;
+    const compact = s.timelineCompactTop !== false;
+
+    const top = el.createDiv({ cls: "gd-tl-top" + (compact && !this.topOpen ? " is-compact" : "") });
     const tline = top.createDiv({ cls: "gd-tl-titlebar" });
     tline.createEl("h4", { text: this.focusDate() ? "这一天的记录" : "时间线" });
+
+    /* 用户要求：顶部那堆（近90天 / 跟随当天 / 看全部 / 撤销 / 重做 / 搜索）
+       收成一个点一个图标，点开才展开。 */
+    if (compact) {
+      const gear = tline.createEl("button", { cls: "gd-tbtn gd-tl-gear", text: this.topOpen ? "▴" : "▾", attr: { title: "展开/收起顶部工具" } });
+      gear.onclick = (e) => { e.stopPropagation(); this.topOpen = !this.topOpen; this.build(); this.render(); };
+      if (!this.topOpen) {
+        this.listEl = el.createDiv({ cls: "gd-tl-list" });
+        if (!this.inFloat) el.createDiv({ cls: "gd-tl-note", text: "每次改动前自动留版本；点「恢复」回到任意一版。" });
+        return;
+      }
+    }
 
     const acts = top.createDiv({ cls: "gd-tl-acts" });
     const sel = acts.createEl("select", { cls: "gd-select" });
@@ -87,6 +102,29 @@ class TimelinePanel {
 
     this.listEl = el.createDiv({ cls: "gd-tl-list" });
     if (!this.inFloat) el.createDiv({ cls: "gd-tl-note", text: "每次改动前自动留版本；点开任意一天可查看 / 恢复历史内容。" });
+  }
+
+  /* 列表下方那一块：这一天的逐篇明细（每篇的第一格 / 格子标题 → 一键打开） */
+  renderDetailPanel(t) {
+    const box = this.el.createDiv({ cls: "gd-tl-detailbox" });
+    const bar = box.createDiv({ cls: "gd-tl-detailbox-head" });
+    bar.createEl("strong", { text: "详情 · " + dateCN(t.date) });
+    const shut = bar.createEl("button", { text: "收起", cls: "gd-mini-btn" });
+    shut.onclick = (e) => { e.stopPropagation(); this.expanded.delete(t.date); this.render(); };
+    for (const p of t.parts) {
+      const tag = p.it.suffix ? "第 " + p.it.suffix + " 篇" : "主篇";
+      const r = box.createDiv({ cls: "gd-tl-cell" });
+      const head = r.createDiv({ cls: "gd-tl-cell-head" });
+      head.createEl("strong", { text: tag });
+      const w = (p.text || "").replace(/\s/g, "").length;
+      head.createSpan({ text: `${w} 字 · ${(p.parsed.cells || []).length} 格`, cls: "gd-tl-cell-meta" });
+      const open2 = head.createEl("button", { text: "打开", cls: "gd-mini-btn" });
+      open2.onclick = (e) => { e.stopPropagation(); this.plugin.openDay(p.it.file.basename); };
+      const titles = (p.parsed.cells || []).map((c) => c.title).filter(Boolean);
+      r.createDiv({ cls: "gd-tl-cell-titles", text: titles.join(" / ") || "（空）" });
+      const body = (p.text || "").replace(/\n+/g, " · ");
+      if (body) r.createDiv({ cls: "gd-tl-cell-body", text: truncate(body, 220) });
+    }
   }
 
   /* 严格取「当前这一天」：点哪天就只出哪天，绝不掺别的日期 */
@@ -155,6 +193,7 @@ class TimelinePanel {
     const groups = this.groupByDate(files);
     let shown = 0;
     let year = "";
+    let detailTarget = null;   // 列表下方那块详情要画哪一天
     for (const g of groups) {
       const parts = [];
       for (const it of g.items) {
@@ -179,6 +218,37 @@ class TimelinePanel {
       row.createDiv({ cls: "gd-tl-node" });
 
       const card = row.createDiv({ cls: "gd-tl-card" });
+      /* 改动类型上色：新增 / 修改 / 删除 各一色（用户：只做颜色，不细到哪一格）。
+         判断依据是「这一天的正文」跟「最近一版快照」比：
+           没有快照          → 新增（这一版从没被覆盖过）
+           正文比快照变短/为空 → 删除
+           正文跟快照不同      → 修改
+           正文跟快照相同      → 不打标（还没动过）
+         以前两个分支都加 edit，del 那条 CSS 写了却永远用不上。 */
+      let snapsForDay = [];
+      try {
+        const f0x = g.items[0] && g.items[0].file;
+        if (f0x) snapsForDay = (await this.plugin.history.list(f0x)) || [];
+        if (this.plugin.settings.timelineColorDiff !== false) {
+          const bodyText = allText.replace(/\s/g, "");
+          if (!snapsForDay.length) card.addClass("gd-tl-diff-new");
+          else {
+            let prevText = "";
+            try { prevText = await this.plugin.app.vault.adapter.read(snapsForDay[0].path); } catch (e) { prevText = ""; }
+            /* 快照里除了正文还有 layout 那段 JSON，直接比长度会被它带偏，
+               所以先解析出正文再比。 */
+            let prevBody = "";
+            try {
+              const pd = parseDay(prevText);
+              prevBody = (pd.cells || []).map((c) => c.content || "").join("").replace(/\s/g, "");
+            } catch (e) { prevBody = String(prevText || "").replace(/\s/g, ""); }
+            const prevLen = prevBody.length;
+            if (!bodyText.length) card.addClass("gd-tl-diff-del");
+            else if (prevLen > 0 && bodyText.length < prevLen * 0.5) card.addClass("gd-tl-diff-del");
+            else if (prevBody !== bodyText) card.addClass("gd-tl-diff-edit");
+          }
+        }
+      } catch (e) { /* 上色失败不影响列表 */ }
       const dk = dayKind(g.date);
       if (dk.kind === "holiday") card.addClass("is-holiday");
       else if (dk.kind === "weekend") card.addClass("is-weekend");
@@ -226,24 +296,24 @@ class TimelinePanel {
           if (snaps.length) {
             const sr = card.createDiv({ cls: "gd-tl-snaps-line" });
             sr.createSpan({ text: `改过 ${snaps.length} 次 · 最近 ${snaps[0].time}` });
+            const rb = sr.createEl("button", { text: "恢复", cls: "gd-mini-btn is-accent", attr: { title: "列出这一天的所有版本，点一下回到那一版" } });
+            rb.onclick = (e) => {
+              e.stopPropagation();
+              if (f0) new SnapshotModal(this.app, this.plugin, f0).open();
+            };
             const hb = sr.createEl("button", { text: "看修改", cls: "gd-mini-btn" });
             hb.onclick = () => new SnapshotModal(this.app, this.plugin, f0).open();
           }
         }
       } catch (e) { /* ignore */ }
 
-      if (this.expanded.has(g.date)) {
-        const box = card.createDiv({ cls: "gd-tl-detail" });
-        for (const p of parts) {
-          const tag = p.it.suffix ? "第 " + p.it.suffix + " 篇" : "主篇";
-          const r = box.createDiv({ cls: "gd-tl-cell" });
-          r.createEl("strong", { text: tag });
-          r.createSpan({ text: truncate(p.parsed.cells.map((c) => c.title).join(" / "), 60) });
-          const open2 = r.createEl("button", { text: "打开", cls: "gd-mini-btn" });
-          open2.onclick = (e) => { e.stopPropagation(); this.plugin.openDay(p.it.file.basename); };
-        }
-      }
+      /* 详情不在卡片里了（用户：「详细内容从时间线卡片里移出来，
+         放到卡片外面、列表下方」）。这里只记下「要展开哪一天」，
+         等整个列表画完，在列表下方单独画一块。 */
+      if (this.expanded.has(g.date)) detailTarget = { date: g.date, parts };
     }
+
+    if (detailTarget) this.renderDetailPanel(detailTarget);
 
     if (!shown) {
       this.listEl.createDiv({

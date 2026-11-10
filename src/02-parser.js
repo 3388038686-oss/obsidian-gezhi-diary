@@ -86,17 +86,25 @@ function normalizeLayout(layout, settings) {
 }
 
 /* 裁剪框：{ cover:{x,y,w,h}, photo:{...} } 都是原图百分比 */
+const CROP_FITS = ["center", "fill", "fit", "stretch", "tile", "raw"];
+
 function normalizeCrop(c) {
   if (!c || typeof c !== "object") return null;
+  const fit = CROP_FITS.includes(c.fit) ? c.fit : "";
+  /* 拉伸 / 平铺 / 原图 不需要坐标，只有 fit 也能成立 */
   const w = clamp(Number(c.w) || 0, 1, 100);
   const h = clamp(Number(c.h) || 0, 1, 100);
-  if (!(w > 0) || !(h > 0)) return null;
-  return {
+  if (!(w > 0) || !(h > 0)) {
+    return fit && fit !== "center" && fit !== "fill" ? { x: 0, y: 0, w: 100, h: 100, fit } : null;
+  }
+  const out = {
     x: clamp(Number(c.x) || 0, 0, 100 - w),
     y: clamp(Number(c.y) || 0, 0, 100 - h),
     w: Math.round(w * 10) / 10,
     h: Math.round(h * 10) / 10,
   };
+  if (fit) out.fit = fit;
+  return out;
 }
 
 function normalizeCrops(raw) {
@@ -133,6 +141,13 @@ function normalizeLayers(raw, lay, settings) {
     out.text.on = !!(l2.motto || (settings && settings.showMotto));
     out.mark.on = !!(l2.avatar || (settings && settings.showAvatar));
     out.img.on = false;
+  }
+  /* 老默认摆位把座右铭放在 y=58 高 30，正好压在头像（y=82）上。
+   * 用户抱怨「座右铭被绑在头像旁边」，这里把还停在老位置的一次性挪到左上。
+   * 只要用户自己拖过（x/y 不是老默认值），就不动。 */
+  const T = out.text;
+  if (T && T.x === 4 && T.y === 58 && T.w === 52 && T.h === 30) {
+    T.x = 4; T.y = 8; T.w = 56; T.h = 26;
   }
   return out;
 }

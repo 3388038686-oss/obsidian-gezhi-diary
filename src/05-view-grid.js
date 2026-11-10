@@ -151,17 +151,57 @@ class GridView extends ItemView {
     el.style.setProperty("--gd-line-w", (clamp(s.lineWidth || 1, 0.5, 4)) + "px");
     el.style.setProperty("--gd-line-style", s.lineStyle || "solid");
 
-    /* 底色：纯色 / 渐变 / 图片 / 纹理 */
+    /* 底色：纯色 / 渐变 / 图片 / 纹理
+       v3.21：主页背景改由根元素（.gd-grid-root）画，
+       这里再画一遍会盖住外层（用户报「按频率换图没反应」的真因之一），
+       所以只要主页那份背景有实际取值，这里就整段跳过。 */
+    let ownedByRoot = false;
+    try {
+      const cfg = bgCfgOf(s, "home");
+      ownedByRoot = !!(cfg.color || cfg.image || cfg.video || cfg.gradient ||
+        (cfg.texture && cfg.texture !== "none") || (cfg.rhythm && cfg.rhythm !== "off"));
+    } catch (e) { ownedByRoot = false; }
+
+    if (ownedByRoot) {
+      el.removeAttribute?.("data-bg-mode");
+      el.removeAttribute?.("data-bg-texture");
+      el.removeAttribute?.("data-rhythm");
+      el.style.removeProperty("--gd-bg-color");
+      el.style.removeProperty("--gd-bg-image");
+      el.toggleClass("has-bg", false);
+      try { this.applyBgVideo(); } catch (e) { /* 视频失败不影响排版 */ }
+      return this.applyThemeTail(s, el, true);
+    }
+
     const bm = s.bgMode || "color";
     el.setAttr("data-bg-mode", bm);
     el.style.removeProperty("--gd-bg-color");
     el.style.removeProperty("--gd-bg-image");
+    /* 槽位可能把底色改画成图片或纹理，记在块外，下面清理时要用 */
+    let slotMode = "color";
     if (bm === "color") {
-      /* 底色优先级：按周/按月的节奏色 > 主题里的固定底色 */
-      let rhythm = "";
-      try { rhythm = bgColorForDate(this.key || todayStr(), s); } catch (e) { rhythm = ""; }
-      const useCol = rhythm || s.bgColor;
-      if (useCol) el.style.setProperty("--gd-bg-color", useCol);
+      /* 底色优先级：节奏槽位 > 主题里的固定底色。
+         槽位里可能是纯色，也可能是一张图或一种纹理（v3.13）。 */
+      let slot = null;
+      try { slot = bgSlotForDate(this.key || todayStr(), s); } catch (e) { slot = null; }
+      if (slot && slot.kind === "image") {
+        /* 这一格放的是图片：整块铺满，当底图用 */
+        const u = this.coverUrl ? this.coverUrl(slot.value) : "";
+        if (u) el.style.setProperty("--gd-bg-image", 'url("' + u + '")');
+        el.setAttr("data-bg-mode", "image");
+        el.setAttr("data-rhythm", "image");
+        slotMode = "image";
+      } else if (slot && slot.kind === "texture") {
+        /* 这一格放的是纹理：用内置纹理画，一个字节都不占 */
+        el.setAttr("data-bg-mode", "texture");
+        el.setAttr("data-bg-texture", slot.value);
+        el.setAttr("data-rhythm", "texture");
+        slotMode = "texture";
+      } else {
+        const useCol = (slot && slot.kind === "color" ? slot.value : "") || s.bgColor;
+        if (useCol) el.style.setProperty("--gd-bg-color", useCol);
+      }
+      if (!slot || slot.kind === "color") { el.setAttr("data-rhythm", "color"); }
     }
     else if (bm === "gradient" && s.bgGradient) el.style.setProperty("--gd-bg-image", s.bgGradient);
     else if (bm === "image" && s.bgImage) {
@@ -170,7 +210,16 @@ class GridView extends ItemView {
     } else if (bm === "texture" && s.bgTexture && s.bgTexture !== "none") {
       el.setAttr("data-bg-texture", s.bgTexture);
     }
-    if (bm !== "texture") el.removeAttribute?.("data-bg-texture");
+    /* 槽位把底色改成纹理时，bm 还是 color，所以要看 slotMode，
+       否则刚设好的纹理属性会被这一行擦掉（v3.13 修）。 */
+    if (bm !== "texture" && slotMode !== "texture") el.removeAttribute?.("data-bg-texture");
+    if (bm !== "color") el.removeAttribute?.("data-rhythm");
+    return this.applyThemeTail(s, el);
+  }
+
+  /* applyTheme 的尾段：字体、字色、线体、跟随主题、视频。
+     抽出来是为了「底色由根元素接管」时能直接跳到这一段。 */
+  applyThemeTail(s, el, ownedByRoot) {
     if (s.fontFamily) el.style.setProperty("--gd-font", s.fontFamily);
     else el.style.removeProperty("--gd-font");
     el.style.setProperty("--gd-font-size", `${clamp(s.fontSize, 10, 26)}px`);
@@ -178,7 +227,8 @@ class GridView extends ItemView {
     el.toggleClass("is-hover-lift", !!s.hoverLift);
     el.toggleClass("is-glass-on", !!s.glassEnabled);
     el.dataset.skin = s.glassEnabled ? "glass" : (s.skin || "zebra");
-    if (s.background) {
+    /* 老版「背景图」字段：只有根元素没接管时才用，否则会盖掉新的背景 */
+    if (s.background && !ownedByRoot) {
       try {
         el.style.setProperty("--gd-bg-image", `url("${this.app.vault.adapter.getResourcePath(normalizePath(s.background))}")`);
         el.addClass("has-bg");
@@ -413,7 +463,7 @@ class GridView extends ItemView {
     const shade = el.createDiv({ cls: "gd-cover-shade" });
     const left = shade.createDiv({ cls: "gd-cover-left" });
     if (s.showAvatar) {
-      const av = left.createDiv({ cls: "gd-avatar" });
+      const av = left.createDiv({ cls: "gd-avatar gd-shape-" + (s.avatarShape || "circle") });
       av.style.width = av.style.height = clamp(s.avatarSize || 44, 24, 96) + "px";
       const url = this.avatarUrl(s.avatar);
       if (url) {
@@ -427,6 +477,19 @@ class GridView extends ItemView {
         const m = new Menu();
         m.addItem((i2) => i2.setTitle("上传一张图").setIcon("image").onClick(() => this.pickAvatar()));
         m.addItem((i2) => i2.setTitle("裁剪这张图").setIcon("crop").onClick(() => this.cropAvatar()));
+        m.addItem((i2) => i2.setTitle("换轮廓").setIcon("shapes").onClick(() => {
+          const m2 = new Menu();
+          const cur = s.avatarShape || "circle";
+          for (const [v, nm] of AVATAR_SHAPES) {
+            m2.addItem((i3) => i3.setTitle((cur === v ? "✓ " : "") + nm).onClick(async () => {
+              this.sx.avatarShape = v;
+              await this.plugin.saveSettings();
+              this.renderCover();
+              new Notice("头像轮廓：" + nm);
+            }));
+          }
+          showMenuAt(m2, e);
+        }));
         m.addItem((i2) => i2.setTitle("用文字标记").setIcon("type").onClick(() => {
           new PromptModal(this.app, "封面标志", "输入 1–2 个字", s.avatarText || "", async (v) => {
             this.sx.avatar = ""; this.sx.avatarText = String(v || "").trim().slice(0, 2);
@@ -595,13 +658,36 @@ class GridView extends ItemView {
   /* 舞台的「照片」层：跟背景是两张独立的图 */
   async pickPhoto() {
     /* 图片 / 动图 / 视频都走这条路（视频按 CSS 规则必须叠 <video>） */
-    const f = await chooseLocalFile({ accept: "" });
+    const f = await chooseFileLike(this.plugin, { title: "选一张照片（舞台的照片层）" });
     if (!f) return;
     const nm = String(f.name || "");
     const isVid = isVideoSrc(nm);
     const isAnim = isAnimSrc(nm);
     if (!isVid && !isAnim && !/\.(png|jpe?g|webp|svg|bmp|avif)$/i.test(nm)) {
       new Notice("这个格式放不了：只支持 图片 / 动图(gif webp apng) / 视频(mp4 webm mov)");
+      return;
+    }
+    /* 图片和动图先裁剪再落盘（用户要求）。视频不裁剪：它是流媒体，
+       框选之后必须真转码出一个新文件，太重，直接放上去再拖取景。 */
+    if (!isVid) {
+      let tmp = "";
+      try { tmp = URL.createObjectURL(new Blob([await f.arrayBuffer()])); }
+      catch (e) { new Notice("这张图读不出来，换一张试试"); return; }
+      const boxW = (this.stageEl && this.stageEl.clientWidth) || 600;
+      const boxH = (this.stageEl && this.stageEl.clientHeight) || 260;
+      const L = (this.layout.layers && this.layout.layers.img) || { w: 40, h: 60 };
+      const ratio = (L.w / Math.max(L.h, 1)) * (boxW / Math.max(boxH, 1));
+      openCrop(this.app, {
+        url: tmp,
+        ratio,
+        crop: (this.layout.crops && this.layout.crops.photo) || null,
+        title: "裁剪照片（框选完再保存）",
+        onCancel: () => { try { URL.revokeObjectURL(tmp); } catch (e) { } new Notice("没放照片"); },
+        onOk: (crop) => {
+          try { URL.revokeObjectURL(tmp); } catch (e) { }
+          this.placePhoto(f, nm, isVid, isAnim, crop);
+        },
+      });
       return;
     }
     /* 体积与时长限制（用户要求：性能别崩） */
@@ -611,6 +697,12 @@ class GridView extends ItemView {
       new Notice("文件太大：" + (f.size / 1048576).toFixed(1) + " MB，上限 " + maxMB + " MB");
       return;
     }
+    this.placePhoto(f, nm, isVid, isAnim, null);
+  }
+
+  /* 真正的落盘与接线：crop 为 null 表示整张铺 */
+  async placePhoto(f, nm, isVid, isAnim, crop) {
+    const s = this.plugin.settings;
     try {
       const folder = this.attachDir();
       await this.plugin.ensureFolder(folder);
@@ -645,6 +737,8 @@ class GridView extends ItemView {
           this.layout.layers.img.on = true;
         }
       }
+      this.layout.crops = this.layout.crops || {};
+      if (crop) this.layout.crops.photo = crop; else delete this.layout.crops.photo;
       this.scheduleSave();
       if (this.stage) this.stage.render();
       new Notice(isVid ? "视频已放上舞台（静音循环播放）" : isAnim ? "动图已放上舞台" : "照片已放上舞台，可拖动挪位置");
@@ -674,7 +768,7 @@ class GridView extends ItemView {
 
   /* 轮播壁纸（T-07）：选多张，按间隔自动换 */
   async pickCarousel() {
-    const f = await chooseLocalFile({ accept: "image/*", multiple: true });
+    const f = await chooseFileLike(this.plugin, { multiple: true, title: "挑几张图做轮播壁纸" });
     if (!f) return;
     const arr = Array.isArray(f) ? f : [f];
     if (!arr.length) return;
@@ -756,23 +850,46 @@ class GridView extends ItemView {
       return f ? this.app.vault.adapter.getResourcePath(f.path) : "";
     } catch (e) { return ""; }
   }
+  /* 换封面：先裁剪，再落盘。用户 2026-11-08 撤回「先上传再调」，
+     改成跟微信换头像一样——框选完了才存进库里，取消就什么都不写。 */
   async pickCover() {
-    const f = await chooseLocalFile({ accept: "image/*" });
+    const f = await chooseFileLike(this.plugin, { title: "换封面" });
     if (!f) return;
+    let tmp = "";
     try {
-      const folder = this.attachDir();
-      await this.plugin.ensureFolder(folder);
-      const safe = f.name.replace(/[\\/:*?"<>|]/g, "_");
-      let path = `${folder}/${safe}`;
-      if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
-      await this.app.vault.createBinary(path, await f.arrayBuffer());
-      this.layout.cover = path;
-      if (!this.layout.coverHeight) this.layout.coverHeight = clamp(this.sx.coverHeight || 160, 60, 320);
-      /* 舞台模式下，图是画在「背景」层上的；不开这一层，设了封面也看不见 */
-      if (this.layout.layers && this.layout.layers.bg) this.layout.layers.bg.on = true;
-      this.render(); await this.save(true);
-      new Notice(this.sx.showStage ? "封面已换上（画在背景层）" : "封面已设置");
-    } catch (e) { new Notice("设置封面失败：" + e.message); }
+      tmp = URL.createObjectURL(new Blob([await f.arrayBuffer()]));
+    } catch (e) {
+      new Notice("这张图读不出来，换一张试试");
+      return;
+    }
+    const h0 = this.layout.coverHeight || this.sx.coverHeight || 160;
+    const w0 = (this.el && this.el.clientWidth) || 600;
+    openCrop(this.app, {
+      url: tmp,
+      ratio: w0 / Math.max(h0, 1),
+      crop: (this.layout.crops && this.layout.crops.cover) || null,
+      title: "裁剪封面（框选完再保存）",
+      onCancel: () => { try { URL.revokeObjectURL(tmp); } catch (e) { } new Notice("没换封面"); },
+      onOk: async (crop) => {
+        try { URL.revokeObjectURL(tmp); } catch (e) { }
+        try {
+          const folder = this.attachDir();
+          await this.plugin.ensureFolder(folder);
+          const safe = String(f.name || "cover.png").replace(/[\\/:*?"<>|]/g, "_");
+          let path = `${folder}/${safe}`;
+          if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+          await this.app.vault.createBinary(path, await f.arrayBuffer());
+          this.layout.cover = path;
+          if (!this.layout.coverHeight) this.layout.coverHeight = clamp(this.sx.coverHeight || 160, 60, 320);
+          this.layout.crops = this.layout.crops || {};
+          if (crop) this.layout.crops.cover = crop; else delete this.layout.crops.cover;
+          /* 舞台模式下，图是画在「背景」层上的；不开这一层，设了封面也看不见 */
+          if (this.layout.layers && this.layout.layers.bg) this.layout.layers.bg.on = true;
+          this.render(); await this.save(true);
+          new Notice(this.sx.showStage ? "封面已换上（画在背景层）" : "封面已设置");
+        } catch (e) { new Notice("设置封面失败：" + (e && e.message ? e.message : e)); }
+      },
+    });
   }
   tuneCoverHeight() {
     const el = this.coverEl;
@@ -914,22 +1031,37 @@ class GridView extends ItemView {
     this.renderCover();
     if (on && !(this.layout.motto || this.sx.motto)) this.editMotto();
   }
-  /* 头像：可选图片，没有就用首字 */
+  /* 头像：选图 → 正方形框选 → 落盘（跟微信换头像一样） */
   async pickAvatar() {
-    const f = await chooseLocalFile({ accept: "image/*" });
+    const f = await chooseFileLike(this.plugin, { title: "换头像" });
     if (!f) return;
-    try {
-      const folder = this.attachDir();
-      await this.plugin.ensureFolder(folder);
-      const safe = f.name.replace(/[\\/:*?"<>|]/g, "_");
-      let path = `${folder}/avatar-${safe}`;
-      await this.app.vault.createBinary(path, await f.arrayBuffer());
-      this.sx.avatar = path;
-      this.sx.showAvatar = true;
-      await this.plugin.saveSettings();
-      this.renderCover();
-      new Notice("头像已设置");
-    } catch (e) { new Notice("设置头像失败：" + e.message); }
+    let tmp = "";
+    try { tmp = URL.createObjectURL(new Blob([await f.arrayBuffer()])); }
+    catch (e) { new Notice("这张图读不出来，换一张试试"); return; }
+    openCrop(this.app, {
+      url: tmp,
+      ratio: 1,
+      crop: this.sx.avatarCrop || null,
+      title: "裁剪头像（框选完再保存）",
+      onCancel: () => { try { URL.revokeObjectURL(tmp); } catch (e) { } new Notice("没换头像"); },
+      onOk: async (crop) => {
+        try { URL.revokeObjectURL(tmp); } catch (e) { }
+        try {
+          const folder = this.attachDir();
+          await this.plugin.ensureFolder(folder);
+          const safe = String(f.name || "avatar.png").replace(/[\\/:*?"<>|]/g, "_");
+          let path = `${folder}/avatar-${safe}`;
+          if (await this.app.vault.adapter.exists(path)) path = `${folder}/avatar-${Date.now()}-${safe}`;
+          await this.app.vault.createBinary(path, await f.arrayBuffer());
+          this.sx.avatar = path;
+          this.sx.avatarCrop = crop || null;
+          this.sx.showAvatar = true;
+          await this.plugin.saveSettings();
+          this.renderCover();
+          new Notice("头像已设置");
+        } catch (e) { new Notice("设置头像失败：" + (e && e.message ? e.message : e)); }
+      },
+    });
   }
 
   /* ---------- 头部 ---------- */
@@ -1265,7 +1397,10 @@ class GridView extends ItemView {
   }
   /* 插图 / 插动图：拖拽不行时也能从菜单进 */
   async insertMedia(cell, animOnly) {
-    const f = await chooseLocalFile({ accept: animOnly ? "image/gif,image/webp,image/apng,.gif,.webp,.apng" : "image/*,video/*" });
+    const f = await chooseFileLike(this.plugin, {
+      title: animOnly ? "插一张动图" : "插一张图",
+      accept: animOnly ? "image/gif,image/webp,image/apng,.gif,.webp,.apng" : "image/*,video/*",
+    });
     if (!f) return;
     try {
       const limitMB = clamp(this.sx.animMaxMB || 8, 1, 200);
@@ -1518,7 +1653,9 @@ class GridView extends ItemView {
   }
   async insertAttachment(cell, ta, kind) {
     if (!ta) { new Notice("先切到编辑模式"); return; }
-    const f = await chooseLocalFile({ accept: kind === "image" ? "image/*" : undefined });
+    const f = kind === "image"
+      ? await chooseFileLike(this.plugin, { title: "插一张图" })
+      : await chooseLocalFile({ accept: undefined, title: "选一个附件" });
     if (!f) return;
     try {
       const folder = this.attachDir();

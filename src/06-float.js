@@ -90,6 +90,11 @@ class GDFloat {
     /* 右下角缩放 */
     const grip = el.createDiv({ cls: "gd-float-grip", attr: { title: "拖动缩放" } });
     grip.addEventListener("pointerdown", (ev) => this.startResize(ev));
+    /* 5.5：四个角都能拖（不显眼，只有靠近时才显出来），跟右下角是同一套缩放 */
+    for (const c of ["nw", "ne", "sw", "se"]) {
+      const g = el.createDiv({ cls: "gd-float-corner is-" + c });
+      g.addEventListener("pointerdown", (ev) => this.startResize(ev, c));
+    }
     /* Esc 关闭 */
     this._esc = (ev) => { if (ev.key === "Escape") this.close(); };
     window.addEventListener("keydown", this._esc);
@@ -122,14 +127,30 @@ class GDFloat {
     document.addEventListener("pointermove", move);
     document.addEventListener("pointerup", up);
   }
-  startResize(ev) {
+  startResize(ev, corner) {
     ev.preventDefault(); ev.stopPropagation();
     const r = this.el.getBoundingClientRect();
     const x0 = ev.clientX, y0 = ev.clientY, w0 = r.width, h0 = r.height;
+    const l0 = r.left, t0 = r.top;
+    const c = corner || "se";
     this.el.addClass("is-resizing");
     const move = (e) => {
-      this.el.style.width = `${clamp(Math.round(w0 + e.clientX - x0), 360, 1400)}px`;
-      this.el.style.height = `${clamp(Math.round(h0 + e.clientY - y0), 320, 1200)}px`;
+      const dx = e.clientX - x0, dy = e.clientY - y0;
+      let w = w0, h = h0, left = l0, top = t0;
+      if (c.includes("e")) w = clamp(Math.round(w0 + dx), 360, 1400);
+      if (c.includes("s")) h = clamp(Math.round(h0 + dy), 320, 1200);
+      if (c.includes("w")) {
+        w = clamp(Math.round(w0 - dx), 360, w0 + l0);
+        left = l0 + (w0 - w);
+      }
+      if (c.includes("n")) {
+        h = clamp(Math.round(h0 - dy), 320, h0 + t0);
+        top = t0 + (h0 - h);
+      }
+      this.el.style.width = `${w}px`;
+      this.el.style.height = `${h}px`;
+      if (c.includes("w")) this.el.style.left = `${left}px`;
+      if (c.includes("n")) this.el.style.top = `${top}px`;
     };
     const up = () => {
       document.removeEventListener("pointermove", move);
@@ -191,6 +212,24 @@ class GDFloat {
     el.style.setProperty("--gd-font-size", `${clamp(this.sx.fontSize, 10, 26)}px`);
     el.classList.toggle("is-hover-lift", !!this.sx.hoverLift);
 
+    /* 灵感背景：只留两项 —— 图片 + 透明度（用户明确要求）。
+       以前这四行写的是 calFloatBg / calFloatOpacity / calFloatBlur / calFloatShadow，
+       那是日历浮窗的字段，改的是日历不是灵感，所以两边串了。
+       现在用自己的 floatBg / floatBgOpacity。 */
+    const bg = this.sx.floatBg || "";
+    const op = clamp(this.sx.floatBgOpacity == null ? 1 : this.sx.floatBgOpacity, 0.2, 1);
+    el.style.setProperty("--gd-float-bg-opacity", String(op));
+    if (bg) {
+      const u = /^https?:\/\//i.test(bg) ? bg : (this.plugin.thumbUrl ? this.plugin.thumbUrl(bg) : "");
+      if (u) {
+        el.style.backgroundImage = 'url("' + u + '")';
+        el.addClass("has-bg");
+      }
+    } else {
+      el.style.backgroundImage = "";
+      el.removeClass("has-bg");
+    }
+
     this.dateEl.empty();
     this.dateEl.createSpan({ cls: "gd-float-day", text: `${dateShort(this.key)} ${weekdayCN(this.key)}` });
     const nav = this.dateEl.createDiv({ cls: "gd-float-nav" });
@@ -225,6 +264,12 @@ class GDFloat {
     const ta = body.createEl("textarea", { cls: "gd-cell-editor", attr: { placeholder: "写点什么…" } });
     ta.value = c.content;
     ta.oninput = () => { c.content = ta.value; this.saveTimer(); };
+    /* 5.4：点空白处就自动保存。以前要等 800ms 的防抖，点了别处可能还没落盘。
+       输入框一失焦立刻存（界面不动，见 saveNow 里的说明）。
+       不传 immediate：失焦很频繁，不该每次都留快照。 */
+    const flush = () => { if (!this.el) return; this.saveNow(); };
+    ti.addEventListener("blur", flush);
+    ta.addEventListener("blur", flush);
     ta.addEventListener("drop", async (e) => {
       const files = e.dataTransfer && e.dataTransfer.files;
       if (!files || !files.length) return;
@@ -263,11 +308,20 @@ class GDFloat {
       this.plugin.history.pushUndo(this.file, cur, "悬浮窗编辑");
       if (this.sx.autoSnapshot && immediate) await this.plugin.history.snapshot(this.file, "悬浮窗");
       await this.app.vault.modify(this.file, text);
-      this.plugin.notifyRefresh();
+      /* 修「打字跳回预览」：保存完不能再触发全量刷新。
+         以前这里调 notifyRefresh()，它会连带 refresh() → load() → render()，
+         把正在编辑的输入框整个销毁，光标就丢了。
+         现在只让别的视图知道「文件变了」，自己这边一个字都不动。 */
+      this._saving = true;
+      try { this.plugin.notifyRefresh && this.plugin.notifyRefresh(); } finally { this._saving = false; }
     } catch (e) { console.error("[格间日记] 悬浮窗保存失败", e); }
   }
   refresh(key) {
     if (!this.el) return;
+    /* 自己刚写完的、或者光标还在输入框里，就别重建，否则光标飞了 */
+    if (this._saving) return;
+    const act = document.activeElement;
+    if (act && this.el.contains(act) && (act.tagName === "TEXTAREA" || act.tagName === "INPUT")) return;
     if (key && splitDayKey(key).date !== splitDayKey(this.key).date) this.load(key);
     else this.load(this.key);
   }

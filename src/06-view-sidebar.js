@@ -60,14 +60,20 @@ class SidebarView extends ItemView {
       this.keyword = this.searchInput.value.trim();
       this.renderDebounced();
     });
-    if (this.plugin.settings.treeSlimTop !== false) {
-      const more = searchRow.createEl("button", { cls: "gd-tbtn gd-side-more", text: "⋯", attr: { title: "今天 / 新建 / 刷新 / 排序筛选" } });
-      more.onclick = (e) => { e.stopPropagation(); this.topMenu(e); };
-    }
+    /* 用户要求：目录左上角的「⋯」删掉，功能重复（下面「文件夹」那行已经有菜单了） */
 
     /* 双面板：上文件夹 / 下文件 */
     if (this.plugin.settings.treeTwoPane !== false) {
+      /* 功能区：一排常驻图标单独占一行，放在文件夹上面（用户 3.2）；
+         「隐藏这个文件夹」再单独一栏，紧跟其后。两者都在面板外，
+         这样即使把文件夹区域整块收起来，也还有地方点回来。 */
+      this.topToolsEl = el.createDiv({ cls: "gd-tree-toptools" });
+      this.toolbarEl = this.topToolsEl.createDiv({ cls: "gd-tree-toolbar" });
+      this.hideBarEl = this.topToolsEl.createDiv({ cls: "gd-tree-hidebar" });
       this.body = el.createDiv({ cls: "gd-split" });
+      /* 「显示 / 隐藏文件夹区域」：关掉时上半块整个收起来，文件区占满 */
+      const showTop = this.plugin.settings.treeShowFolderPane !== false;
+      this.body.toggleClass("is-notree", !showTop);
       this.folderPane = this.body.createDiv({ cls: "gd-split-top" });
       this.splitter = this.body.createDiv({ cls: "gd-split-bar", attr: { title: "拖动调整上下比例" } });
       this.filePane = this.body.createDiv({ cls: "gd-split-bot" });
@@ -75,6 +81,7 @@ class SidebarView extends ItemView {
       this.fileListEl = this.filePane.createDiv({ cls: "gd-tree-files" });
       this.applySplit(this.plugin.settings.treePaneRatio || 0.42);
       this.bindSplitter();
+      if (!showTop) { this.folderPane.style.display = "none"; this.splitter.style.display = "none"; }
     } else {
       this.fileListEl = el.createDiv({ cls: "gd-side-list" });
     }
@@ -235,6 +242,111 @@ class SidebarView extends ItemView {
     showMenuAt(m, evt);
   }
 
+  /* ══════════ 图标工具栏（v3.21）══════════
+     用户参考官方文件树：新建文件夹 / 排序 / 显示隐藏 / 外观 / 移动模式。
+     全部常驻显示，不再藏进右键菜单。 */
+  renderToolbar() {
+    const el = this.toolbarEl;
+    if (!el) return;
+    el.empty();
+    const s = this.plugin.settings;
+    const mk = (icon, tip, fn, on) => {
+      const b = el.createEl("button", { cls: "gd-tree-tool" + (on ? " is-on" : ""), attr: { title: tip, "aria-label": tip } });
+      try { setIcon(b, icon); } catch (e) { b.setText(tip.slice(0, 1)); }
+      b.onclick = (e) => { e.stopPropagation(); fn(e); };
+      return b;
+    };
+
+    /* 新建文件夹 */
+    mk("folder-plus", "新建文件夹", () => {
+      new PromptModal(this.app, "新建文件夹", "在「" + (this.activeFolder || "日记") + "」下面建一个子文件夹", "", async (v) => {
+        const name = String(v || "").trim().replace(/[\\/:*?"<>|]/g, "_");
+        if (!name) return;
+        const root = normalizePath(this.plugin.settings.rootFolder || "日记");
+        const base = this.activeFolder ? root + "/" + this.activeFolder : root;
+        try {
+          await this.app.vault.createFolder(normalizePath(base + "/" + name));
+          new Notice("已建好文件夹");
+          this.renderFolders();
+        } catch (e) { new Notice("建文件夹失败：" + (e && e.message ? e.message : e)); }
+      }).open();
+    });
+
+    /* 排序 */
+    mk("arrow-up-down", "排序", (e) => {
+      const m = new Menu();
+      for (const [v, n] of [["date-desc", "日期 ↓"], ["date-asc", "日期 ↑"], ["name-asc", "名称 A→Z"], ["name-desc", "名称 Z→A"], ["mtime-desc", "最近改过"]]) {
+        m.addItem((i) => i.setTitle(((s.treeSortMode || "date-desc") === v ? "✓ " : "") + n).onClick(async () => {
+          s.treeSortMode = v; await this.plugin.saveSettings(); this.render();
+        }));
+      }
+      showMenuAt(m, e);
+    });
+
+    /* 显示 / 隐藏整个文件夹区域（用户列的功能条第三项） */
+    mk(s.treeShowFolderPane === false ? "eye-off" : "eye", s.treeShowFolderPane === false ? "显示文件夹区域" : "隐藏文件夹区域", async () => {
+      s.treeShowFolderPane = s.treeShowFolderPane === false ? true : false;
+      await this.plugin.saveSettings();
+      this.build();
+      this.render();
+    }, s.treeShowFolderPane !== false);
+
+    /* 外观 */
+    mk("palette", "外观", (e) => this.folderHeadMenu(e));
+
+    /* 移动模式：点一下进入，再点一下退出（用户要求） */
+    mk("grip-vertical", this.moveMode ? "退出移动模式" : "移动模式（拖动文件夹换顺序）", () => this.toggleMoveMode(), !!this.moveMode);
+
+    /* 隐藏这个文件夹（单独一栏，放在文件夹区域上面） */
+    const hb = this.hideBarEl;
+    if (hb) {
+      hb.empty();
+      hb.toggleClass("is-hidden", !this.activeFolder);
+      if (this.activeFolder) {
+        const b = hb.createEl("button", { cls: "gd-tree-tool gd-tree-hide", attr: { title: "隐藏这个文件夹：" + this.activeFolder } });
+        try { setIcon(b, "folder-minus"); } catch (e) { b.setText("隐藏"); }
+        b.createSpan({ text: "隐藏这个文件夹" });
+        b.onclick = async (e) => {
+          e.stopPropagation();
+          const arr = Array.isArray(s.treeHiddenFolders) ? s.treeHiddenFolders.slice() : [];
+          if (!arr.includes(this.activeFolder)) arr.push(this.activeFolder);
+          s.treeHiddenFolders = arr;
+          await this.plugin.saveSettings();
+          this.activeFolder = "";
+          this.renderFolders();
+          new Notice("已隐藏");
+        };
+      }
+    }
+  }
+
+  /* 移动模式：进/出都点同一个图标 */
+  toggleMoveMode() {
+    this.moveMode = !this.moveMode;
+    this.renderFolders();
+    if (this.moveMode) new Notice("移动模式：拖动文件夹换顺序，再点一次图标退出");
+  }
+
+  /* 文件夹图标元素：内置图标 / 表情 / 缩略图（每个文件夹各一张，库里选或粘网址） */
+  folderIconEl(parent, st, key) {
+    const s = this.plugin.settings;
+    const st2 = st || {};
+    const box = parent.createSpan({ cls: "gd-tree-icon" });
+    if (st2.img) {
+      /* 目录第二层「缩略图」：每个文件夹各一张，当图标用，不能拖不能缩。
+         用户定案（问题 1）：每个文件各一张。 */
+      box.addClass("is-img");
+      const u = /^https?:\/\//i.test(st2.img) ? st2.img : (this.plugin.thumbUrl ? this.plugin.thumbUrl(st2.img) : "");
+      if (u) box.style.backgroundImage = 'url("' + u + '")';
+      return box;
+    }
+    if (st2.emoji) { box.addClass("is-emoji"); box.setText(st2.emoji); return box; }
+    if (st2.icon) { try { setIcon(box, st2.icon); } catch (e) { box.addClass("is-dot"); } return box; }
+    /* 没单独设过：按全局图标样式画 */
+    this.paintTreeIcon(box, false, null);
+    return box;
+  }
+
   /* 文件夹排序：先按手动顺序，其余按名字 */
   orderFolders(keys) {
     const order = Array.isArray(this.plugin.settings.treeFolderOrder) ? this.plugin.settings.treeFolderOrder : [];
@@ -264,6 +376,9 @@ class SidebarView extends ItemView {
     const hidden = new Set(Array.isArray(s.treeHiddenFolders) ? s.treeHiddenFolders : []);
     const showHidden = !!s.treeShowHidden;
 
+    /* 图标工具栏：常驻一排，放在文件夹上面（用户参考官方文件树顶部那排） */
+    this.renderToolbar();
+
     /* 标题就是菜单入口 */
     const head = el.createDiv({ cls: "gd-tree-head gd-tree-headbtn" });
     head.createSpan({ text: "文件夹" });
@@ -286,9 +401,19 @@ class SidebarView extends ItemView {
       if (st && st.color) row.style.setProperty("--gd-tree-folder-color", st.color);
 
       this.sepInto(el, "folder:" + key);
-      row.createSpan({ cls: "gd-tree-caret", text: isOpen ? "▾" : "▸" });
-      const icon = row.createSpan({ cls: "gd-tree-icon" });
-      this.paintTreeIcon(icon, false, st);
+      /* 三角与圆点二选一（用户：「点点与下标箭头是二选一」），选哪个哪个能点折叠 */
+      const markMode = s.treeMarkMode || "caret";
+      if (markMode === "caret") {
+        row.createSpan({ cls: "gd-tree-caret", text: isOpen ? "▾" : "▸" });
+      } else {
+        const dot = row.createSpan({ cls: "gd-tree-dot" + (isOpen ? " is-open" : "") });
+        dot.onclick = (e) => {
+          e.stopPropagation();
+          if (this.collapsed.has(key)) this.collapsed.delete(key); else this.collapsed.add(key);
+          this.renderFolders();
+        };
+      }
+      this.folderIconEl(row, st, key);
       row.createSpan({ text: name, cls: "gd-tree-name" });
       if (s.treeShowBadge !== false) {
         const n = folders.get(key) || 0;
@@ -296,7 +421,7 @@ class SidebarView extends ItemView {
       }
 
       const caret = row.querySelector(".gd-tree-caret");
-      caret.onclick = (e) => {
+      if (caret) caret.onclick = (e) => {
         e.stopPropagation();
         if (this.collapsed.has(key)) this.collapsed.delete(key); else this.collapsed.add(key);
         this.renderFolders();
@@ -308,6 +433,7 @@ class SidebarView extends ItemView {
       };
       row.addEventListener("contextmenu", (e) => this.folderMenu(e, key));
       this.bindDropTarget(row, key);
+      if (this.moveMode && key) this.bindFolderDrag(row, key);
 
       /* 子文件夹 */
       if (isOpen) {
@@ -326,9 +452,18 @@ class SidebarView extends ItemView {
           crow.style.paddingLeft = 6 + (depth + 1) * 12 + "px";
           crow.dataset.folder = ck;
           if (cst && cst.color) crow.style.setProperty("--gd-tree-folder-color", cst.color);
-          crow.createSpan({ cls: "gd-tree-caret", text: this.collapsed.has(ck) ? "▸" : "▾" });
-          const ci = crow.createSpan({ cls: "gd-tree-icon" });
-          this.paintTreeIcon(ci, false, cst);
+          const mm = s.treeMarkMode || "caret";
+          if (mm === "caret") {
+            crow.createSpan({ cls: "gd-tree-caret", text: this.collapsed.has(ck) ? "▸" : "▾" });
+          } else {
+            const cdot = crow.createSpan({ cls: "gd-tree-dot" + (this.collapsed.has(ck) ? "" : " is-open") });
+            cdot.onclick = (e) => {
+              e.stopPropagation();
+              if (this.collapsed.has(ck)) this.collapsed.delete(ck); else this.collapsed.add(ck);
+              this.renderFolders();
+            };
+          }
+          this.folderIconEl(crow, cst, ck);
           crow.createSpan({ text: cn, cls: "gd-tree-name" });
           const n = folders.get(ck) || 0;
           if (n) crow.createSpan({ text: String(n), cls: "gd-side-count" });
@@ -340,6 +475,7 @@ class SidebarView extends ItemView {
           };
           crow.addEventListener("contextmenu", (e) => this.folderMenu(e, ck));
           this.bindDropTarget(crow, ck);
+          if (this.moveMode) this.bindFolderDrag(crow, ck);
         }
       }
       if (kw && !name.toLowerCase().includes(kw)) row.addClass("is-dim");
@@ -501,13 +637,28 @@ class SidebarView extends ItemView {
   }
 
   /* ---------- 图标：默认干净（文件夹可自定义 emoji / 图标） ---------- */
+  /* 图标：先看这个文件夹自己设过什么，再看全局「图标样式」。
+     注意 treeIconStyle 以前是死字段（设置了没人读），这里真的接上。 */
   paintTreeIcon(icon, isDaily, st) {
     icon.className = "gd-tree-icon";
     icon.empty();
     if (st && st.emoji) { icon.addClass("is-emoji"); icon.setText(st.emoji); return; }
     if (st && st.icon) { setIcon(icon, st.icon); return; }
-    if (isDaily) { icon.addClass("is-dot"); return; }
-    icon.addClass("is-dot");
+    if (st && st.img) {
+      icon.addClass("is-img");
+      const u = /^https?:\/\//i.test(st.img) ? st.img : (this.plugin.thumbUrl ? this.plugin.thumbUrl(st.img) : "");
+      if (u) icon.style.backgroundImage = 'url("' + u + '")';
+      return;
+    }
+    const style = this.plugin.settings.treeIconStyle || "dot";
+    const daily = isDaily ? "gd-tree-icon is-daily" : "gd-tree-icon";
+    if (style === "none") return;
+    if (style === "emoji") { icon.addClass("is-emoji"); icon.setText(isDaily ? "📔" : "📁"); return; }
+    if (style === "icon") {
+      try { setIcon(icon, isDaily ? "calendar-days" : "folder"); } catch (e) { icon.addClass("is-dot"); }
+      return;
+    }
+    icon.addClass("is-" + style);
   }
 
   /* ---------- 分隔符：线体或图（A3） ---------- */
@@ -550,6 +701,42 @@ class SidebarView extends ItemView {
   }
 
   /* ---------- 拖拽移动文件 / 文件夹（A4） ---------- */
+  /* 移动模式：拖文件夹换顺序（用户：「直接拖动这个文件夹它就会调整顺序」） */
+  bindFolderDrag(row, key) {
+    const handle = row.createSpan({ cls: "gd-tree-grip", text: "⋮⋮", attr: { title: "拖动换顺序" } });
+    row.insertBefore(handle, row.firstChild);
+    row.setAttribute("draggable", "true");
+    row.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/gd-folder", key);
+      row.addClass("is-dragging");
+    });
+    row.addEventListener("dragend", () => row.removeClass("is-dragging"));
+    row.addEventListener("dragover", (e) => {
+      if (e.dataTransfer && [...(e.dataTransfer.types || [])].includes("text/gd-folder")) {
+        e.preventDefault();
+        row.addClass("is-drop");
+      }
+    });
+    row.addEventListener("dragleave", () => row.removeClass("is-drop"));
+    row.addEventListener("drop", async (e) => {
+      const src = e.dataTransfer && e.dataTransfer.getData("text/gd-folder");
+      row.removeClass("is-drop");
+      if (!src || src === key) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const s = this.plugin.settings;
+      const order = this.orderFolders([...this.collect().folders.keys()]).filter((k) => k !== "");
+      const from = order.indexOf(src);
+      if (from >= 0) order.splice(from, 1);
+      const at = order.indexOf(key);
+      order.splice(at < 0 ? order.length : at, 0, src);
+      s.treeFolderOrder = order;
+      await this.plugin.saveSettings();
+      this.renderFolders();
+      new Notice("顺序已调整");
+    });
+  }
+
   bindDragRow(row, file) {
     row.setAttribute("draggable", "true");
     row.addEventListener("dragstart", (e) => {
@@ -706,7 +893,7 @@ class SidebarView extends ItemView {
       }));
     if (isDay) {
       menu.addItem((i) => i.setTitle("给这天设封面…").setIcon("image").onClick(async () => {
-        const f = await chooseLocalFile({ accept: "image/*" });
+        const f = await chooseFileLike(this.plugin, { title: "给这天设封面" });
         if (!f) return;
         await this.plugin.setCoverFor(key, f);
       }));
@@ -827,6 +1014,38 @@ class SidebarView extends ItemView {
         }));
       }
       showMenuAt(em, { clientX: 240, clientY: 260, preventDefault() { }, currentTarget: this.contentEl });
+    }));
+    /* 用图片当图标：用户「我喜欢用图片缩略图这些东西或者说一些网址直接导进去」 */
+    m.addItem((i) => i.setTitle("用图片当图标…").setIcon("image").onClick(() => {
+      const im = new Menu();
+      im.addItem((x) => x.setTitle("从库里选一张").setIcon("folder-open").onClick(async () => {
+        const got = await chooseImage(this.app, this.plugin, { title: "给「" + folder + "」选一张图标", multiple: false });
+        if (!got || !got.path) return;
+        const all = s.treeFolderStyles || {};
+        all[folder] = Object.assign({}, all[folder] || {}, { img: got.path, emoji: "", icon: "" });
+        s.treeFolderStyles = all;
+        await this.plugin.saveSettings();
+        this.renderFolders();
+      }));
+      im.addItem((x) => x.setTitle("粘一个网址").setIcon("link").onClick(() => {
+        new PromptModal(this.app, "图片网址", "直接填网址，不下载，换起来最快", st.img && /^https?:/i.test(st.img) ? st.img : "", async (v) => {
+          const url = String(v || "").trim();
+          if (!url) return;
+          const all = s.treeFolderStyles || {};
+          all[folder] = Object.assign({}, all[folder] || {}, { img: url, emoji: "", icon: "" });
+          s.treeFolderStyles = all;
+          await this.plugin.saveSettings();
+          this.renderFolders();
+        }).open();
+      }));
+      im.addItem((x) => x.setTitle("不用图片").setIcon("x").onClick(async () => {
+        const all = s.treeFolderStyles || {};
+        all[folder] = Object.assign({}, all[folder] || {}, { img: "" });
+        s.treeFolderStyles = all;
+        await this.plugin.saveSettings();
+        this.renderFolders();
+      }));
+      showMenuAt(im, { clientX: 240, clientY: 280, preventDefault() { }, currentTarget: this.contentEl });
     }));
     m.addItem((i) => i.setTitle("用图标字体").setIcon("icons").onClick(() => {
       const im = new Menu();

@@ -620,6 +620,48 @@
   background-size: 100% 28px;
 }
 
+/* ══════════ 纹理扩充（v3.13）：六种纯 CSS 画的，零字节 ══════════ */
+.gd-root[data-bg-mode="texture"][data-bg-texture="diag"] .gd-scroll {
+  background-image: repeating-linear-gradient(45deg,
+    var(--gd-border) 0 1px, transparent 1px 12px);
+}
+.gd-root[data-bg-mode="texture"][data-bg-texture="cross"] .gd-scroll {
+  background-image:
+    linear-gradient(45deg, transparent 46%, var(--gd-border) 46% 54%, transparent 54%),
+    linear-gradient(-45deg, transparent 46%, var(--gd-border) 46% 54%, transparent 54%);
+  background-size: 26px 26px;
+}
+.gd-root[data-bg-mode="texture"][data-bg-texture="noise"] .gd-scroll {
+  background-image:
+    radial-gradient(var(--gd-border) 0.5px, transparent 0.6px),
+    radial-gradient(var(--gd-border) 0.5px, transparent 0.6px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: 0 0, 4px 5px;
+  opacity: 1;
+}
+.gd-root[data-bg-mode="texture"][data-bg-texture="wood"] .gd-scroll {
+  background-image: repeating-linear-gradient(90deg,
+    color-mix(in srgb, var(--gd-border) 70%, transparent) 0 2px,
+    transparent 2px 9px,
+    color-mix(in srgb, var(--gd-border) 45%, transparent) 9px 10px,
+    transparent 10px 23px);
+}
+.gd-root[data-bg-mode="texture"][data-bg-texture="marble"] .gd-scroll {
+  background-image:
+    radial-gradient(ellipse at 22% 18%, transparent 42%, var(--gd-border) 43%, transparent 45%),
+    radial-gradient(ellipse at 74% 62%, transparent 38%, var(--gd-border) 39%, transparent 41%);
+  background-size: 180px 130px, 230px 170px;
+  opacity: 1;
+}
+.gd-root[data-bg-mode="texture"][data-bg-texture="checker"] .gd-scroll {
+  background-image:
+    linear-gradient(45deg, var(--gd-border) 25%, transparent 25% 75%, var(--gd-border) 75%),
+    linear-gradient(45deg, var(--gd-border) 25%, transparent 25% 75%, var(--gd-border) 75%);
+  background-size: 22px 22px;
+  background-position: 0 0, 11px 11px;
+  opacity: 1;
+}
+
 .gd-cell-preview p.gd-p,
 .gd-cell-preview .gd-p {
   text-indent: var(--gd-para-indent, 2em);
@@ -3078,3 +3120,659 @@ body.gd-tl-preview-above .gd-tl-preview-pane::before {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+/* ============ 统一选图器 v3.12 ============
+ * 八处选图入口共用一套界面：三来源列表 + 库内缩略图网格。
+ * 配色全部吃 --gd-* 变量，跟随主题走。 */
+
+.gd-src { max-width: 460px; }
+.gd-src-tip {
+  color: var(--gd-muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+  margin: 4px 0 14px;
+}
+.gd-src-list { display: flex; flex-direction: column; gap: 8px; }
+.gd-src-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--gd-border);
+  border-radius: 10px;
+  background: var(--gd-surface);
+  cursor: pointer;
+  transition: border-color .16s, background .16s, transform .16s;
+}
+.gd-src-item:hover {
+  border-color: var(--gd-accent);
+  background: var(--gd-surface-2);
+  transform: translateX(2px);
+}
+.gd-src-icon {
+  width: 34px; height: 34px;
+  flex: 0 0 34px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--gd-accent) 12%, transparent);
+  color: var(--gd-accent);
+}
+.gd-src-icon svg { width: 18px; height: 18px; }
+.gd-src-text { min-width: 0; }
+.gd-src-name { font-size: 14px; font-weight: 600; color: var(--gd-ink); }
+.gd-src-desc { font-size: 12px; color: var(--gd-muted); margin-top: 2px; line-height: 1.5; }
+
+/* 库内选图 */
+.gd-vaultpick { max-width: 860px; }
+.gd-vaultpick-tip { color: var(--gd-muted); font-size: 12.5px; margin: 2px 0 10px; }
+.gd-vaultpick-bar { margin-bottom: 10px; }
+.gd-vaultpick-search {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--gd-border);
+  border-radius: 8px;
+  background: var(--gd-surface);
+  color: var(--gd-ink);
+  font-size: 13px;
+}
+.gd-vaultpick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+  max-height: min(52vh, 460px);
+  overflow-y: auto;
+  padding: 4px 2px 8px;
+}
+.gd-vaultpick-cell {
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 4px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.gd-vaultpick-cell:hover { background: var(--gd-surface-2); }
+.gd-vaultpick-cell.is-on {
+  border-color: var(--gd-accent);
+  background: color-mix(in srgb, var(--gd-accent) 10%, transparent);
+}
+.gd-vaultpick-thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 7px;
+  background: var(--gd-surface-2) center / cover no-repeat;
+  border: 1px solid var(--gd-border);
+}
+.gd-vaultpick-name {
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--gd-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+.gd-vaultpick-empty {
+  grid-column: 1 / -1;
+  padding: 28px 0;
+  text-align: center;
+  color: var(--gd-muted);
+  font-size: 13px;
+}
+
+/* ============ v3.12 头像轮廓 ============
+ * 用户：「就是一个轮廓，只要不是圆的就行。多设计几种轮廓。」
+ * 改的是外轮廓，图不拉伸；长方形会拉宽一点，其余都是裁角。 */
+.gd-shape-circle { border-radius: 50%; }
+.gd-shape-square { border-radius: 0; }
+.gd-shape-rounded { border-radius: 22%; }
+.gd-shape-rect { border-radius: 8%; width: auto !important; aspect-ratio: 3 / 2; }
+.gd-shape-capsule { border-radius: 999px; width: auto !important; aspect-ratio: 2 / 1; }
+.gd-shape-diamond { border-radius: 10%; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+.gd-shape-hex { border-radius: 0; clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%); }
+.gd-shape-triangle { border-radius: 0; clip-path: polygon(50% 4%, 100% 96%, 0% 96%); }
+
+/* 舞台标志层里宽高是被内联写死的，长方形/胶囊要放开宽度 */
+.gd-layer-mark .gd-shape-rect,
+.gd-layer-mark .gd-shape-capsule { width: auto !important; max-width: 200%; }
+
+/* ══════════ 换色槽位（v3.13）══════════ */
+.gd-month-cell { display: flex; flex-direction: column; gap: 6px; }
+.gd-slot-pv {
+  width: 100%; height: 38px; border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+  background-color: var(--background-secondary);
+  background-repeat: repeat;
+  overflow: hidden;
+}
+.gd-slot-row { display: flex; gap: 4px; }
+.gd-slot-btn {
+  flex: 1; padding: 3px 0; font-size: 11px; border-radius: 6px;
+  background: var(--background-secondary); color: var(--text-muted);
+  border: 1px solid var(--background-modifier-border); cursor: pointer;
+}
+.gd-slot-btn:hover { color: var(--text-normal); background: var(--background-modifier-hover); }
+.gd-slot-tip { margin-top: 6px; }
+
+/* ══════════ 五处各自的背景（v3.14）══════════
+ * 用户要求：底图从主题里拆出来，五处各一份；支持纯色/图片/渐变/纹理/玻璃；
+ * 格子背景也在同一处配。全部走变量，没配就回落到主题。 */
+
+/* 底色（一处一个变量，互不影响） */
+.gd-grid-root, .gd-sidebar-root, .gd-cal-panel, .gd-float, .gd-timeline-root {
+  background-color: var(--gd-pbg-color, transparent);
+}
+.gd-grid-root[data-pbg="gradient"], .gd-sidebar-root[data-pbg="gradient"],
+.gd-cal-panel[data-pbg="gradient"], .gd-float[data-pbg="gradient"],
+.gd-timeline-root[data-pbg="gradient"],
+.gd-grid-root[data-pbg="image"], .gd-sidebar-root[data-pbg="image"],
+.gd-cal-panel[data-pbg="image"], .gd-float[data-pbg="image"],
+.gd-timeline-root[data-pbg="image"] {
+  background-image: var(--gd-pbg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 纹理：八种，全是纯 CSS */
+[data-pbg="texture"][data-pbg-tex="graph"] {
+  background-image: linear-gradient(90deg, var(--gd-border) 1px, transparent 1px),
+                    linear-gradient(0deg, var(--gd-border) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+[data-pbg="texture"][data-pbg-tex="dots"] {
+  background-image: radial-gradient(var(--gd-border) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+[data-pbg="texture"][data-pbg-tex="lines"] {
+  background-image: linear-gradient(0deg, var(--gd-border) 1px, transparent 1px);
+  background-size: 100% 28px;
+}
+[data-pbg="texture"][data-pbg-tex="diag"] {
+  background-image: repeating-linear-gradient(45deg, var(--gd-border) 0 1px, transparent 1px 12px);
+}
+[data-pbg="texture"][data-pbg-tex="cross"] {
+  background-image: linear-gradient(45deg, transparent 46%, var(--gd-border) 46% 54%, transparent 54%),
+                    linear-gradient(-45deg, transparent 46%, var(--gd-border) 46% 54%, transparent 54%);
+  background-size: 26px 26px;
+}
+[data-pbg="texture"][data-pbg-tex="noise"] {
+  background-image: radial-gradient(var(--gd-border) 0.5px, transparent 0.6px),
+                    radial-gradient(var(--gd-border) 0.5px, transparent 0.6px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: 0 0, 4px 5px;
+}
+[data-pbg="texture"][data-pbg-tex="wood"] {
+  background-image: repeating-linear-gradient(90deg,
+    color-mix(in srgb, var(--gd-border) 70%, transparent) 0 2px, transparent 2px 9px,
+    color-mix(in srgb, var(--gd-border) 45%, transparent) 9px 10px, transparent 10px 23px);
+}
+[data-pbg="texture"][data-pbg-tex="marble"] {
+  background-image: radial-gradient(ellipse at 22% 18%, transparent 42%, var(--gd-border) 43%, transparent 45%),
+                    radial-gradient(ellipse at 74% 62%, transparent 38%, var(--gd-border) 39%, transparent 41%);
+  background-size: 180px 130px, 230px 170px;
+}
+[data-pbg="texture"][data-pbg-tex="checker"] {
+  background-image: linear-gradient(45deg, var(--gd-border) 25%, transparent 25% 75%, var(--gd-border) 75%),
+                    linear-gradient(45deg, var(--gd-border) 25%, transparent 25% 75%, var(--gd-border) 75%);
+  background-size: 22px 22px;
+  background-position: 0 0, 11px 11px;
+}
+[data-pbg="texture"][data-pbg-tex="paper"] {
+  background-image: repeating-linear-gradient(0deg,
+    color-mix(in srgb, var(--gd-border) 60%, transparent) 0 1px, transparent 1px 24px);
+}
+[data-pbg="texture"][data-pbg-tex="gradient"] {
+  background-image: linear-gradient(135deg,
+    color-mix(in srgb, var(--gd-accent) 12%, transparent),
+    transparent 60%);
+}
+
+/* 玻璃磨砂：只有明确选了 glass 才开，免得低配掉帧 */
+[data-pbg="glass"] {
+  background-color: var(--gd-pbg-tint, var(--gd-surface));
+  backdrop-filter: blur(var(--gd-pbg-blur, 12px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--gd-pbg-blur, 12px)) saturate(140%);
+}
+
+/* ── 格子背景（跟背景放在同一处配）── */
+[data-cell-bg="follow"] .gd-cell {
+  background: transparent;
+  backdrop-filter: none;
+}
+[data-cell-bg="color"] .gd-cell {
+  background: var(--gd-cell-bg, var(--gd-surface));
+}
+[data-cell-bg="image"] .gd-cell {
+  background-image: var(--gd-cell-bg-image, none);
+  background-size: cover;
+  background-position: center;
+}
+[data-cell-bg="glass"] .gd-cell {
+  background: color-mix(in srgb, var(--gd-surface) 72%, transparent);
+  backdrop-filter: blur(var(--gd-cell-blur, 8px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--gd-cell-blur, 8px)) saturate(140%);
+}
+
+/* ===== v3.21 裁剪快捷方式 ===== */
+.gd-crop-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 6px;
+}
+.gd-crop-preset {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--gd-border, #d9d9d9);
+  background: var(--gd-surface, #fff);
+  color: var(--gd-ink, #333);
+  cursor: pointer;
+}
+.gd-crop-preset:hover { border-color: var(--gd-accent, #c2704f); }
+.gd-crop-preset.is-on {
+  background: var(--gd-accent, #c2704f);
+  border-color: var(--gd-accent, #c2704f);
+  color: #fff;
+}
+
+/* ===== v3.21 目录图标工具栏 ===== */
+.gd-tree-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px 6px;
+  border-bottom: 1px solid var(--gd-line, rgba(0, 0, 0, 0.08));
+}
+.gd-tree-tool {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--gd-muted, #888);
+  cursor: pointer;
+}
+.gd-tree-tool:hover {
+  background: var(--gd-hover, rgba(0, 0, 0, 0.06));
+  color: var(--gd-ink, #333);
+}
+.gd-tree-tool.is-on {
+  background: var(--gd-accent, #c2704f);
+  color: #fff;
+}
+.gd-tree-tool svg { width: 15px; height: 15px; }
+
+/* 行首标记：圆点模式（三角的替代，二选一） */
+.gd-tree-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gd-muted, #999);
+  margin-right: 4px;
+  cursor: pointer;
+}
+.gd-tree-dot.is-open {
+  background: var(--gd-accent, #c2704f);
+  border-color: var(--gd-accent, #c2704f);
+}
+/* 图标用图片时 */
+.gd-tree-icon.is-img {
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 3px;
+}
+/* 移动模式的拖拽手柄 */
+.gd-tree-grip {
+  cursor: grab;
+  color: var(--gd-muted, #999);
+  font-size: 10px;
+  letter-spacing: -1px;
+  margin-right: 3px;
+  user-select: none;
+}
+.gd-tree-folder.is-dragging { opacity: 0.4; }
+.gd-tree-folder.is-drop {
+  outline: 1px dashed var(--gd-accent, #c2704f);
+  outline-offset: -2px;
+}
+
+/* ===== v3.21 根元素背景：视频 / 透明 / 照片墙 ===== */
+.gd-grid-root, .gd-sidebar-root, .gd-cal-panel, .gd-float, .gd-timeline-root {
+  position: relative;
+  overflow: hidden;
+}
+.gd-pbg-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.92;
+}
+.gd-grid-root[data-pbg="transparent"],
+.gd-sidebar-root[data-pbg="transparent"],
+.gd-cal-panel[data-pbg="transparent"],
+.gd-float[data-pbg="transparent"],
+.gd-timeline-root[data-pbg="transparent"] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+.gd-pbg-wall {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.gd-pbg-photo {
+  position: absolute;
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+}
+
+/* 照片墙：铺满整块舞台的浮层（用户 m00886：像头像一样叠在背景上，多张、可拖可缩可裁剪）。
+   浮层本身不吃点击，只有照片吃，这样不会挡住下面几层（座右铭、标志）的编辑。 */
+.gd-wall-layer {
+  position: absolute; inset: 0;
+  pointer-events: none;
+}
+.gd-wall-photo {
+  position: absolute;
+  aspect-ratio: 1 / 1;              /* 头像式：正方形 */
+  box-sizing: border-box;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: rgba(255, 255, 255, .28);
+  border: 2px solid rgba(255, 255, 255, .5);   /* 跟 .gd-avatar 一样的白边 */
+  border-radius: 22%;               /* 头像式圆角，跟 .gd-shape-rounded 一致 */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+  cursor: move;
+  pointer-events: auto;
+}
+.gd-wall-photo.is-drag { opacity: .85; }
+.gd-wall-photo.is-empty {
+  background: repeating-linear-gradient(45deg, #eee 0 6px, #f6f6f6 6px 12px);
+}
+/* 四角把手：视觉上不显眼（用户要求） */
+.gd-wall-grip {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.gd-wall-photo:hover .gd-wall-grip { opacity: 1; }
+.gd-wall-grip.is-nw { left: -4px; top: -4px; cursor: nwse-resize; }
+.gd-wall-grip.is-ne { right: -4px; top: -4px; cursor: nesw-resize; }
+.gd-wall-grip.is-sw { left: -4px; bottom: -4px; cursor: nesw-resize; }
+.gd-wall-grip.is-se { right: -4px; bottom: -4px; cursor: nwse-resize; }
+
+/* ===== v3.21 设置页：批量槽位 / 照片墙列表 ===== */
+.gd-slot-bulk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 10px;
+  flex-wrap: wrap;
+}
+.gd-slot-tip { font-size: 11px; color: var(--gd-muted, #888); }
+.gd-wall-list {
+  margin: 8px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gd-wall-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gd-wall-thumb {
+  width: 34px;
+  height: 24px;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  flex: 0 0 34px;
+  border: 1px solid var(--gd-line, #e5e5e5);
+}
+.gd-wall-name {
+  font-size: 12px;
+  color: var(--gd-ink, #444);
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== v3.21 流线图：顶部收起 + 改动上色 ===== */
+.gd-tl-top.is-compact .gd-tl-acts,
+.gd-tl-top.is-compact + .gd-side-search { display: none; }
+.gd-tl-gear { margin-left: auto; }
+.gd-tl-card.gd-tl-diff-new { border-left: 3px solid #4caf7d; }
+.gd-tl-card.gd-tl-diff-edit { border-left: 3px solid #e0a33e; }
+.gd-tl-card.gd-tl-diff-del { border-left: 3px solid #d9534f; }
+.gd-mini-btn.is-accent {
+  background: var(--gd-accent, #c2704f);
+  border-color: var(--gd-accent, #c2704f);
+  color: #fff;
+}
+
+/* ===== v3.21 灵感浮窗背景透明度 ===== */
+.gd-float.has-bg .gd-float-scroll,
+.gd-float.has-bg .gd-float-foot {
+  background: transparent;
+}
+.gd-float.has-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--gd-surface, #fff);
+  opacity: calc(1 - var(--gd-float-bg-opacity, 1));
+  pointer-events: none;
+  z-index: 0;
+}
+.gd-float.has-bg > * { position: relative; z-index: 1; }
+
+/* ══════════ v3.21 · 本轮新增（裁剪入口统一 / 目录缩略图 / 日历折叠 / 流线图详情 / 舞台四角） ══════════ */
+
+/* —— 日历：折叠成一条细边（用户：「能折叠成一条，留细边点回来」） —— */
+.gd-cal-panel.is-cal-collapsed { display: block; }
+.gd-cal-collapsed {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; height: 34px; padding: 0 10px; cursor: pointer;
+  border-bottom: 1px solid var(--gd-border, #e6e1da);
+  font-size: 12px; color: var(--gd-ink, #33302c);
+}
+.gd-cal-collapsed:hover { background: var(--gd-tree-hover, rgba(0,0,0,.04)); }
+.gd-cal-collapsed-title { font-weight: 600; }
+.gd-cal-collapsed-tip { color: var(--gd-muted, #8a8279); font-size: 11px; }
+.gd-cal-float.is-collapsed { height: 46px !important; min-height: 46px; }
+.gd-cal-float.is-collapsed .gd-cal-float-body { display: none; }
+.gd-cal-float.is-collapsed .gd-cal-grip { display: none; }
+
+/* —— 舞台：四角把手（不显眼的四个小角） —— */
+.gd-layer-grip {
+  position: absolute; width: 12px; height: 12px; opacity: 0;
+  transition: opacity .12s ease; z-index: 6;
+}
+.gd-layer:hover .gd-layer-grip, .gd-layer.is-sel .gd-layer-grip, .gd-layer.is-resizing .gd-layer-grip { opacity: .55; }
+.gd-layer-grip::after {
+  content: ""; position: absolute; inset: 3px; border-radius: 2px;
+  background: var(--gd-accent, #5b8def); opacity: .8;
+}
+.gd-layer-grip.is-nw { left: -2px; top: -2px; cursor: nwse-resize; }
+.gd-layer-grip.is-ne { right: -2px; top: -2px; cursor: nesw-resize; }
+.gd-layer-grip.is-sw { left: -2px; bottom: -2px; cursor: nesw-resize; }
+.gd-layer-grip.is-se { right: -2px; bottom: -2px; cursor: nwse-resize; }
+.gd-layer.is-resizing { outline: 1px dashed var(--gd-accent, #5b8def); }
+
+/* —— 舞台：视频缩成右侧小窗 —— */
+.gd-layer-img.is-video-pip { border-radius: 10px; overflow: hidden; box-shadow: 0 6px 22px rgba(0,0,0,.16); }
+.gd-layer-img.is-video-pip .gd-layer-video { border-radius: 10px; }
+
+
+/* —— 分屏分割线：画出来就能拖 —— */
+.gd-split-line { cursor: row-resize; }
+.gd-split-line.is-v { cursor: col-resize; }
+.gd-split-line.is-dragging { background: var(--gd-accent, #5b8def) !important; opacity: 1 !important; }
+
+/* —— 目录：上下两块磨砂各自开（默认无开销） —— */
+.gd-sidebar-root.gd-tree-glass-top .gd-split-top {
+  background: var(--gd-pbg-tint, var(--gd-surface, #fbf9f6));
+  backdrop-filter: blur(var(--gd-pbg-blur, 12px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--gd-pbg-blur, 12px)) saturate(140%);
+}
+.gd-sidebar-root.gd-tree-glass-bot .gd-split-bot {
+  background: var(--gd-pbg-tint, var(--gd-surface, #fbf9f6));
+  backdrop-filter: blur(var(--gd-pbg-blur, 12px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--gd-pbg-blur, 12px)) saturate(140%);
+}
+
+/* —— 目录：第二层的「缩略图」（一张，当图标，不能拖不能缩） —— */
+.gd-sidebar-root[data-pbg="image"] .gd-tree-folder .gd-tree-icon.is-thumb {
+  width: 18px; height: 18px; border-radius: 4px;
+  background-size: cover; background-position: 50% 50%;
+}
+
+/* —— 流线图：详情从卡片里搬出来，放列表下方 —— */
+.gd-tl-detailbox {
+  margin: 6px 0 14px 0; padding: 10px 12px;
+  border: 1px solid var(--gd-border, #e6e1da); border-radius: 10px;
+  background: var(--gd-surface, #fbf9f6);
+}
+.gd-tl-detailbox-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.gd-tl-detailbox-head strong { font-size: 13px; }
+.gd-tl-detailbox-head .gd-mini-btn { margin-left: auto; }
+.gd-tl-cell { padding: 6px 0; border-top: 1px dashed var(--gd-border, #e6e1da); }
+.gd-tl-cell:first-of-type { border-top: none; }
+.gd-tl-cell-head { display: flex; align-items: center; gap: 8px; }
+.gd-tl-cell-meta { color: var(--gd-muted, #8a8279); font-size: 11px; }
+.gd-tl-cell-head .gd-mini-btn { margin-left: auto; }
+.gd-tl-cell-titles { font-size: 12px; color: var(--gd-ink, #33302c); margin-top: 3px; }
+.gd-tl-cell-body { font-size: 12px; color: var(--gd-muted, #8a8279); margin-top: 3px; line-height: 1.6; }
+
+/* —— 三个改动色：新增（绿）/ 修改（琥珀）/ 删除（红）已在 3557-3559，这里只补一个空态兜底 —— */
+.gd-tl-card.gd-tl-diff-del { border-left-color: #d9534f; }
+
+/* —— 裁剪框：预览 → 一排快捷方式 →（手动框选 / 取消 / 保存） —— */
+.gd-crop-presets { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 10px 0 4px; }
+.gd-crop-preset { font-size: 12px; padding: 4px 10px; border-radius: 8px; }
+.gd-crop-preset.is-on { background: var(--gd-accent, #5b8def); color: #fff; border-color: transparent; }
+
+/* —— 日历浮窗：四角缩放（不显眼） —— */
+.gd-cal-corner { position: absolute; width: 14px; height: 14px; opacity: 0; transition: opacity .12s ease; z-index: 5; }
+.gd-cal-float:hover .gd-cal-corner { opacity: .5; }
+.gd-cal-corner.is-nw { left: 0; top: 0; cursor: nwse-resize; }
+.gd-cal-corner.is-ne { right: 0; top: 0; cursor: nesw-resize; }
+.gd-cal-corner.is-sw { left: 0; bottom: 0; cursor: nesw-resize; }
+
+/* —— 灵感悬浮窗：四个角也能拖（不显眼） —— */
+.gd-float-corner { position: absolute; width: 14px; height: 14px; opacity: 0; transition: opacity .12s ease; z-index: 6; }
+.gd-float:hover .gd-float-corner { opacity: .5; }
+.gd-float-corner.is-nw { left: 0; top: 0; cursor: nwse-resize; }
+.gd-float-corner.is-ne { right: 0; top: 0; cursor: nesw-resize; }
+.gd-float-corner.is-sw { left: 0; bottom: 0; cursor: nesw-resize; }
+.gd-float-corner.is-se { right: 0; bottom: 0; cursor: nwse-resize; }
+
+/* —— 目录：功能区单独占一行放在文件夹上面；隐藏文件夹那栏紧跟其后 —— */
+.gd-tree-toptools { flex: 0 0 auto; padding: 2px 4px 4px; }
+.gd-tree-toptools .gd-tree-toolbar { margin-bottom: 2px; }
+.gd-tree-hidebar { display: flex; align-items: center; gap: 4px; min-height: 0; }
+.gd-tree-hidebar.is-hidden, .gd-tree-hidebar:empty { display: none; }
+.gd-tree-hidebar .gd-tree-tool {
+  width: auto; padding: 0 8px; gap: 4px; font-size: 11px;
+  border: 1px solid var(--gd-border, #e6e1da); border-radius: 6px;
+}
+.gd-tree-hidebar .gd-tree-tool span { white-space: nowrap; }
+.gd-split.is-notree .gd-split-top, .gd-split.is-notree .gd-split-bar { display: none; }
+
+/* —— 1.5 主页拆成上下两块：背景只铺在上区，根元素透明 —— */
+.gd-grid-root.gd-home-split { background: transparent !important; }
+.gd-cover-stage, .gd-cover-wrap {
+  background-color: var(--gd-pbg-color, transparent);
+}
+.gd-cover-stage[data-pbg="gradient"], .gd-cover-wrap[data-pbg="gradient"],
+.gd-cover-stage[data-pbg="image"], .gd-cover-wrap[data-pbg="image"] {
+  background-image: var(--gd-pbg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.gd-cover-stage[data-pbg="texture"][data-pbg-tex="graph"], .gd-cover-wrap[data-pbg="texture"][data-pbg-tex="graph"] {
+  background-image: linear-gradient(90deg, var(--gd-border) 1px, transparent 1px),
+                    linear-gradient(0deg, var(--gd-border) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.gd-cover-stage[data-pbg="texture"][data-pbg-tex="dots"], .gd-cover-wrap[data-pbg="texture"][data-pbg-tex="dots"] {
+  background-image: radial-gradient(var(--gd-border) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+.gd-cover-stage[data-pbg="texture"][data-pbg-tex="lines"], .gd-cover-wrap[data-pbg="texture"][data-pbg-tex="lines"] {
+  background-image: linear-gradient(0deg, var(--gd-border) 1px, transparent 1px);
+  background-size: 100% 28px;
+}
+.gd-cover-stage[data-pbg="texture"][data-pbg-tex="diag"], .gd-cover-wrap[data-pbg="texture"][data-pbg-tex="diag"] {
+  background-image: repeating-linear-gradient(45deg, var(--gd-border) 0 1px, transparent 1px 12px);
+}
+.gd-cover-stage[data-pbg="texture"][data-pbg-tex="cross"], .gd-cover-wrap[data-pbg="texture"][data-pbg-tex="cross"] {
+  background-image: linear-gradient(45deg, transparent 46%, var(--gd-border) 46% 54%, transparent 54%),
+                    linear-gradient(-45deg, transparent 46%, var(--gd-border) 46% 54%, transparent 54%);
+  background-size: 26px 26px;
+}
+.gd-cover-stage[data-pbg="texture"][data-pbg-tex="noise"], .gd-cover-wrap[data-pbg="texture"][data-pbg-tex="noise"] {
+  background-image: radial-gradient(var(--gd-border) 0.5px, transparent 0.6px),
+                    radial-gradient(var(--gd-border) 0.5px, transparent 0.6px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: 0 0, 4px 5px;
+}
+.gd-cover-stage[data-pbg="texture"][data-pbg-tex="wood"], .gd-cover-wrap[data-pbg="texture"][data-pbg-tex="wood"] {
+  background-image: repeating-linear-gradient(90deg,
+    color-mix(in srgb, var(--gd-border) 70%, transparent) 0 2px, transparent 2px 9px,
+    color-mix(in srgb, var(--gd-border) 45%, transparent) 9px 10px, transparent 10px 23px);
+}
+.gd-cover-stage[data-pbg="texture"][data-pbg-tex="marble"], .gd-cover-wrap[data-pbg="texture"][data-pbg-tex="marble"] {
+  background-image: radial-gradient(ellipse at 22% 18%, transparent 42%, var(--gd-border) 43%, transparent 45%),
+                    radial-gradient(ellipse at 74% 62%, transparent 38%, var(--gd-border) 39%, transparent 41%);
+  background-size: 180px 130px, 230px 170px;
+}
+.gd-cover-stage[data-pbg="texture"][data-pbg-tex="checker"], .gd-cover-wrap[data-pbg="texture"][data-pbg-tex="checker"] {
+  background-image: linear-gradient(45deg, var(--gd-border) 25%, transparent 25% 75%, var(--gd-border) 75%),
+                    linear-gradient(45deg, var(--gd-border) 25%, transparent 25% 75%, var(--gd-border) 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 9px 9px;
+}
+.gd-cover-stage[data-pbg="texture"][data-pbg-tex="paper"], .gd-cover-wrap[data-pbg="texture"][data-pbg-tex="paper"] {
+  background-image: repeating-linear-gradient(0deg, transparent 0 22px, var(--gd-border) 22px 23px);
+}
+.gd-cover-stage[data-pbg="glass"], .gd-cover-wrap[data-pbg="glass"] {
+  background-color: var(--gd-pbg-tint, var(--gd-surface));
+  backdrop-filter: blur(var(--gd-pbg-blur, 12px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--gd-pbg-blur, 12px)) saturate(140%);
+}
+.gd-cover-stage[data-pbg="transparent"], .gd-cover-wrap[data-pbg="transparent"] { background: transparent; }
+
+/* —— 版本历史：每行带上字数 / 格数 / 跟现在的差别 —— */
+.gd-snap-meta { font-style: normal; font-size: 11px; color: var(--gd-muted, #8a8279); margin-left: 6px; }
+
+/* —— 主页上区的照片墙（跟着背景一起搬上来，不再铺在格子后面） —— */
+.gd-cover-stage > .gd-pbg-wall, .gd-cover-wrap > .gd-pbg-wall { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.gd-cover-stage > .gd-pbg-video, .gd-cover-wrap > .gd-pbg-video { z-index: 0; }
+.gd-cover-stage > .gd-pbg-wall .gd-pbg-photo, .gd-cover-wrap > .gd-pbg-wall .gd-pbg-photo { z-index: 1; }
+
+
+/* —— 第一层背景：全局那张画在舞台根上，这一层只负责位置/取景，不许再铺一层 —— */
+.gd-layer-bg.is-transparent-bg { background: transparent !important; }
+.gd-cover-stage > .gd-stage-box { background: transparent; }

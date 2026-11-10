@@ -93,7 +93,7 @@ class BatchCoverModal extends Modal {
     this.countEl.textContent = `已选 ${this.dates.size} 天` + (this.picked ? `　图片：${this.picked.split("/").pop()}` : "　还没选图");
   }
   async pickImage() {
-    const f = await chooseLocalFile({ accept: "image/*", title: "选一张封面图" });
+    const f = await chooseFileLike(this.plugin, { title: "选一张封面图" });
     if (!f) return;
     try {
       const folder = this.plugin.attachDir();

@@ -555,6 +555,24 @@ class GridDiaryPlugin extends Plugin {
     const sub = (this.settings.attachFolder || "attachments").replace(/^\/+|\/+$/g, "");
     return normalizePath(sub ? root + "/" + sub : root);
   }
+  /* 目录里出现过哪些文件夹（含根 ""）：给设置页的「每个文件夹一张缩略图」列清单用 */
+  folderKeysForStyle() {
+    const root = normalizePath(this.settings.rootFolder || "日记");
+    const s = this.settings;
+    const keys = new Set([""]);
+    for (const f of this.app.vault.getFiles() || []) {
+      if (f.path.includes("/.")) continue;
+      if (f.extension !== "md") continue;
+      const inRoot = f.path.startsWith(root + "/");
+      if (!inRoot && !s.treeShowOtherFiles) continue;
+      const rel = inRoot ? f.path.slice(root.length + 1) : f.path;
+      const dirs = rel.split("/").slice(0, -1);
+      let acc = "";
+      for (const p of dirs) { acc = acc ? acc + "/" + p : p; keys.add(acc); }
+    }
+    return [...keys].sort((a, b) => a.localeCompare(b, "zh"));
+  }
+
   dayFiles() {
     const root = normalizePath(this.settings.rootFolder || "日记");
     const prefix = (root && root !== "/") ? root + "/" : "";
@@ -777,27 +795,45 @@ class GridDiaryPlugin extends Plugin {
     this._calEsc = (e) => { if (e.key === "Escape") this.closeCalendarFloat(); };
     window.addEventListener("keydown", this._calEsc);
 
-    /* 缩放柄（原来只有拖动，没有缩放，用户报"日历无法缩小放大"） */
+    /* 缩放柄（原来只有拖动，没有缩放，用户报"日历无法缩小放大"）。
+       现在四个角都有（「四角能拖（不显眼）」），右下那个是原来那个大一点的。 */
     const grip = wrap.createDiv({ cls: "gd-cal-grip", attr: { title: "拖动缩放（双击回到默认大小）" } });
     let rsz = null;
-    grip.addEventListener("pointerdown", (e) => {
-      e.stopPropagation();
-      rsz = { x: e.clientX, y: e.clientY, w: wrap.offsetWidth, h: wrap.offsetHeight };
+    const startCalResize = (ev, corner) => {
+      ev.stopPropagation();
+      rsz = { x: ev.clientX, y: ev.clientY, w: wrap.offsetWidth, h: wrap.offsetHeight, l: parseFloat(wrap.style.left) || 0, t: parseFloat(wrap.style.top) || 0, c: corner || "se" };
       wrap.addClass("is-resizing");
-      grip.setPointerCapture(e.pointerId);
-    });
-    grip.addEventListener("pointermove", (e) => {
+      ev.currentTarget.setPointerCapture(ev.pointerId);
+    };
+    grip.addEventListener("pointerdown", (e) => startCalResize(e, "se"));
+    for (const c of ["nw", "ne", "sw"]) {
+      const g = wrap.createDiv({ cls: "gd-cal-corner is-" + c });
+      g.addEventListener("pointerdown", (e) => startCalResize(e, c));
+    }
+    const doResize = (e) => {
       if (!rsz) return;
-      wrap.style.width = clamp(Math.round(rsz.w + e.clientX - rsz.x), 320, 1400) + "px";
-      wrap.style.height = clamp(Math.round(rsz.h + e.clientY - rsz.y), 260, 1100) + "px";
-    });
-    grip.addEventListener("pointerup", (e) => {
+      const dx = e.clientX - rsz.x, dy = e.clientY - rsz.y;
+      let w = rsz.w, h = rsz.h, left = rsz.l, top = rsz.t;
+      if (rsz.c.includes("e")) w = rsz.w + dx;
+      if (rsz.c.includes("s")) h = rsz.h + dy;
+      if (rsz.c.includes("w")) { w = rsz.w - dx; left = rsz.l + dx; }
+      if (rsz.c.includes("n")) { h = rsz.h - dy; top = rsz.t + dy; }
+      w = clamp(Math.round(w), 320, 1400);
+      h = clamp(Math.round(h), 260, 1100);
+      wrap.style.width = w + "px";
+      wrap.style.height = h + "px";
+      if (rsz.c.includes("w")) wrap.style.left = clamp(Math.round(left), 0, window.innerWidth - 120) + "px";
+      if (rsz.c.includes("n")) wrap.style.top = clamp(Math.round(top), 0, window.innerHeight - 60) + "px";
+    };
+    const endResize = () => {
       if (!rsz) return;
       rsz = null;
       wrap.removeClass("is-resizing");
-      try { grip.releasePointerCapture(e.pointerId); } catch (err) { }
       this.saveCalFloatRect(wrap);
-    });
+    };
+    wrap.addEventListener("pointermove", doResize);
+    wrap.addEventListener("pointerup", endResize);
+    wrap.addEventListener("pointercancel", endResize);
     grip.addEventListener("dblclick", () => {
       wrap.style.width = "760px";
       wrap.style.height = "620px";
@@ -807,6 +843,21 @@ class GridDiaryPlugin extends Plugin {
     const host = wrap.createDiv({ cls: "gd-cal-float-body" });
     this.calPanel.inFloat = true;
     this.calPanel.openInPane(host);
+    this.applyCalCollapsed();
+  }
+
+  /* 日历折叠成一条细边时，浮窗外壳也得跟着缩短，不然会留一大片空壳 */
+  applyCalCollapsed() {
+    const w = this.calFloatEl;
+    if (!w) return;
+    const on = !!(this.calPanel && this.calPanel.collapsed);
+    w.toggleClass("is-collapsed", on);
+    if (on) {
+      w.style.height = "46px";
+    } else {
+      const h = clamp((this.settings.calFloatRect && this.settings.calFloatRect.height) || 620, 320, 1100);
+      w.style.height = h + "px";
+    }
   }
 
   saveCalFloatRect(wrap) {
@@ -1139,39 +1190,71 @@ class GridDiaryPlugin extends Plugin {
       if (!imgs.length) { new Notice("库里还没有图片，先用「从电脑选…」传一张"); return; }
       const m = new Menu();
       for (const f of imgs.slice(-40).reverse()) {
-        m.addItem((i) => i.setTitle(f.basename).setIcon("image").onClick(async () => {
-          s.calWallpaper = f.path;
-          await this.saveSettings();
-          this.refreshCalendar();
-          new Notice("底图已设好：" + f.basename);
+        m.addItem((i) => i.setTitle(f.basename).setIcon("image").onClick(() => {
+          const url = this.thumbUrl(f.path);
+          if (!url) { new Notice("这张图读不出来"); return; }
+          const el = (this.calPanel && this.calPanel.el) || null;
+          const w = (el && el.clientWidth) || 600;
+          const h = (el && el.clientHeight) || 600;
+          openCrop(this.app, {
+            url,
+            ratio: w / Math.max(h, 1),
+            crop: s.calWallCrop || null,
+            title: "裁剪日历底图（框选完再保存）",
+            onCancel: () => new Notice("没设底图"),
+            onOk: async (crop) => {
+              s.calWallpaper = f.path;
+              s.calWallCrop = crop || null;
+              await this.saveSettings();
+              this.refreshCalendar();
+              new Notice("底图已设好：" + f.basename);
+            },
+          });
         }));
       }
       const at = { clientX: window.innerWidth / 2 - 120, clientY: 160, preventDefault() { }, currentTarget: document.body };
       showMenuAt(m, at);
       return;
     }
-    /* 默认：从电脑里选 */
-    const f = await chooseLocalFile({ accept: "image/*", title: "选一张日历底图" });
+    /* 默认：从电脑里选。先裁剪，再落盘（用户 2026-11-08 定的顺序） */
+    const f = await chooseFileLike(this, { title: "选一张日历底图" });
     if (!f) { new Notice("没有选图"); return; }
-    try {
-      const folder = this.attachDir();
-      await this.ensureFolder(folder);
-      const safe = String(f.name || "cover.png").replace(/[\\/:*?"<>|]/g, "_");
-      let path = `${folder}/${safe}`;
-      if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
-      const buf = await f.arrayBuffer();
-      await this.app.vault.adapter.writeBinary(path, buf);
-      /* 写完立刻回读一次，确认文件真的在磁盘上（曾经出现过"设了但没生效"） */
-      const ok = await this.app.vault.adapter.exists(path);
-      if (!ok) { new Notice("图片写进去了但读不到：" + path); return; }
-      s.calWallpaper = path;
-      await this.saveSettings();
-      this.refreshCalendar();
-      new Notice("底图已设好：" + safe);
-    } catch (e) {
-      new Notice("设底图失败：" + (e && e.message ? e.message : e));
-      console.error("[格间日记] pickCalWallpaper", e);
-    }
+    let tmp = "";
+    try { tmp = URL.createObjectURL(new Blob([await f.arrayBuffer()])); }
+    catch (e) { new Notice("这张图读不出来，换一张试试"); return; }
+    const el = (this.calPanel && this.calPanel.el) || null;
+    const w = (el && el.clientWidth) || 600;
+    const h = (el && el.clientHeight) || 600;
+    openCrop(this.app, {
+      url: tmp,
+      ratio: w / Math.max(h, 1),
+      crop: s.calWallCrop || null,
+      title: "裁剪日历底图（框选完再保存）",
+      onCancel: () => { try { URL.revokeObjectURL(tmp); } catch (e) { } new Notice("没设底图"); },
+      onOk: async (crop) => {
+        try { URL.revokeObjectURL(tmp); } catch (e) { }
+        try {
+          const folder = this.attachDir();
+          await this.ensureFolder(folder);
+          const safe = String(f.name || "cover.png").replace(/[\\/:*?"<>|]/g, "_");
+          let path = `${folder}/${safe}`;
+          if (await this.app.vault.adapter.exists(path)) path = `${folder}/${Date.now()}-${safe}`;
+          const buf = await f.arrayBuffer();
+          await this.app.vault.adapter.writeBinary(path, buf);
+          /* 写完立刻回读一次，确认文件真的在磁盘上（曾经出现过"设了但没生效"） */
+          const okExist = await this.app.vault.adapter.exists(path);
+          if (!okExist) { new Notice("图片写进去了但读不到：" + path); return; }
+          s.calWallpaper = path;
+          s.calWallCrop = crop || null;
+          await this.saveSettings();
+          this.refreshCalendar();
+          new Notice("底图已设好：" + safe);
+        } catch (e) {
+          new Notice("设底图失败：" + (e && e.message ? e.message : e));
+          console.error("[格间日记] pickCalWallpaper", e);
+        }
+      },
+    });
   }
 
   /* 让所有在显示的日历（浮窗 / 标签页）立刻重画 */
@@ -1227,9 +1310,212 @@ class GridDiaryPlugin extends Plugin {
 
   /* ══════════ 主题系统（v4）══════════ */
 
+  /* 把每个项目自己的字体/格子变量写到它的根元素上。
+     没填的项直接删掉变量，CSS 会自动回落到全局值（= 跟主题）。 */
+  applyProjectVars() {
+    const s = this.settings;
+    const pv = s.projectVars || {};
+    for (const [key, , sel] of PROJECT_KEYS) {
+      const mine = pv[key] || {};
+      const roots = document.querySelectorAll(sel);
+      for (const el of roots) {
+        for (const [k, cssVar] of PROJECT_VAR_KEYS) {
+          const v = mine[k];
+          if (v === undefined || v === null || v === "") el.style.removeProperty(cssVar);
+          else if (k === "bgImage") {
+            const u = this.thumbUrl(String(v));
+            if (u) el.style.setProperty(cssVar, `url("${u}")`);
+            else el.style.removeProperty(cssVar);
+          } else {
+            const num = (k === "fontSize" || k === "lineWidth" || k === "radius" || k === "gap" || k === "pad" || k === "cellOpacity");
+            el.style.setProperty(cssVar, num ? String(v) + (k === "fontSize" || k === "radius" || k === "gap" || k === "pad" ? "px" : "") : String(v));
+          }
+        }
+      }
+    }
+  }
+
+  /* ══════════ 五处各自的背景（v3.14）══════════
+   * 把主页/目录/日历/悬浮窗/流线图各一份的背景配置，写到各自的根元素上。
+   * 没配的项一律删变量，CSS 自动回落到主题值。 */
+  /* 某处背景「今天该长什么样」：把固定配置和换色节奏合到一起。
+     以前只读 mode/image/texture/glass，完全不读 rhythm，
+     所以用户「按日/按周/按月放了七张图」永远不生效——这就是那个 bug 的根。
+     现在：节奏开了就用槽位里的（可能是纯色 / 图片 / 纹理），没开才用固定配置。 */
+  resolveBgOf(cfg, dateStr) {
+    const out = {
+      mode: cfg.mode || "color",
+      color: cfg.color || "",
+      image: cfg.image || "",
+      gradient: cfg.gradient || "",
+      texture: cfg.texture || "none",
+      video: cfg.video || "",
+      fromRhythm: "",
+    };
+    if (!cfg.rhythm || cfg.rhythm === "off") return out;
+    let slot = null;
+    try { slot = bgSlotOf(cfg, dateStr); } catch (e) { slot = null; }
+    if (!slot) return out;
+    if (slot.kind === "image") {
+      out.mode = "image"; out.image = slot.value; out.fromRhythm = "image";
+    } else if (slot.kind === "texture") {
+      out.mode = "texture"; out.texture = slot.value; out.fromRhythm = "texture";
+    } else if (slot.kind === "color" && slot.value) {
+      out.mode = "color"; out.color = slot.value; out.fromRhythm = "color";
+    }
+    return out;
+  }
+
+  /* 视频背景：CSS 背景放不了视频，得单独铺一层 <video> */
+  applyProjectBgVideo(el, src, loop) {
+    const old = el.querySelector(":scope > .gd-pbg-video");
+    const u = src ? this.thumbUrl(String(src)) : "";
+    if (!u) { if (old) old.remove(); return; }
+    if (old && old.dataset.src === u) return;
+    if (old) old.remove();
+    if (IS_MOBILE) return;
+    const v = document.createElement("video");
+    v.className = "gd-pbg-video";
+    v.dataset.src = u;
+    v.src = u;
+    v.autoplay = true;
+    v.muted = true;
+    v.loop = loop !== false;
+    v.playsInline = true;
+    el.insertBefore(v, el.firstChild);
+  }
+
+  /* 照片墙：只有主页有（用户：「照片墙只独属于主页」）。
+     每张图各自有百分比坐标，能拖能四角缩放。 */
+  applyProjectWall(el, cfg) {
+    let wall = el.querySelector(":scope > .gd-pbg-wall");
+    const w = cfg && cfg.wall;
+    if (!w || !w.on || !Array.isArray(w.items) || !w.items.length) {
+      if (wall) wall.remove();
+      return;
+    }
+    if (!wall) {
+      wall = document.createElement("div");
+      wall.className = "gd-pbg-wall";
+      el.insertBefore(wall, el.firstChild);
+    }
+    wall.empty();
+    const n = w.unlimited ? w.items.length : Math.min(w.items.length, clamp(Number(w.limit) || 12, 1, 200));
+    for (let i = 0; i < n; i++) {
+      const it = w.items[i] || {};
+      const d = wall.createDiv({ cls: "gd-pbg-photo" });
+      const u = this.thumbUrl(String(it.src || ""));
+      if (u) d.style.backgroundImage = 'url("' + u + '")';
+      d.style.left = (Number(it.x) || 0) + "%";
+      d.style.top = (Number(it.y) || 0) + "%";
+      d.style.width = (Number(it.w) || 24) + "%";
+      d.style.height = (Number(it.h) || 24) + "%";
+      d.dataset.i = String(i);
+    }
+  }
+
+  /* 把一处背景画到某个元素上（抽出来给「主页上区」复用） */
+  paintBgOn(el, cfg, eff) {
+    el.removeAttribute?.("data-pbg");
+    el.removeAttribute?.("data-pbg-tex");
+    el.style.removeProperty("--gd-pbg-image");
+    el.style.removeProperty("--gd-pbg-color");
+    el.style.removeProperty("--gd-pbg-blur");
+    el.style.removeProperty("--gd-pbg-tint");
+
+    const mode = eff.mode || "color";
+    el.setAttr?.("data-pbg", mode);
+    if (eff.fromRhythm) el.setAttr?.("data-pbg-rhythm", eff.fromRhythm);
+    else el.removeAttribute?.("data-pbg-rhythm");
+
+    if (mode === "color" && eff.color) el.style.setProperty("--gd-pbg-color", eff.color);
+    if (mode === "gradient" && eff.gradient) el.style.setProperty("--gd-pbg-image", eff.gradient);
+    if (mode === "image" && eff.image) {
+      const u = this.thumbUrl(String(eff.image));
+      if (u) el.style.setProperty("--gd-pbg-image", 'url("' + u + '")');
+      /* 框选过的那一块：整块背景和「缩略图」都按用户选的位置和大小铺 */
+      applyCrop(el, cfg.crop || null, "50% 50%");
+    } else {
+      el.style.backgroundSize = "";
+      el.style.backgroundPosition = "";
+      el.style.backgroundRepeat = "";
+    }
+    if (mode === "texture" && eff.texture && eff.texture !== "none") {
+      el.setAttr?.("data-pbg-tex", eff.texture);
+    }
+    if (mode === "glass") {
+      el.style.setProperty("--gd-pbg-blur", (Number(cfg.glass) || 12) + "px");
+      if (cfg.glassTint) el.style.setProperty("--gd-pbg-tint", cfg.glassTint);
+    }
+    if (mode === "video") this.applyProjectBgVideo(el, eff.video, cfg.videoLoop);
+    else this.applyProjectBgVideo(el, "", false);
+  }
+
+  applyProjectBg() {
+    const s = this.settings;
+    const today = todayStr();
+    for (const [key, name, sel] of BG_PROJECTS) {
+      const cfg = bgCfgOf(s, key);
+      const eff = this.resolveBgOf(cfg, today);
+      const roots = document.querySelectorAll(sel);
+      for (const el of roots) {
+        el.removeAttribute?.("data-cell-bg");
+        el.style.removeProperty("--gd-cell-bg");
+        el.style.removeProperty("--gd-cell-bg-image");
+        el.style.removeProperty("--gd-cell-blur");
+
+        /* 1.5：主页的「上区背景」跟「下区格子」拆成两块。
+           以前整页底图铺在格子后面，格子的磨砂和底色都被它盖住。
+           现在背景只画在上区（封面舞台 / 旧版封面），根元素自己透明，
+           下面那块格子只吃自己的格子背景。 */
+        if (key === "home") {
+          el.setAttr?.("data-pbg", "transparent");
+          el.removeAttribute?.("data-pbg-tex");
+          el.style.removeProperty("--gd-pbg-image");
+          el.style.removeProperty("--gd-pbg-color");
+          el.style.removeProperty("--gd-pbg-blur");
+          el.style.removeProperty("--gd-pbg-tint");
+          el.addClass?.("gd-home-split");
+          const tops = [];
+          for (const sel2 of [".gd-cover-stage", ".gd-cover-wrap"]) {
+            for (const t of document.querySelectorAll(sel2)) tops.push(t);
+          }
+          /* 照片墙不在这里画：它由舞台 GDStage 画在「第二层」上，
+             那边每张照片能拖能四角缩放。这里再静态画一层就重复了。 */
+          for (const t of tops) this.paintBgOn(t, cfg, eff);
+          this.applyProjectBgVideo(el, "", false);
+        } else {
+          this.paintBgOn(el, cfg, eff);
+        }
+
+        /* 目录上下两块各自的磨砂（3.7）：互不影响，没开就没有 backdrop-filter 开销 */
+        if (key === "dir") {
+          el.toggleClass?.("gd-tree-glass-top", s.treeGlassTop === true);
+          el.toggleClass?.("gd-tree-glass-bot", s.treeGlassBot === true);
+        }
+
+        /* 照片墙：主页的已经跟着背景搬到上区（见上面 key==="home" 分支），
+           这里一律把根元素上的墙清掉，否则会在格子后面多铺一层。 */
+        this.applyProjectWall(el, { wall: null });
+
+        /* 格子背景 */
+        const cm = cfg.cellMode || "follow";
+        el.setAttr?.("data-cell-bg", cm);
+        if (cm === "color" && cfg.cellColor) el.style.setProperty("--gd-cell-bg", cfg.cellColor);
+        if (cm === "image" && cfg.cellImage) {
+          const u2 = this.thumbUrl(String(cfg.cellImage));
+          if (u2) el.style.setProperty("--gd-cell-bg-image", 'url("' + u2 + '")');
+        }
+        if (cm === "glass") el.style.setProperty("--gd-cell-blur", (Number(cfg.cellGlass) || 8) + "px");
+      }
+    }
+  }
+
   /* 全部视图统一刷新视觉（套主题后调用） */
   applyAllTheme() {
     this.applyCustomCss();
+    this.applyProjectVars();
+    this.applyProjectBg();
     const g = this.gridView();
     if (g) { g.applyTheme(); g.render(); }
     if (this.sidebar) this.sidebar.render();
@@ -1239,6 +1525,7 @@ class GridDiaryPlugin extends Plugin {
     const cal = this.calendarInstance;
     if (cal && cal.panel) cal.panel.render();
     if (this.float && this.float.el) this.float.refresh();
+    this.applyProjectVars();
   }
 
   /* 从当前设置抓 tokens 存成主题 */

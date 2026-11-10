@@ -20,6 +20,7 @@ class CalendarPanel {
     this.index = null;               // Map<date, {count, files[]}>
     this.sumCache = new Map();       // LRU: date -> {words, thumb, stickers}
     this.drag = null;
+    this.collapsed = false;          // 折叠成一条细边（用户要求）
     this.refreshTimer = debounce(() => this.refresh(), 240);
   }
   get app() { return this.plugin.app; }
@@ -32,6 +33,9 @@ class CalendarPanel {
 
   openInPane(container) {
     this.el = container;
+    /* 补 gd-root：别的项目根元素都挂了它，变量才能从全局继承下来。
+       少了这个，日历在「各管一份」里留空时不会回落，而是直接没值。 */
+    this.el.addClass("gd-root");
     this.el.addClass("gd-cal-panel");
     this.buildIndex();
     this.render();
@@ -101,6 +105,9 @@ class CalendarPanel {
     this.el.empty();
     this.el.dataset.skeleton = this.skel;
     this.el.dataset.texture = this.texture;
+    /* 用户：「能折叠成一条，留细边点回来」 */
+    this.el.toggleClass("is-cal-collapsed", !!this.collapsed);
+    if (this.collapsed) { this.renderCollapsed(); return; }
     this.applyWallpaper();
     this.renderTop();
     const body = this.el.createDiv({ cls: "gd-cal-body" });
@@ -115,6 +122,23 @@ class CalendarPanel {
     }[this.skel] || (() => this.renderGrid(body));
     fn();
     this.paintExtras();
+  }
+
+  /* 折叠成一条细边：只留周期标题 +「展开」 */
+  renderCollapsed() {
+    const bar = this.el.createDiv({ cls: "gd-cal-collapsed" });
+    bar.createSpan({ cls: "gd-cal-collapsed-title", text: this.titleText() });
+    bar.createSpan({ cls: "gd-cal-collapsed-tip", text: "展开" });
+    bar.setAttr("title", "点一下展开日历");
+    bar.onclick = () => this.setCollapsed(false);
+    if (this.plugin.calFloatEl) this.plugin.applyCalCollapsed();
+  }
+
+  /* 折叠 / 展开：浮窗里要跟着改高度，标签页里只改自己 */
+  setCollapsed(on) {
+    this.collapsed = !!on;
+    this.render();
+    if (this.plugin.calFloatEl) this.plugin.applyCalCollapsed();
   }
 
   /* 底图：位置四选一 + 蒙层 + 文字反色兜底 */
@@ -179,12 +203,15 @@ class CalendarPanel {
     };
     const pic = ops.createEl("button", { cls: "gd-cal-obtn", text: "底图" });
     pic.onclick = (e) => this.wallMenu(e);
-    const cls = ops.createEl("button", { cls: "gd-cal-obtn", text: "■" });
-    cls.setAttr("title", "关闭这个日历");
+    const cls = ops.createEl("button", { cls: "gd-cal-obtn", text: "—" });
+    cls.setAttr("title", "折叠成一条（点细边再回来）");
+    cls.onclick = () => this.setCollapsed(true);
+    const cls2 = ops.createEl("button", { cls: "gd-cal-obtn", text: "■" });
+    cls2.setAttr("title", "关闭这个日历");
     /* 以前这里调 toggleCalendar()，它永远开浮窗；
      * 于是在标签页里点「关闭」，反而弹出一个浮窗 —— 用户说的「不要弹」。
      * 现在只关自己所在的那个：浮窗里就关浮窗，标签页里就关标签页。 */
-    cls.onclick = () => {
+    cls2.onclick = () => {
       if (this.inFloat) this.plugin.closeCalendarFloat();
       else {
         const leaf = this.plugin.app.workspace.getLeavesOfType(VIEW_CALENDAR)[0];
@@ -635,7 +662,7 @@ class CalendarPanel {
 
   /* 给某天单独设壁纸（写进那天的 layout.cover） */
   async pickWall(date) {
-    const f = await chooseLocalFile({ accept: "image/*" });
+    const f = await chooseFileLike(this.plugin, { title: "给这天设壁纸" });
     if (!f) return;
     try {
       const folder = this.attachDir();
@@ -691,7 +718,7 @@ class CalendarPanel {
     showMenuAt(m, { clientX: (evt && evt.clientX) || 0, clientY: (evt && evt.clientY) || 0 });
   }
   async pickCalWall() {
-    const f = await chooseLocalFile({ accept: "image/*" });
+    const f = await chooseFileLike(this.plugin, { title: "换日历底图" });
     if (!f) return;
     try {
       const folder = this.attachDir();

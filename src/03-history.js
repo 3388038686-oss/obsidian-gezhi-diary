@@ -198,6 +198,17 @@ class SnapshotModal extends Modal {
       const info = row.createDiv({ cls: "gd-snap-info" });
       info.createEl("strong", { text: s.time });
       info.createEl("span", { text: s.label });
+      /* 6.2：带上「字数」和「改了什么」，不用点开就能挑 */
+      try {
+        const txt0 = await this.app.vault.adapter.read(s.path);
+        const body0 = String(txt0 || "").replace(/\s/g, "");
+        let cells0 = 0;
+        try { cells0 = (parseDay(txt0).cells || []).length; } catch (e) { cells0 = 0; }
+        const curLen = String(current || "").replace(/\s/g, "").length;
+        const diff = body0.length - curLen;
+        const dText = diff === 0 ? "字数一样" : (diff > 0 ? "比现在多 " + diff + " 字" : "比现在少 " + (-diff) + " 字");
+        info.createEl("i", { cls: "gd-snap-meta", text: `${body0.length} 字 · ${cells0} 格 · ${dText}` });
+      } catch (e) { /* 读不到就只显示时间 */ }
       const size = row.createEl("span", { text: "查看", cls: "gd-snap-view" });
       size.onclick = async () => {
         const txt = await this.app.vault.adapter.read(s.path);
