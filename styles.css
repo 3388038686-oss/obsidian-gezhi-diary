@@ -721,6 +721,12 @@
   touch-action: none;
 }
 .gd-cell-grip:hover { opacity: .85; }
+/* v3.21：四角（用户要「四个角都能拉」） */
+.gd-cell-grip.gd-grip-nw { left: 0; right: auto; top: 0; bottom: auto; cursor: nwse-resize; transform: rotate(180deg); }
+.gd-cell-grip.gd-grip-ne { right: 0; left: auto; top: 0; bottom: auto; cursor: nesw-resize; transform: rotate(90deg); }
+.gd-cell-grip.gd-grip-sw { left: 0; right: auto; bottom: 0; top: auto; cursor: nesw-resize; transform: rotate(-90deg); }
+.gd-cell-grip.gd-grip-se { right: 0; bottom: 0; }
+body.gd-is-resizing { user-select: none; cursor: nwse-resize; }
 
 /* 格式条 */
 .gd-cell-fmt {

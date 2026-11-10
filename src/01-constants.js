@@ -626,8 +626,11 @@ const DEFAULT_SETTINGS = {
   /* 灵感自己的背景（用户：只留图片 + 透明度两项） */
   floatBg: "",
   floatBgOpacity: 1,
+  floatFollowTheme: true,        /* 灵感浮窗跟随主题配色；关掉才用「悬浮窗」自己那套 */
   /* 日历浮窗外观：用户要「纯色底 + 可调透明度 + 磨砂」 */
-  calFloatBg: "",                // 空 = 跟随主题底色；否则 #rrggbb
+  calFloatBg: "",
+  calFloatFollowTheme: true,
+  tlFollowTheme: true,     /* 日历浮窗跟随主题配色；关掉才用「日历」自己那套 */                // 空 = 跟随主题底色；否则 #rrggbb
   calFloatOpacity: 0.96,         // 0.4–1
   calFloatBlur: 0,               // 0–24，磨砂强度
   calFloatShadow: true,          // 投影（关掉更轻）
@@ -659,7 +662,8 @@ const DEFAULT_SETTINGS = {
   treeFolderOrder: [],           // 文件夹手动顺序
   treeFolderStyles: {},          // 每个文件夹独立外观 { 路径: {color, emoji, icon, img} }
   timelineCompactTop: true,      // 流线图顶部收成一个图标
-  timelineColorDiff: true,       // 流线图按新增/删除/修改上色
+  timelineColorDiff: false,      // 流线图按新增/删除/修改上色（默认关：左边那三条色条不是用户设计的配色）
+  diffColorMigrated: false,      // v3.22.2 一次性迁移标记：老存档里的 true 会被强制改成 false，只改一次
   treeShowHidden: false,         // 临时显示被隐藏的文件夹
   treeFolderColor: "",           // 文件夹主色（空 = 跟随调色板）
   treeShowOtherFiles: true,
@@ -669,7 +673,8 @@ const DEFAULT_SETTINGS = {
   treeShowFoot: false,           // 底部时间线/日历/设置（默认去掉）
   treeHits: {},                  // 目录点击次数（热度）
   attachFolder: "attachments",   // 图片等附件的独立目录
-  autoFollowCells: true,         // 改一格其他格跟随（默认开）
+  autoFollowCells: true,
+  cellResizeMode: "linked",      /* 拖角：linked=整表一起缩放 | single=只改这一格 */         // 改一格其他格跟随（默认开）
   rawFormat: "markdown",         // 原文模式默认视图
   layers: null,                  // null = 用 DEFAULT_LAYERS
   layerStep: 5,                  // 推板步长 1 | 5 | 10
@@ -1017,6 +1022,13 @@ function migrateSettings(saved) {
   const s = mergeDefaults(saved, DEFAULT_SETTINGS);
   if (!saved || typeof saved !== "object") return s;
   const v = Number(saved.version) || 1;
+  /* v3.22.2：老用户的 data.json 里 timelineColorDiff 存着 true，光改默认值不生效；
+     而且运行中的插件会拿内存里的旧值把磁盘覆盖回去。这里做一次性迁移强制关掉，
+     之后用户在设置里再打开（diffColorMigrated 已为 true）不会被反复改回。 */
+  if (!s.diffColorMigrated) {
+    s.timelineColorDiff = false;
+    s.diffColorMigrated = true;
+  }
   if (v >= 3) return s;
 
   const fromV1 = v < 2;

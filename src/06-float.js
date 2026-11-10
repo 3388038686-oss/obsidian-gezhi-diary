@@ -211,6 +211,9 @@ class GDFloat {
     el.style.setProperty("--gd-accent", this.sx.accent || "#c2704f");
     el.style.setProperty("--gd-font-size", `${clamp(this.sx.fontSize, 10, 26)}px`);
     el.classList.toggle("is-hover-lift", !!this.sx.hoverLift);
+    /* v3.21：字色 / 线色 / 圆角 / 皮肤跟随主题；关掉「跟随主题」才用悬浮窗自己的配色 */
+    try { this.plugin.applyShellTheme(el, this.sx.floatFollowTheme === false ? "float" : null); } catch (e) {}
+    try { this.plugin.applyProjectBg && this.plugin.applyProjectBg(); } catch (e) {}
 
     /* 灵感背景：只留两项 —— 图片 + 透明度（用户明确要求）。
        以前这四行写的是 calFloatBg / calFloatOpacity / calFloatBlur / calFloatShadow，
@@ -234,9 +237,9 @@ class GDFloat {
     this.dateEl.createSpan({ cls: "gd-float-day", text: `${dateShort(this.key)} ${weekdayCN(this.key)}` });
     const nav = this.dateEl.createDiv({ cls: "gd-float-nav" });
     const nb = (t, tt, fn) => { const x = nav.createEl("button", { text: t, cls: "gd-float-mini", attr: { title: tt } }); x.onclick = fn; };
-    nb("‹", "前一天", () => this.load(shiftDate(this.key, -1)));
-    nb("今天", "回到今天", () => this.load(todayStr()));
-    nb("›", "后一天", () => this.load(shiftDate(this.key, 1)));
+    nb("‹", "前一天", () => this.goDay(shiftDate(this.key, -1)));
+    nb("今天", "回到今天", () => this.goDay(todayStr()));
+    nb("›", "后一天", () => this.goDay(shiftDate(this.key, 1)));
     const add = nav.createEl("button", { text: "＋格", cls: "gd-float-mini", attr: { title: "加一格" } });
     add.onclick = () => this.addCell();
 
@@ -316,12 +319,19 @@ class GDFloat {
       try { this.plugin.notifyRefresh && this.plugin.notifyRefresh(); } finally { this._saving = false; }
     } catch (e) { console.error("[格间日记] 悬浮窗保存失败", e); }
   }
-  refresh(key) {
+  /* v3.21：浮窗自己换天 —— 先切自己，再让主区 / 日历跟上（不抢焦点） */
+  goDay(key) {
+    if (!key) return;
+    if (splitDayKey(key).date !== splitDayKey(this.key).date) this.load(key);
+    if (this.plugin.setActiveDay) this.plugin.setActiveDay(key, "float");
+  }
+  refresh(key, force) {
     if (!this.el) return;
-    /* 自己刚写完的、或者光标还在输入框里，就别重建，否则光标飞了 */
+    /* 自己刚写完的、或者光标还在输入框里，就别重建，否则光标飞了。
+       force=true 是「别的窗口换了天」，这时候必须跟，哪怕光标在输入框里。 */
     if (this._saving) return;
     const act = document.activeElement;
-    if (act && this.el.contains(act) && (act.tagName === "TEXTAREA" || act.tagName === "INPUT")) return;
+    if (!force && act && this.el.contains(act) && (act.tagName === "TEXTAREA" || act.tagName === "INPUT")) return;
     if (key && splitDayKey(key).date !== splitDayKey(this.key).date) this.load(key);
     else this.load(this.key);
   }

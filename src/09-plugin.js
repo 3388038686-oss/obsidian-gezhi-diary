@@ -19,7 +19,8 @@ class GridDiaryPlugin extends Plugin {
     this.settings = migrateSettings(saved);
     /* 迁移结果立刻落盘：否则每次启动都会判定「版本 < 3」而重复弹升级提示 */
     const _oldVer = Number(saved && saved.version) || 1;
-    if (_oldVer < 3) { try { await this.saveData(this.settings); } catch (e) { /* 写失败不影响加载 */ } }
+    const _needSave = _oldVer < 3 || !(saved && saved.diffColorMigrated);
+    if (_needSave) { try { await this.saveData(this.settings); } catch (e) { /* 写失败不影响加载 */ } }
     this.history = new HistoryManager(this);
     this.themes = new ThemeManager(this);
     this.templateCommandIds = [];
@@ -693,6 +694,67 @@ class GridDiaryPlugin extends Plugin {
     if (v && v.openKey) await v.openKey(key || todayStr());
   }
 
+  /* v3.21：把「今天该显示哪天」统一到一处。
+     applyDayToOthers 只负责「通知别的窗口」，不回头动主区，免得递归。 */
+  applyDayToOthers(key, source) {
+    if (!key) return;
+    try {
+      if (source !== "float" && this.float && this.float.el) this.float.refresh(key, true);
+      const panels = [];
+      if (this.calPanel && this.calPanel.el) panels.push(this.calPanel);
+      const cp = this.calendarInstance && this.calendarInstance.panel;
+      if (cp && cp.el && panels.indexOf(cp) < 0) panels.push(cp);
+      for (const p of panels) { try { p.setAnchor(key); } catch (e) {} }
+      if (this.timeline) this.timeline.setActive(key);
+      if (this.sidebar) this.sidebar.setActive(key);
+    } catch (e) { console.error("[格间日记] 换天联动失败", e); }
+  }
+
+  /* 浮窗 / 日历发起换天：主区跟着走（不强制弹叶子），再同步其余 */
+  async setActiveDay(key, source) {
+    if (!key) return;
+    const day = key;
+    if (source === "grid") { this.applyDayToOthers(day, "grid"); return; }
+    let leaf = this.app.workspace.getLeavesOfType(VIEW_GRID)[0];
+    let view = leaf && leaf.view instanceof GridView ? leaf.view : null;
+    if (view && view.openDay) {
+      this._daySource = source;
+      try { await view.openDay(day); } catch (e) { console.error("[格间日记] 主区换天失败", e); }
+      finally { this._daySource = ""; }
+      return;
+    }
+    await this.openDay(day);
+  }
+
+  /* v3.21：浮窗外壳的主题变量（字色 / 线色 / 强调色 / 圆角 / 皮肤）。
+     projectKey 传了就叠上那一处的独立配色；传 null = 纯跟随主题。 */
+  applyShellTheme(el, projectKey) {
+    if (!el) return;
+    const s = this.settings;
+    const pv = (s.projectVars && projectKey && s.projectVars[projectKey]) || {};
+    try { el.addClass("gd-root"); el.addClass("gd-theme-" + (s.theme || "card")); } catch (e) {}
+    const accent = pv.accent || s.accent || "";
+    if (accent) el.style.setProperty("--gd-accent", accent);
+    const ink = pv.fontColor || s.fontColor || "";
+    if (ink) el.style.setProperty("--gd-ink", ink); else el.style.removeProperty("--gd-ink");
+    const line = pv.lineColor || s.lineColor || "";
+    if (line) el.style.setProperty("--gd-line", line); else el.style.removeProperty("--gd-line");
+    const radius = (pv.radius != null && pv.radius !== "") ? pv.radius : s.radius;
+    if (radius != null) el.style.setProperty("--gd-radius", clamp(radius, 0, 28) + "px");
+    const fs = pv.fontSize || s.fontSize;
+    if (fs) el.style.setProperty("--gd-font-size", clamp(fs, 10, 26) + "px");
+    if (pv.fontFamily || s.fontFamily) el.style.setProperty("--gd-font", pv.fontFamily || s.fontFamily);
+    if (pv.bgColor) el.style.setProperty("--gd-bg-color", pv.bgColor);
+    el.style.setProperty("--gd-line-w", clamp(s.lineWidth || 1, 0.5, 4) + "px");
+    el.style.setProperty("--gd-line-style", s.lineStyle || "solid");
+    el.style.setProperty("--gd-opacity", String(clamp(s.cardOpacity == null ? 1 : s.cardOpacity, 0.2, 1)));
+    el.toggleClass("is-glass-on", !!s.glassEnabled);
+    el.dataset.skin = s.glassEnabled ? "glass" : (s.skin || "zebra");
+    el.toggleClass("is-hover-lift", !!s.hoverLift);
+    el.toggleClass("is-follow-obsidian", !!s.bgFollowObsidian);
+    if (s.bgFollowObsidian) el.toggleClass("is-follow-dark", document.body.classList.contains("theme-dark"));
+  }
+
   async openDay(key) {
     let leaf = this.app.workspace.getLeavesOfType(VIEW_GRID)[0];
     if (!leaf) leaf = this.app.workspace.getLeaf(true);
@@ -701,8 +763,7 @@ class GridDiaryPlugin extends Plugin {
     this.app.workspace.revealLeaf(leaf);
     const view = leaf.view;
     if (view instanceof GridView) await view.openDay(key);
-    if (this.timeline) this.timeline.setActive(key);
-    if (this.float && this.float.el) this.float.refresh(key);
+    this.applyDayToOthers(key, "grid");
     this.notifyRefresh();
   }
   async openCalendar() {
@@ -748,6 +809,9 @@ class GridDiaryPlugin extends Plugin {
     wrap.addClass("gd-root");
     wrap.addClass("gd-cal-float");
     wrap.addClass("gd-theme-" + (this.settings.theme || "card"));
+    /* v3.21：日历浮窗也吃主题（以前只设了底色，字色/强调色全掉回默认砖红） */
+    const calFollowTheme = this.settings.calFloatFollowTheme !== false;
+    this.applyShellTheme(wrap, calFollowTheme ? null : "cal");
     const r = this.settings.calFloatRect || {};
     const w = clamp(r.width || 760, 380, 1400);
     const h = clamp(r.height || 620, 320, 1100);
@@ -760,7 +824,8 @@ class GridDiaryPlugin extends Plugin {
     if (this.settings.calFloatWallOnTop) wrap.addClass("is-walltop");
 
     /* 纯色底 + 可调透明度 + 磨砂（用户反馈"背景透明度太多，看不清字"） */
-    const bg = this.settings.calFloatBg;
+    /* 跟随主题时忽略 calFloatBg（用户那个 #d62929 就是这块红底） */
+    const bg = calFollowTheme ? "" : this.settings.calFloatBg;
     if (bg) wrap.style.setProperty("--gd-cal-float-bg", bg);
     wrap.style.setProperty("--gd-cal-float-op", String(clamp(this.settings.calFloatOpacity == null ? 0.96 : this.settings.calFloatOpacity, 0.4, 1)));
     wrap.style.setProperty("--gd-cal-float-blur", clamp(this.settings.calFloatBlur || 0, 0, 24) + "px");
@@ -843,6 +908,8 @@ class GridDiaryPlugin extends Plugin {
     const host = wrap.createDiv({ cls: "gd-cal-float-body" });
     this.calPanel.inFloat = true;
     this.calPanel.openInPane(host);
+    try { this.applyProjectBg(); } catch (e) {}
+    try { this.applyProjectVars(); } catch (e) {}
     this.applyCalCollapsed();
   }
 
@@ -1318,8 +1385,12 @@ class GridDiaryPlugin extends Plugin {
     for (const [key, , sel] of PROJECT_KEYS) {
       const mine = pv[key] || {};
       const roots = document.querySelectorAll(sel);
+      /* v3.22：流线图勾了「跟随主题」就不再叠自己的四个颜色项，
+         否则旧配色会一直压着主题（用户：这些颜色我没设计过）。 */
+      const followTl = key === "tl" && s.tlFollowTheme !== false;
       for (const el of roots) {
         for (const [k, cssVar] of PROJECT_VAR_KEYS) {
+          if (followTl && (k === "accent" || k === "fontColor" || k === "lineColor" || k === "bgColor")) continue;
           const v = mine[k];
           if (v === undefined || v === null || v === "") el.style.removeProperty(cssVar);
           else if (k === "bgImage") {

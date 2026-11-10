@@ -7,7 +7,7 @@ Obsidian 里的九宫格日记插件。灵感来自九宫格 / 曼陀罗日记�
 
 ![Obsidian](https://img.shields.io/badge/Obsidian-%3E%3D1.5.0-7c3aed)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![version](https://img.shields.io/badge/version-3.20.0-blue)
+![version](https://img.shields.io/badge/version-3.22.2-blue)
 
 ---
 
@@ -154,7 +154,7 @@ Markdown 里的空行就是分段。
 
 ## 三、更新日志
 
-见 [CHANGELOG.md](CHANGELOG.md)。v3.20.0 是首个公开的新版：主页拆成上区「背景 + 照片墙」与下区格子；目录第二层改为一张「图片」并恢复线体图标；日历可折叠成一条；灵感不再被自动保存打断；流线图可按历史版本回退；所有选图入口统一为「预览 + 六种快捷裁剪」。
+见 [CHANGELOG.md](CHANGELOG.md)。当前版本 v3.22.2：v3.21 给主页格子加了四角拖拽（联动整表 / 只改单格两种模式）、三窗换天联动、浮窗与日历浮窗跟随主题；v3.22 让流线图也跟随主题，并把「改动上色」默认关掉。
 
 ## 四、安装
 

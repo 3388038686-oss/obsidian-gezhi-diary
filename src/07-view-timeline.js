@@ -28,10 +28,24 @@ class TimelinePanel {
     container.empty();
     container.addClass("gd-root");
     container.addClass("gd-timeline-root");
+    this.applyThemeVars();
     if (this.inFloat) container.addClass("is-float");
     if (IS_MOBILE) container.addClass("is-mobile");
     this.build();
     this.render();
+  }
+
+  /* v3.22：流线图以前只挂了 gd-root，没有 gd-theme-*，所以卡片底色/字色/皮肤
+     全掉回默认浅色，强调色只剩 projectVars.tl 里那份旧紫色。这里补上主题类，
+     并让外壳变量跟主页同一套（tlFollowTheme=false 时才用流线图自己的配色）。 */
+  applyThemeVars() {
+    const el = this.el;
+    if (!el) return;
+    const s = this.plugin.settings || {};
+    try {
+      for (const t of THEMES) el.removeClass("gd-theme-" + t[0]);
+      this.plugin.applyShellTheme(el, s.tlFollowTheme === false ? "tl" : null);
+    } catch (e) { }
   }
 
   close() {
@@ -41,6 +55,7 @@ class TimelinePanel {
 
   refresh() {
     if (this.dead) return;
+    this.applyThemeVars();
     this.build();
     this.render();
   }

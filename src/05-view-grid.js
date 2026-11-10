@@ -352,6 +352,8 @@ class GridView extends ItemView {
     await this.reload();
       try { this.maybeRotateCarousel(); this.startCarouselTimer(); } catch (e) { /* 轮播失败不影响打开 */ }
     if (this.plugin.sidebar) this.plugin.sidebar.setActive(this.key);
+    /* v3.21：主区换天是唯一真源，通知浮窗 / 日历 / 流线图跟上 */
+    if (this.plugin.applyDayToOthers) this.plugin.applyDayToOthers(this.key, this.plugin._daySource || "grid");
   }
   async reload() {
     if (!(this.file instanceof TFile)) return;
@@ -1515,8 +1517,13 @@ class GridView extends ItemView {
     if (!this.previewMode) this.renderCellImages(el, cell);
     if (s.showWordTicker) el.createDiv({ cls: "gd-cell-ticker" });
 
-    const grip = el.createDiv({ cls: "gd-cell-grip", attr: { title: "拖动调整占几列 / 几行" } });
-    grip.addEventListener("pointerdown", (e) => this.beginResize(e, cell, el));
+    /* v3.21：四角手柄（用户：四个角都能拉，两种模式）。
+       linked = 拖任意一角，整张表一起变高 / 变宽；single = 只改这一格占几列几行。 */
+    const gripCorners = IS_MOBILE ? ["se"] : ["nw", "ne", "sw", "se"];
+    for (const cn of gripCorners) {
+      const grip = el.createDiv({ cls: "gd-cell-grip gd-grip-" + cn, attr: { title: "拖动调整大小" } });
+      grip.addEventListener("pointerdown", (e) => this.beginResize(e, cell, el, cn));
+    }
 
     if (!IS_MOBILE) {
       head.draggable = true;
@@ -1827,9 +1834,13 @@ class GridView extends ItemView {
       }
     } catch (e3) { /* 标记失败不影响渲染 */ }
   }
-  beginResize(e, cell, el) {
+  beginResize(e, cell, el, corner) {
     e.preventDefault(); e.stopPropagation();
     const s = this.plugin.settings;
+    const cn = corner || "se";
+    const sx = cn.includes("e") ? 1 : -1;   /* 东侧手柄往右变多，西侧反过来 */
+    const sy = cn.includes("s") ? 1 : -1;
+    const mode = s.cellResizeMode || "linked";
     const flow = s.flow || "vertical";
     const cols = (s.mobileOneColumn && IS_MOBILE) ? 1 : clamp(this.gridCols, 1, 6);
     const gap = clamp(s.gap, 0, 48);
@@ -1839,21 +1850,42 @@ class GridView extends ItemView {
       : clamp(s.cellWidth || 260, 190, 560) + gap;
     const rh = clamp(s.rowHeight, 80, 600) + gap;
     const x0 = e.clientX, y0 = e.clientY, cs0 = cell.cs, rs0 = cell.rs;
+    const rh0 = clamp(s.rowHeight, 80, 600), cols0 = cols;
+    document.body.addClass("gd-is-resizing");
     const move = (ev) => {
-      const cs = clamp(cs0 + Math.round((ev.clientX - x0) / cw), 1, cols);
-      const rs = clamp(rs0 + Math.round((ev.clientY - y0) / rh), 1, 6);
-      if (cs !== cell.cs || rs !== cell.rs) {
-        cell.cs = cs; cell.rs = rs;
-        el.style.gridColumn = `span ${cs}`;
-        el.style.gridRow = `span ${rs}`;
-        if (!cell.h && flow === "vertical") el.style.minHeight = `${rs * clamp(s.rowHeight, 80, 600) + (rs - 1) * gap}px`;
-        const dim = el.querySelector(".gd-cell-dim");
-        if (dim) dim.textContent = `${cs}×${rs}`;
+      if (mode !== "linked") {
+        /* 单格：只改这一格占几列 / 几行（旧行为） */
+        const cs = clamp(cs0 + sx * Math.round((ev.clientX - x0) / cw), 1, cols);
+        const rs = clamp(rs0 + sy * Math.round((ev.clientY - y0) / rh), 1, 6);
+        if (cs !== cell.cs || rs !== cell.rs) {
+          cell.cs = cs; cell.rs = rs;
+          el.style.gridColumn = `span ${cs}`;
+          el.style.gridRow = `span ${rs}`;
+          if (!cell.h && flow === "vertical") el.style.minHeight = `${rs * clamp(s.rowHeight, 80, 600) + (rs - 1) * gap}px`;
+          const dim = el.querySelector(".gd-cell-dim");
+          if (dim) dim.textContent = `${cs}×${rs}`;
+        }
+        return;
+      }
+      /* 联动：整张表一起缩放。上下 = 行高，左右 = 列数 */
+      const nh = clamp(Math.round((rh0 + sy * (ev.clientY - y0)) / 10) * 10, 80, 600);
+      const nc = clamp(cols0 + Math.round(sx * (ev.clientX - x0) / 120), 1, 6);
+      if (nh !== s.rowHeight) {
+        s.rowHeight = nh;
+        this.contentEl.style.setProperty("--gd-row-h", nh + "px");
+      }
+      if (nc !== this.gridCols) {
+        this.gridCols = nc;
+        s.columns = nc;
+        this.contentEl.style.setProperty("--gd-cols", String(nc));
+        this.gridEl.style.gridTemplateColumns = `repeat(${nc}, minmax(0, 1fr))`;
       }
     };
     const up = () => {
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerup", up);
+      document.body.removeClass("gd-is-resizing");
+      if (mode === "linked") { this.render(); this.plugin.saveSettings && this.plugin.saveSettings(); }
       this.scheduleSave();
     };
     document.addEventListener("pointermove", move);

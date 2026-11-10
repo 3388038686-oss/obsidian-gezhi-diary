@@ -42,6 +42,16 @@ class CalendarPanel {
   }
   close() { this.el = null; }
 
+  /* v3.21：主区 / 浮窗换天时，日历把焦点挪到同一天（标签页和浮窗都吃这一口） */
+  setAnchor(key) {
+    if (!key) return;
+    const d = splitDayKey(key).date;
+    if (!d) return;
+    if (this.anchor === key) return;
+    this.anchor = key;
+    if (this.el) this.render();
+  }
+
   /* ---------- 数据索引：只扫文件名，正文按需惰性读 ---------- */
   buildIndex() {
     const map = new Map();

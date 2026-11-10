@@ -1,6 +1,6 @@
 {
   "name": "obsidian-grid-diary",
-  "version": "3.20.0",
+  "version": "3.22.2",
   "description": "九宫格日记：Obsidian 插件。每格一句问句当引导，支持照片墙、封面图层、裁剪、贴纸、动图/视频壁纸、日周月年日历与农历。",
   "main": "main.js",
   "scripts": {

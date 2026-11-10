@@ -324,7 +324,7 @@ mod.default._load = function (req, ...rest) {
 };
 let code = fs.readFileSync(path.join(ROOT, "dist/main.js"), "utf8");
 /* 把内部纯函数临时露出来给断言用（只在测试里改这一份字符串） */
-code = code.replace(/\}\)\(\);\s*$/, 'globalThis.__gd = { extractTemplate, buildFromTemplate, normHeadKey, mergeByTitle, LAYER_KEYS, DEFAULT_LAYERS, normalizeLayers, CAL_SKELETONS, CAL_TEXTURES, TEMPLATE_KINDS, sortTemplates, templateKind, dayKind, applyPasteFilters, HOLIDAYS, TableView, cropCss, applyCrop, CropModal, ImageSourceModal, VaultPickModal, pickImageSources, sourceToFile, saveImageSource, chooseImage, chooseFileLike, stashFile, AVATAR_SHAPES, DAY_PALETTE, bgColorForDate, PROJECT_KEYS, PROJECT_VAR_KEYS, parseSlot, slotRaw, bgRawSlot, bgSlotForDate, GridSettingTab, BG_PROJECTS, BG_MODES, CELL_BG_MODES, bgCfgOf, defaultBgCfg };\n})();');
+code = code.replace(/\}\)\(\);\s*$/, 'globalThis.__gd = { extractTemplate, buildFromTemplate, normHeadKey, mergeByTitle, LAYER_KEYS, DEFAULT_LAYERS, normalizeLayers, CAL_SKELETONS, CAL_TEXTURES, TEMPLATE_KINDS, sortTemplates, templateKind, dayKind, applyPasteFilters, HOLIDAYS, TableView, cropCss, applyCrop, CropModal, ImageSourceModal, VaultPickModal, pickImageSources, sourceToFile, saveImageSource, chooseImage, chooseFileLike, stashFile, AVATAR_SHAPES, DAY_PALETTE, bgColorForDate, PROJECT_KEYS, PROJECT_VAR_KEYS, parseSlot, slotRaw, bgRawSlot, bgSlotForDate, GridSettingTab, BG_PROJECTS, BG_MODES, CELL_BG_MODES, bgCfgOf, defaultBgCfg, migrateSettings };\n})();');
 const m = mod.default;
 const srcMod = new m.Module("gd", null);
 srcMod.filename = path.join(ROOT, "dist/gd-cjs.js");
@@ -1261,6 +1261,63 @@ console.log("\n[D17] 主题页里不再有底色");
     try { tab.display(); } catch (e) { err = e; }
     ok(nm + "页能渲染（含背景块）", !err, err ? String(err.message || err) + " @ " + String((err.stack || "").split("\n")[1] || "").trim() : "");
   }
+}
+
+console.log("\n[D19] v3.21 四角缩放 / 换天联动 / 外壳主题");
+{
+  const s = plugin.settings;
+  ok("默认拖角模式是联动整表", (s.cellResizeMode || "linked") === "linked", String(s.cellResizeMode));
+  ok("默认浮窗跟随主题", s.floatFollowTheme !== false);
+  ok("默认日历浮窗跟随主题", s.calFloatFollowTheme !== false);
+  ok("applyDayToOthers 存在", typeof plugin.applyDayToOthers === "function");
+  ok("setActiveDay 存在", typeof plugin.setActiveDay === "function");
+
+  const el = document.createElement("div");
+  el.addClass("gd-float");
+  fakeBody.appendChild(el);
+  const oldFont = s.fontColor;
+  s.fontColor = "#3b342c";
+  plugin.applyShellTheme(el, null);
+  ok("外壳主题写了字色", !!el.style.getPropertyValue("--gd-ink"), el.style.getPropertyValue("--gd-ink"));
+  ok("外壳主题写了强调色", !!el.style.getPropertyValue("--gd-accent"), el.style.getPropertyValue("--gd-accent"));
+
+  const oldPv = JSON.stringify(s.projectVars || {});
+  s.projectVars = Object.assign({}, s.projectVars, { float: { accent: "#123456" } });
+  plugin.applyShellTheme(el, "float");
+  ok("独立配色时用项目强调色", el.style.getPropertyValue("--gd-accent").trim() === "#123456", el.style.getPropertyValue("--gd-accent"));
+  s.projectVars = JSON.parse(oldPv);
+  s.fontColor = oldFont;
+
+  /* [D19] v3.22：流线图默认跟随主题，不再被 projectVars.tl 的旧配色压住 */
+  const tl = document.createElement("div");
+  tl.addClass("gd-timeline-root");
+  fakeBody.appendChild(tl);
+  ok("默认流线图跟随主题", s.tlFollowTheme !== false);
+  const oldPv2 = JSON.stringify(s.projectVars || {});
+  s.projectVars = Object.assign({}, s.projectVars, { tl: { accent: "#111111", lineColor: "#222222", fontColor: "#333333", bgColor: "#444444" } });
+  tl.style.setProperty("--gd-accent", "#5955dd");
+  plugin.applyProjectVars();
+  const followAccent = tl.style.getPropertyValue("--gd-accent").trim();
+  ok("跟随主题时不叠旧强调色", followAccent !== "#111111", followAccent);
+  ok("跟随主题时不叠旧字色", tl.style.getPropertyValue("--gd-ink").trim() !== "#333333", tl.style.getPropertyValue("--gd-ink"));
+  s.tlFollowTheme = false;
+  plugin.applyProjectVars();
+  ok("关掉跟随后用独立配色", tl.style.getPropertyValue("--gd-accent").trim() === "#111111", tl.style.getPropertyValue("--gd-accent"));
+  s.tlFollowTheme = true;
+  s.projectVars = JSON.parse(oldPv2);
+}
+
+console.log("\n[D20] v3.22.2 改动色条一次性迁移");
+{
+  const migrateSettings = (globalThis.__gd || {}).migrateSettings;
+  ok("migrateSettings 已导出", typeof migrateSettings === "function");
+  const m1 = migrateSettings({ version: 3, timelineColorDiff: true });
+  ok("老存档的改动色条被强制关掉", m1.timelineColorDiff === false, String(m1.timelineColorDiff));
+  ok("迁移后写标记", m1.diffColorMigrated === true);
+  const m2 = migrateSettings({ version: 3, timelineColorDiff: true, diffColorMigrated: true });
+  ok("已迁移过的不再强制（用户可自己开回来）", m2.timelineColorDiff === true);
+  const m3 = migrateSettings({ version: 3, timelineColorDiff: false, diffColorMigrated: true });
+  ok("已迁移过的保留用户选择", m3.timelineColorDiff === false);
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败\n`);

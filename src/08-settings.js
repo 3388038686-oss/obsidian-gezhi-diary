@@ -1062,10 +1062,17 @@ class GridSettingTab extends PluginSettingTab {
     p.createDiv({ cls: "gd-set-hint", text: "流线图的价值就是「回得去」：每次改动前自动留一版，比 Ctrl+Z 记得久，还看得见。默认开着。" });
     new Setting(p).setName("自动留版本").setDesc("关掉后，流线图里只剩手动备份的版本。")
       .addToggle((t) => t.setValue(this.s.autoSnapshot !== false).onChange(async (v) => { this.s.autoSnapshot = v; await this.save(); new Notice(v ? "已开启自动留版本" : "已关闭自动留版本"); }));
-    new Setting(p).setName("改动上色").setDesc("新增 / 修改 / 删除 各一个颜色标在卡片左边，只做颜色。")
+    new Setting(p).setName("改动上色").setDesc("默认关。打开后新增 / 修改 / 删除 各一个颜色标在卡片左边（绿 / 橙 / 红），这是语义色、不跟主题走。")
       .addToggle((t) => t.setValue(this.s.timelineColorDiff !== false).onChange(async (v) => {
         this.s.timelineColorDiff = v;
         await this.save();
+        if (this.plugin.refreshAllTimelinePanels) this.plugin.refreshAllTimelinePanels();
+      }));
+    new Setting(p).setName("跟随主题配色").setDesc("开着：强调色 / 字色 / 线色 / 底色都跟主题走（下面「流线图的强调色」等暂时不生效）。关掉才会用你单独填的那份。")
+      .addToggle((t) => t.setValue(this.s.tlFollowTheme !== false).onChange(async (v) => {
+        this.s.tlFollowTheme = v;
+        await this.save();
+        this.plugin.applyProjectVars();
         if (this.plugin.refreshAllTimelinePanels) this.plugin.refreshAllTimelinePanels();
       }));
     this.projectLook(p, "tl", "流线图");
@@ -1397,6 +1404,13 @@ class GridSettingTab extends PluginSettingTab {
     new Setting(p).setName("横向时每屏几行").addSlider((s) => s.setLimits(1, 6, 1).setValue(this.s.flowRows).setDynamicTooltip().onChange(async (v) => { this.s.flowRows = v; await this.save(); this.refresh(); }));
     new Setting(p).setName("翻页一屏几列").addSlider((s) => s.setLimits(1, 6, 1).setValue(this.s.pageCols).setDynamicTooltip().onChange(async (v) => { this.s.pageCols = v; await this.save(); this.refresh(); }));
     new Setting(p).setName("翻页吸附").setDesc("翻完一页自动对齐到页边界。").addToggle((t) => t.setValue(this.s.pagedSnap).onChange(async (v) => { this.s.pagedSnap = v; await this.save(); this.refresh(); }));
+    new Setting(p).setName("拖角缩放方式")
+      .setDesc("联动整表：拖任意一格的四角，所有格子一起变高 / 变宽；只改单格：拖谁只动谁（占几列几行）。")
+      .addDropdown((d) => d
+        .addOption("linked", "联动整表（默认）")
+        .addOption("single", "只改单格")
+        .setValue(this.s.cellResizeMode || "linked")
+        .onChange(async (v) => { this.s.cellResizeMode = v; await this.save(); this.refresh(); }));
     new Setting(p).setName("基础行高").addSlider((s) => s.setLimits(80, 400, 10).setValue(this.s.rowHeight).setDynamicTooltip().onChange(async (v) => { this.s.rowHeight = v; await this.save(); this.refresh(); }));
     new Setting(p).setName("格子间距").addSlider((s) => s.setLimits(0, 48, 2).setValue(this.s.gap).setDynamicTooltip().onChange(async (v) => { this.s.gap = v; await this.save(); this.refresh(); }));
     new Setting(p).setName("页面内边距").addSlider((s) => s.setLimits(4, 72, 2).setValue(this.s.pad).setDynamicTooltip().onChange(async (v) => { this.s.pad = v; await this.save(); this.refresh(); }));
@@ -1458,6 +1472,26 @@ class GridSettingTab extends PluginSettingTab {
           await this.save();
         })
       );
+
+    this.floatThemeFollow(p);
+  }
+
+  /* v3.21：三窗口统一配色的开关 */
+  floatThemeFollow(p) {
+    const s = this.s;
+    new Setting(p).setName("日历浮窗跟随主题配色")
+      .setDesc("开着：字色 / 线色 / 强调色跟主区一致（默认）。关掉才用「日历」那一套独立配色。")
+      .addToggle((tg) => tg.setValue(s.calFloatFollowTheme !== false).onChange(async (v) => {
+        s.calFloatFollowTheme = v;
+        await this.save();
+        try {
+          if (this.plugin.calFloatEl) {
+            this.plugin.applyShellTheme(this.plugin.calFloatEl, v ? null : "cal");
+            if (!v && s.calFloatBg) this.plugin.calFloatEl.style.setProperty("--gd-cal-float-bg", s.calFloatBg);
+            if (v) this.plugin.calFloatEl.style.removeProperty("--gd-cal-float-bg");
+          }
+        } catch (e) {}
+      }));
   }
 
   /* 灵感背景：用户明确「只留两项：图片 + 透明度」。
@@ -1497,6 +1531,14 @@ class GridSettingTab extends PluginSettingTab {
           await this.save();
           if (this.plugin.float) this.plugin.float.render();
         }));
+
+    new Setting(p).setName("跟随主题配色")
+      .setDesc("开着：字色 / 线色 / 强调色跟主区一致（默认）。关掉才用「悬浮窗」那一套独立配色。")
+      .addToggle((tg) => tg.setValue(s.floatFollowTheme !== false).onChange(async (v) => {
+        s.floatFollowTheme = v;
+        await this.save();
+        if (this.plugin.float) this.plugin.float.render();
+      }));
   }
 
   /* ---------- 日历 ---------- */
