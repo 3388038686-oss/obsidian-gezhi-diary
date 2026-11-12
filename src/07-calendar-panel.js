@@ -151,29 +151,42 @@ class CalendarPanel {
     if (this.plugin.calFloatEl) this.plugin.applyCalCollapsed();
   }
 
-  /* 底图：位置四选一 + 蒙层 + 文字反色兜底 */
+  /* 底图（v3.24 两种摆法）
+     banner = 顶部横幅：图片独占一条，日历整体排在它下面 —— 靠 CSS 的 flex 顺序
+              让横幅是真的占位，不是叠在字上，所以永远不会重叠。
+     full   = 整块铺满：图片当整页背景，日历浮在上面（会压一层蒙层保证可读）。
+     图片的取景位置由 calWallCrop 控制（裁剪框里拖位置），跟摆放方式无关。 */
   applyWallpaper() {
     const el = this.el;
     const wp = this.sx.calWallpaper;
-    el.classList.remove("is-wall", "is-wall-full", "is-wall-corner");
+    el.classList.remove("is-wall", "is-wall-full", "is-wall-banner");
+    el.removeAttribute("data-wall-pos");
     el.style.removeProperty("--gd-cal-wall");
     el.style.removeProperty("--gd-cal-wall-opacity");
     el.style.removeProperty("--gd-cal-wall-blur");
+    el.style.removeProperty("--gd-cal-wall-size");
+    el.style.removeProperty("--gd-cal-wall-pos");
+    el.style.removeProperty("--gd-cal-wall-repeat");
+    el.style.removeProperty("--gd-cal-wall-h");
     if (!wp) return;
     const url = this.thumbOf(wp);
     if (!url) return;
     el.classList.add("is-wall");
-    const pos = this.sx.calWallpaperPos || "left-top";
-    if (pos === "full") el.classList.add("is-wall-full");
-    else el.classList.add("is-wall-corner");
+    const pos = this.sx.calWallpaperPos === "full" ? "full" : "banner";
+    el.classList.add(pos === "full" ? "is-wall-full" : "is-wall-banner");
     el.dataset.wallPos = pos;
     el.style.setProperty("--gd-cal-wall", `url("${url}")`);
-    /* 底图裁剪：把 size / position 也写成变量，CSS 里直接吃 */
+    /* 取景：有裁剪框就用它给的 size/position（拖框就换位置）；
+       没裁剪就用「填满 / 完整放下」+ 居中 */
     const cc = cropCss(this.plugin.settings.calWallCrop);
-    el.style.setProperty("--gd-cal-wall-size", cc ? cc.size : "cover");
-    el.style.setProperty("--gd-cal-wall-pos", cc ? cc.position : (this.plugin.settings.calWallpaperPos === "left-top" ? "0% 0%" : "50% 50%"));
+    const fit = this.sx.calWallFit === "contain" ? "contain" : "cover";
+    el.style.setProperty("--gd-cal-wall-size", cc ? cc.size : fit);
+    el.style.setProperty("--gd-cal-wall-pos", cc ? cc.position : "50% 50%");
+    el.style.setProperty("--gd-cal-wall-repeat", "no-repeat");
     el.style.setProperty("--gd-cal-wall-opacity", String(clamp(this.sx.calWallpaperOpacity ?? 0.85, 0.1, 1)));
     el.style.setProperty("--gd-cal-wall-blur", `${clamp(this.sx.calWallpaperBlur || 0, 0, 12)}px`);
+    /* 横幅高度可调：默认 120px，范围 60–360 */
+    el.style.setProperty("--gd-cal-wall-h", clamp(Number(this.sx.calBannerH) || 120, 60, 360) + "px");
   }
 
   /* 顶栏：‹ 今天 › + 周期胶囊 + 骨架/纹理切换 */

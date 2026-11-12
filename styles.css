@@ -1699,7 +1699,8 @@ body.gd-is-resizing { user-select: none; cursor: nwse-resize; }
 }
 .gd-cal-panel[data-texture="none"] .gd-cal-body { background-image: none; }
 
-/* ==================== 底图（四摆位 + 可读性兜底） ==================== */
+/* ==================== 底图（v3.24：横幅 / 铺满 两种） ==================== */
+/* 通用底图层：整块铺满时用它当整页背景 */
 .gd-cal-panel.is-wall::before {
   content: ""; position: absolute; inset: 0; z-index: -1;
   background-image: var(--gd-cal-wall);
@@ -1710,41 +1711,46 @@ body.gd-is-resizing { user-select: none; cursor: nwse-resize; }
   filter: blur(var(--gd-cal-wall-blur, 0px));
   pointer-events: none;
 }
-/* 左上角 */
-.gd-cal-panel.is-wall-corner[data-wall-pos="left-top"]::before {
-  inset: 0 auto auto 0;
-  width: 46%; height: 46%;
-  background-size: cover; background-position: left top;
-  border-bottom-right-radius: 28px;
-  mask-image: linear-gradient(135deg, #000 55%, transparent 100%);
-  -webkit-mask-image: linear-gradient(135deg, #000 55%, transparent 100%);
+
+/* —— 横幅：图片独占顶部一条，日历排在它下面，两者永不重叠 ——
+   关键点是 .is-wall-banner 把面板改成 flex 纵向排列，
+   横幅是真实占据高度的首个子元素，不是压在字上面的浮层。 */
+.gd-cal-panel.is-wall-banner {
+  display: flex;
+  flex-direction: column;
 }
-/* 右下角 */
-.gd-cal-panel.is-wall-corner[data-wall-pos="right-bottom"]::before {
-  inset: auto 0 0 auto;
-  width: 46%; height: 46%;
-  background-size: cover; background-position: right bottom;
-  border-top-left-radius: 28px;
-  mask-image: linear-gradient(315deg, #000 55%, transparent 100%);
-  -webkit-mask-image: linear-gradient(315deg, #000 55%, transparent 100%);
+.gd-cal-panel.is-wall-banner::before {
+  content: "";
+  position: relative;
+  inset: auto;
+  display: block;
+  flex: 0 0 var(--gd-cal-wall-h, 120px);
+  width: 100%;
+  height: var(--gd-cal-wall-h, 120px);
+  margin: 0;
+  border-radius: 0;
+  background-image: var(--gd-cal-wall);
+  background-repeat: var(--gd-cal-wall-repeat, no-repeat);
+  background-size: var(--gd-cal-wall-size, cover);
+  background-position: var(--gd-cal-wall-pos, 50% 50%);
+  opacity: var(--gd-cal-wall-opacity, .85);
+  filter: blur(var(--gd-cal-wall-blur, 0px));
+  pointer-events: none;
+  z-index: 0;
 }
-/* 左上 + 右下 */
-.gd-cal-panel.is-wall-corner[data-wall-pos="both"]::before {
-  inset: 0; width: 100%; height: 100%;
-  background-image: var(--gd-cal-wall), var(--gd-cal-wall);
-  background-position: left top, right bottom;
-  background-size: 42% 42%, 42% 42%;
-  background-repeat: no-repeat, no-repeat;
-  mask-image:
-    radial-gradient(circle at 0 0, #000 0 26%, transparent 42%),
-    radial-gradient(circle at 100% 100%, #000 0 26%, transparent 42%);
-  -webkit-mask-image:
-    radial-gradient(circle at 0 0, #000 0 26%, transparent 42%),
-    radial-gradient(circle at 100% 100%, #000 0 26%, transparent 42%);
-  mask-composite: add;
-  -webkit-mask-composite: source-over;
+/* 横幅下面的顶栏和日历主体：正常文档流，紧跟在横幅之后 */
+.gd-cal-panel.is-wall-banner > .gd-cal-top,
+.gd-cal-panel.is-wall-banner > .gd-cal-body,
+.gd-cal-panel.is-wall-banner > .gd-cal-axis-bar {
+  position: relative;
+  z-index: 1;
 }
-/* 铺满 —— 加一层蒙层，保证数字永远读得清 */
+.gd-cal-panel.is-wall-banner > .gd-cal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* —— 铺满：图片当整页背景，加一层蒙层保证数字永远读得清 —— */
 .gd-cal-panel.is-wall-full::before {
   inset: 0; width: 100%; height: 100%;
   background-size: var(--gd-cal-wall-size, cover);
@@ -1798,6 +1804,23 @@ body.gd-is-resizing { user-select: none; cursor: nwse-resize; }
 /* 浮窗里的日历面板本身不要再加自己的底，避免两层叠加发灰 */
 .gd-cal-float .gd-cal-panel { background: transparent; }
 .gd-cal-float .gd-cal-body { background-color: transparent; }
+
+/* —— v3.24：整页铺满时，图片要贴着浮窗整个显示区铺，不能被浮窗底色盖住 ——
+   浮窗自己有 --gd-cal-float-bg 底色，日历面板铺满时把它让给图片。 */
+.gd-cal-float.has-wall-full {
+  background: transparent;
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.gd-cal-float.has-wall-full .gd-cal-float-body { background: transparent; }
+/* 铺满时顶栏也吃图片，所以要给顶栏一点半透明底保可读 */
+.gd-cal-float.has-wall-full .gd-cal-top {
+  background: color-mix(in srgb, var(--gd-surface, #fbf9f6) 62%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+/* 横幅模式同理：图片在面板顶部一条，浮窗底色透出来当内容区背景，属正常 */
 /* 右下角缩放柄 */
 .gd-cal-grip {
   position: absolute; right: 0; bottom: 0; width: 18px; height: 18px;
@@ -2669,13 +2692,10 @@ body.gd-is-resizing { user-select: none; cursor: nwse-resize; }
 .gd-cal-cell.is-holiday { background: rgba(217, 83, 79, .06); }
 .gd-cal-cell.is-weekend { background: rgba(90, 140, 220, .05); }
 
-/* ---------- 日历浮窗：壁纸只占顶部一条，内容往下（B5） ---------- */
-.gd-cal-float.is-walltop .gd-cal-panel::before {
-  height: 96px;
-  mask-image: none;
-  -webkit-mask-image: none;
-  border-radius: 10px 10px 0 0;
-}
+/* ---------- 日历浮窗：壁纸只占顶部一条，内容往下（B5） ----------
+   v3.24：以前这里是给 ::before 定高 96px、再给 body 加 4px padding，
+   图片压在日历上才导致重叠。现在横幅由 .is-wall-banner 自己占位（见上面那段），
+   日历主体自然排在它后面，这条旧覆盖不需要了，只保留 body 的收口。 */
 .gd-cal-float.is-walltop .gd-cal-body {
   padding-top: 4px;
 }
@@ -3171,7 +3191,18 @@ body.gd-tl-preview-above .gd-tl-preview-pane::before {
 /* 库内选图 */
 .gd-vaultpick { max-width: 860px; }
 .gd-vaultpick-tip { color: var(--gd-muted); font-size: 12.5px; margin: 2px 0 10px; }
-.gd-vaultpick-bar { margin-bottom: 10px; }
+.gd-vaultpick-bar { margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+/* v3.23：类型筛选（全部 / 图片 / 视频） */
+.gd-vaultpick-tabs { display: flex; gap: 4px; }
+.gd-vaultpick-tab {
+  height: 26px; padding: 0 12px; font-size: 12px; font-family: inherit;
+  border: 1px solid var(--gd-border); border-radius: 7px;
+  background: transparent; color: var(--gd-muted); cursor: pointer;
+}
+.gd-vaultpick-tab:hover { color: var(--gd-accent); border-color: var(--gd-accent); }
+.gd-vaultpick-tab.is-on {
+  background: var(--gd-accent); border-color: var(--gd-accent); color: #fff;
+}
 .gd-vaultpick-search {
   width: 100%;
   padding: 7px 10px;
@@ -3194,6 +3225,7 @@ body.gd-tl-preview-above .gd-tl-preview-pane::before {
   border-radius: 10px;
   padding: 4px;
   cursor: pointer;
+  position: relative;
   transition: border-color .15s, background .15s;
 }
 .gd-vaultpick-cell:hover { background: var(--gd-surface-2); }
@@ -3207,7 +3239,30 @@ body.gd-tl-preview-above .gd-tl-preview-pane::before {
   border-radius: 7px;
   background: var(--gd-surface-2) center / cover no-repeat;
   border: 1px solid var(--gd-border);
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
 }
+/* 视频格子：不做首帧解码（库里视频多时会卡），用一个播放符号 + 深底 */
+.gd-vaultpick-thumb.is-video {
+  background: linear-gradient(160deg, #2b3040, #171a24);
+}
+.gd-vaultpick-play {
+  color: rgba(255, 255, 255, .86);
+  font-size: 20px; line-height: 1;
+  pointer-events: none;
+}
+/* 格式角标：图上角写 MP4 / PNG，用户要的「能看到格式」 */
+.gd-vaultpick-badge {
+  position: absolute;
+  top: 8px; left: 8px;
+  padding: 1px 5px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .04em;
+  border-radius: 4px;
+  background: rgba(20, 24, 32, .62);
+  color: #fff;
+  pointer-events: none;
+}
+.gd-vaultpick-badge.is-video { background: rgba(214, 96, 62, .88); }
 .gd-vaultpick-name {
   margin-top: 5px;
   font-size: 11px;
@@ -3449,8 +3504,15 @@ body.gd-tl-preview-above .gd-tl-preview-pane::before {
 }
 
 /* ===== v3.21 根元素背景：视频 / 透明 / 照片墙 ===== */
-.gd-grid-root, .gd-sidebar-root, .gd-cal-panel, .gd-float, .gd-timeline-root {
+/* 注意：.gd-float 是 position:fixed 的自绘浮层，绝不能并进这一条。
+   v3.21 把它一起写成 position:relative 后，浮窗掉回 body 文档流（看起来「打不开」），
+   也不再是定位元素，拖角缩放全部失灵。这里把它单独排除。 */
+.gd-grid-root, .gd-sidebar-root, .gd-cal-panel, .gd-timeline-root {
   position: relative;
+  overflow: hidden;
+}
+.gd-float {
+  position: fixed;
   overflow: hidden;
 }
 .gd-pbg-video {
@@ -3563,13 +3625,11 @@ body.gd-tl-preview-above .gd-tl-preview-pane::before {
   white-space: nowrap;
 }
 
-/* ===== v3.21 流线图：顶部收起 + 改动上色 ===== */
+/* ===== v3.21 流线图：顶部收起 ===== */
 .gd-tl-top.is-compact .gd-tl-acts,
 .gd-tl-top.is-compact + .gd-side-search { display: none; }
 .gd-tl-gear { margin-left: auto; }
-.gd-tl-card.gd-tl-diff-new { border-left: 3px solid #4caf7d; }
-.gd-tl-card.gd-tl-diff-edit { border-left: 3px solid #e0a33e; }
-.gd-tl-card.gd-tl-diff-del { border-left: 3px solid #d9534f; }
+/* v3.23：改动上色三条色条（绿 #4caf7d / 橙 #e0a33e / 红 #d9534f）已删除 */
 .gd-mini-btn.is-accent {
   background: var(--gd-accent, #c2704f);
   border-color: var(--gd-accent, #c2704f);
@@ -3647,6 +3707,63 @@ body.gd-tl-preview-above .gd-tl-preview-pane::before {
   -webkit-backdrop-filter: blur(var(--gd-pbg-blur, 12px)) saturate(140%);
 }
 
+/* —— v3.23：目录上区 / 下区各自独立的背景 ——
+   变量由 applyProjectBg() 直接写在 .gd-split-top / .gd-split-bot 上，
+   父级 .gd-sidebar-root 保持透明，所以两块互不干扰。 */
+.gd-split-top, .gd-split-bot {
+  position: relative;
+  background-color: var(--gd-pbg-color, transparent);
+}
+.gd-split-top[data-pbg="gradient"], .gd-split-bot[data-pbg="gradient"],
+.gd-split-top[data-pbg="image"], .gd-split-bot[data-pbg="image"] {
+  background-image: var(--gd-pbg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.gd-split-top[data-pbg="transparent"], .gd-split-bot[data-pbg="transparent"] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+/* 上区格子：文件夹行；下区格子：文件行。两套各吃自己的 cellMode */
+.gd-split-top[data-cell-bg="color"] .gd-tree-folder { background: var(--gd-cell-bg, transparent); }
+.gd-split-top[data-cell-bg="image"] .gd-tree-folder {
+  background-image: var(--gd-cell-bg-image, none);
+  background-size: cover; background-position: center;
+}
+.gd-split-top[data-cell-bg="glass"] .gd-tree-folder {
+  background: color-mix(in srgb, var(--gd-surface) 72%, transparent);
+  backdrop-filter: blur(var(--gd-cell-blur, 8px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--gd-cell-blur, 8px)) saturate(140%);
+}
+.gd-split-bot[data-cell-bg="color"] .gd-tree-file { background: var(--gd-cell-bg, transparent); }
+.gd-split-bot[data-cell-bg="image"] .gd-tree-file {
+  background-image: var(--gd-cell-bg-image, none);
+  background-size: cover; background-position: center;
+}
+.gd-split-bot[data-cell-bg="glass"] .gd-tree-file {
+  background: color-mix(in srgb, var(--gd-surface) 72%, transparent);
+  backdrop-filter: blur(var(--gd-cell-blur, 8px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--gd-cell-blur, 8px)) saturate(140%);
+}
+
+/* —— v3.23：日历格子背景 ——
+   原来 applyProjectBg 写的是 --gd-cell-bg，但日历格子叫 .gd-cal-cell，
+   跟 .gd-cell 不是同一个选择器，所以这块一直不生效。现在补上。 */
+.gd-cal-panel[data-cell-bg="color"] .gd-cal-cell {
+  background: var(--gd-cell-bg, transparent);
+}
+.gd-cal-panel[data-cell-bg="image"] .gd-cal-cell {
+  background-image: var(--gd-cell-bg-image, none);
+  background-size: cover; background-position: center;
+}
+.gd-cal-panel[data-cell-bg="glass"] .gd-cal-cell {
+  background: color-mix(in srgb, var(--gd-surface) 72%, transparent);
+  backdrop-filter: blur(var(--gd-cell-blur, 8px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--gd-cell-blur, 8px)) saturate(140%);
+}
+
+
 /* —— 目录：第二层的「缩略图」（一张，当图标，不能拖不能缩） —— */
 .gd-sidebar-root[data-pbg="image"] .gd-tree-folder .gd-tree-icon.is-thumb {
   width: 18px; height: 18px; border-radius: 4px;
@@ -3670,8 +3787,7 @@ body.gd-tl-preview-above .gd-tl-preview-pane::before {
 .gd-tl-cell-titles { font-size: 12px; color: var(--gd-ink, #33302c); margin-top: 3px; }
 .gd-tl-cell-body { font-size: 12px; color: var(--gd-muted, #8a8279); margin-top: 3px; line-height: 1.6; }
 
-/* —— 三个改动色：新增（绿）/ 修改（琥珀）/ 删除（红）已在 3557-3559，这里只补一个空态兜底 —— */
-.gd-tl-card.gd-tl-diff-del { border-left-color: #d9534f; }
+/* v3.23：三个改动色（新增绿 / 修改琥珀 / 删除红）已删除 */
 
 /* —— 裁剪框：预览 → 一排快捷方式 →（手动框选 / 取消 / 保存） —— */
 .gd-crop-presets { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 10px 0 4px; }
@@ -3692,6 +3808,41 @@ body.gd-tl-preview-above .gd-tl-preview-pane::before {
 .gd-float-corner.is-ne { right: 0; top: 0; cursor: nesw-resize; }
 .gd-float-corner.is-sw { left: 0; bottom: 0; cursor: nesw-resize; }
 .gd-float-corner.is-se { right: 0; bottom: 0; cursor: nwse-resize; }
+
+/* ===== v3.23 灵感浮窗：普通笔记模式 =====
+   用户：「灵感悬浮窗……还可以当成一个普通的记笔记工具（非格子，不需要格式）」。
+   笔记模式整块就是一个 textarea，写 md 原文，不进格子、不走模板。 */
+.gd-float .gd-float-note { display: none; flex: 1; min-height: 0; }
+.gd-float.is-note-mode .gd-float-note { display: flex; flex-direction: column; }
+.gd-float.is-note-mode .gd-float-grid { display: none !important; }
+.gd-float-note-ta {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--gd-ink);
+  font-family: var(--gd-font);
+  font-size: var(--gd-font-size);
+  line-height: var(--gd-line-h, 1.7);
+  padding: 2px 0;
+  white-space: pre-wrap;
+}
+.gd-float-note-ta::placeholder { color: var(--gd-muted); opacity: .7; }
+.gd-float-mode { font-weight: 700; }
+
+/* 库里挑笔记时的 MD 卡片 */
+.gd-vaultpick-thumb.is-md {
+  background: linear-gradient(160deg, var(--gd-surface-2), var(--gd-surface));
+  border-style: dashed;
+}
+.gd-vaultpick-md {
+  font-size: 15px; font-weight: 700; letter-spacing: .08em;
+  color: var(--gd-muted);
+  pointer-events: none;
+}
 
 /* —— 目录：功能区单独占一行放在文件夹上面；隐藏文件夹那栏紧跟其后 —— */
 .gd-tree-toptools { flex: 0 0 auto; padding: 2px 4px 4px; }

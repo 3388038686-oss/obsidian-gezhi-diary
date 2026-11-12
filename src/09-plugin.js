@@ -19,8 +19,7 @@ class GridDiaryPlugin extends Plugin {
     this.settings = migrateSettings(saved);
     /* 迁移结果立刻落盘：否则每次启动都会判定「版本 < 3」而重复弹升级提示 */
     const _oldVer = Number(saved && saved.version) || 1;
-    const _needSave = _oldVer < 3 || !(saved && saved.diffColorMigrated);
-    if (_needSave) { try { await this.saveData(this.settings); } catch (e) { /* 写失败不影响加载 */ } }
+    if (_oldVer < 3) { try { await this.saveData(this.settings); } catch (e) { /* 写失败不影响加载 */ } }
     this.history = new HistoryManager(this);
     this.themes = new ThemeManager(this);
     this.templateCommandIds = [];
@@ -586,7 +585,11 @@ class GridDiaryPlugin extends Plugin {
         return (Number.isFinite(va) ? va : 999) - (Number.isFinite(vb) ? vb : 999);
       });
   }
-  /* 新建一篇日记：优先用自己写的 md 模板文件，其次用插件内的格子模板 */
+  /* 新建一篇日记：优先用自己写的 md 模板文件，其次用插件内的格子模板。
+     v3.23：模板文件找不到时**不再弹「模板文件不存在」拦人**，
+     改成静默跳过、直接落成一篇空格子日记（用户：
+     「我想使用灵感记录非格子以外总是显示没有对应的模板，不可以这样单一化」）。
+     真要提醒，只在控制台记一条，不打断写东西。 */
   async createDayFileFor(key) {
     const { date } = splitDayKey(key);
     const folder = normalizePath(this.settings.rootFolder || "日记");
@@ -599,8 +602,12 @@ class GridDiaryPlugin extends Plugin {
     if (tplPath) {
       const f = this.app.vault.getAbstractFileByPath(normalizePath(tplPath));
       if (f instanceof TFile) {
-        text = buildFromMdTemplate(key, date, await this.app.vault.read(f));
-      } else new Notice(`模板文件不存在：${tplPath}`);
+        try { text = buildFromMdTemplate(key, date, await this.app.vault.read(f)); }
+        catch (e) { console.warn("[格间日记] 模板套用失败，改用空格子", e); text = ""; }
+      } else {
+        /* 只记一笔，不弹 Notice，也不阻断建文件 */
+        console.warn("[格间日记] 模板文件不存在，这篇按空格子建：" + tplPath);
+      }
     }
     if (!text) {
       const tpl = this.settings.templates.find((t) => t.name === this.settings.activeTemplate) || this.settings.templates[0];
@@ -726,8 +733,10 @@ class GridDiaryPlugin extends Plugin {
     await this.openDay(day);
   }
 
-  /* v3.21：浮窗外壳的主题变量（字色 / 线色 / 强调色 / 圆角 / 皮肤）。
-     projectKey 传了就叠上那一处的独立配色；传 null = 纯跟随主题。 */
+  /* 浮窗外壳的主题变量。
+     v3.23：每处只剩「字色 / 线色 / 强调色」三项可独立，
+     其余（圆角/字号/字族/线宽/皮肤/透明度）一律取全局，不再有第二处来源。
+     projectKey 传了就叠那一处的三项；传 null = 纯跟随全局。 */
   applyShellTheme(el, projectKey) {
     if (!el) return;
     const s = this.settings;
@@ -739,12 +748,10 @@ class GridDiaryPlugin extends Plugin {
     if (ink) el.style.setProperty("--gd-ink", ink); else el.style.removeProperty("--gd-ink");
     const line = pv.lineColor || s.lineColor || "";
     if (line) el.style.setProperty("--gd-line", line); else el.style.removeProperty("--gd-line");
-    const radius = (pv.radius != null && pv.radius !== "") ? pv.radius : s.radius;
-    if (radius != null) el.style.setProperty("--gd-radius", clamp(radius, 0, 28) + "px");
-    const fs = pv.fontSize || s.fontSize;
-    if (fs) el.style.setProperty("--gd-font-size", clamp(fs, 10, 26) + "px");
-    if (pv.fontFamily || s.fontFamily) el.style.setProperty("--gd-font", pv.fontFamily || s.fontFamily);
-    if (pv.bgColor) el.style.setProperty("--gd-bg-color", pv.bgColor);
+    /* 以下全部只取全局，避免「每处一份」和「全局一份」互相覆盖 */
+    if (s.radius != null) el.style.setProperty("--gd-radius", clamp(s.radius, 0, 28) + "px");
+    if (s.fontSize) el.style.setProperty("--gd-font-size", clamp(s.fontSize, 10, 26) + "px");
+    if (s.fontFamily) el.style.setProperty("--gd-font", s.fontFamily);
     el.style.setProperty("--gd-line-w", clamp(s.lineWidth || 1, 0.5, 4) + "px");
     el.style.setProperty("--gd-line-style", s.lineStyle || "solid");
     el.style.setProperty("--gd-opacity", String(clamp(s.cardOpacity == null ? 1 : s.cardOpacity, 0.2, 1)));
@@ -820,8 +827,9 @@ class GridDiaryPlugin extends Plugin {
     wrap.style.height = h + "px";
     wrap.style.left = clamp(r.left != null ? r.left : vw - w - 40, 0, Math.max(0, vw - w)) + "px";
     wrap.style.top = clamp(r.top != null ? r.top : 80, 0, Math.max(0, vh - h)) + "px";
-    /* B5：壁纸不铺满整块，只在顶部占一条 banner，内容往下排，绝不重合 */
-    if (this.settings.calFloatWallOnTop) wrap.addClass("is-walltop");
+    /* v3.24：壁纸摆法统一由日历面板自己的 calWallpaperPos 决定
+       （banner = 顶部横幅，日历排在下方不重叠；full = 整页铺满）。
+       浮窗外壳不再额外加 is-walltop，免得两处规则打架。 */
 
     /* 纯色底 + 可调透明度 + 磨砂（用户反馈"背景透明度太多，看不清字"） */
     /* 跟随主题时忽略 calFloatBg（用户那个 #d62929 就是这块红底） */
@@ -910,7 +918,21 @@ class GridDiaryPlugin extends Plugin {
     this.calPanel.openInPane(host);
     try { this.applyProjectBg(); } catch (e) {}
     try { this.applyProjectVars(); } catch (e) {}
+    this.applyCalWallClass();
     this.applyCalCollapsed();
+  }
+
+  /* v3.24：把「底图怎么摆」同步到浮窗外壳上。
+     full  → 浮窗自己也要透明，让整页图片真正铺满整个显示区
+     banner → 浮窗保留底色，图片只在面板顶部那条 */
+  applyCalWallClass() {
+    const w = this.calFloatEl;
+    if (!w) return;
+    const s = this.settings;
+    const hasWall = !!(s.calWallpaper || "").trim();
+    const isFull = hasWall && s.calWallpaperPos === "full";
+    w.toggleClass("has-wall-full", isFull);
+    w.toggleClass("has-wall-banner", hasWall && !isFull);
   }
 
   /* 日历折叠成一条细边时，浮窗外壳也得跟着缩短，不然会留一大片空壳 */
@@ -1203,8 +1225,11 @@ class GridDiaryPlugin extends Plugin {
       this.refreshAll(true);
     } catch (e) { new Notice("设置封面失败：" + (e && e.message ? e.message : e)); }
   }
-  /* 库内路径 / 网络地址 → 可直接放进 <img>.src 的地址 */
-  /* 日历底图裁剪：框的宽高比按面板当前尺寸 */
+  /* 日历底图裁剪 / 调位置。
+     v3.24：框的宽高比要跟「图片真正显示的那块」一致，否则拖了选区看着也不对：
+       banner 模式 → 按横幅那条的宽高比（宽 × calBannerH）
+       full 模式   → 按整个日历面板的宽高比
+     拖动选区 = 换图片露出的部分，这就是用户说的「调整图片位置」。 */
   cropCalWall() {
     const s = this.settings;
     const p = s.calWallpaper || "";
@@ -1213,17 +1238,19 @@ class GridDiaryPlugin extends Plugin {
     if (!url) { new Notice("底图读不出来"); return; }
     const el = (this.calPanel && this.calPanel.el) || null;
     const w = (el && el.clientWidth) || 600;
-    const h = (el && el.clientHeight) || 600;
+    const isFull = s.calWallpaperPos === "full";
+    const bannerH = clamp(Number(s.calBannerH) || 120, 60, 360);
+    const h = isFull ? ((el && el.clientHeight) || 600) : bannerH;
     openCrop(this.app, {
       url,
       ratio: w / Math.max(h, 1),
       crop: s.calWallCrop || null,
-      title: "裁剪日历底图",
+      title: isFull ? "调整日历底图（整页铺满）：拖动选区换位置" : "调整日历横幅：拖动选区换位置",
       onOk: async (c) => {
         s.calWallCrop = c || null;
         await this.saveSettings();
         this.refreshCalendar();
-        new Notice(c ? "底图已裁剪" : "底图恢复整张");
+        new Notice(c ? "底图位置已更新" : "底图恢复整张");
       },
     });
   }
@@ -1326,6 +1353,7 @@ class GridDiaryPlugin extends Plugin {
 
   /* 让所有在显示的日历（浮窗 / 标签页）立刻重画 */
   refreshCalendar() {
+    try { this.applyCalWallClass(); } catch (e) { }
     try { if (this.calPanel && this.calPanel.el) { this.calPanel.buildIndex(); this.calPanel.render(); } } catch (e) { }
     try {
       const c = this.calendarInstance;
@@ -1377,31 +1405,31 @@ class GridDiaryPlugin extends Plugin {
 
   /* ══════════ 主题系统（v4）══════════ */
 
-  /* 把每个项目自己的字体/格子变量写到它的根元素上。
-     没填的项直接删掉变量，CSS 会自动回落到全局值（= 跟主题）。 */
+  /* 把每处自己的「字色 / 线色 / 强调色」写到它的根元素上。
+     v3.23 定案：文字格式（字族/字号/行高/缩进）统一由全局那一套管，
+     每处只留这三项；没填就删变量，CSS 自动回落到全局值（= 跟全局）。
+     兜底顺序统一写死成 pv.x || s.x，不再各处一套。 */
   applyProjectVars() {
     const s = this.settings;
     const pv = s.projectVars || {};
     for (const [key, , sel] of PROJECT_KEYS) {
       const mine = pv[key] || {};
       const roots = document.querySelectorAll(sel);
-      /* v3.22：流线图勾了「跟随主题」就不再叠自己的四个颜色项，
-         否则旧配色会一直压着主题（用户：这些颜色我没设计过）。 */
+      /* 流线图勾了「跟随主题」就整组跳过，避免旧配色压着主题 */
       const followTl = key === "tl" && s.tlFollowTheme !== false;
       for (const el of roots) {
-        for (const [k, cssVar] of PROJECT_VAR_KEYS) {
-          if (followTl && (k === "accent" || k === "fontColor" || k === "lineColor" || k === "bgColor")) continue;
-          const v = mine[k];
-          if (v === undefined || v === null || v === "") el.style.removeProperty(cssVar);
-          else if (k === "bgImage") {
-            const u = this.thumbUrl(String(v));
-            if (u) el.style.setProperty(cssVar, `url("${u}")`);
-            else el.style.removeProperty(cssVar);
-          } else {
-            const num = (k === "fontSize" || k === "lineWidth" || k === "radius" || k === "gap" || k === "pad" || k === "cellOpacity");
-            el.style.setProperty(cssVar, num ? String(v) + (k === "fontSize" || k === "radius" || k === "gap" || k === "pad" ? "px" : "") : String(v));
-          }
+        if (followTl) {
+          el.style.removeProperty("--gd-ink");
+          el.style.removeProperty("--gd-line");
+          el.style.removeProperty("--gd-accent");
+          continue;
         }
+        const ink = mine.fontColor || s.fontColor || "";
+        if (ink) el.style.setProperty("--gd-ink", ink); else el.style.removeProperty("--gd-ink");
+        const line = mine.lineColor || s.lineColor || "";
+        if (line) el.style.setProperty("--gd-line", line); else el.style.removeProperty("--gd-line");
+        const accent = mine.accent || s.accent || "";
+        if (accent) el.style.setProperty("--gd-accent", accent); else el.style.removeProperty("--gd-accent");
       }
     }
   }
@@ -1409,12 +1437,12 @@ class GridDiaryPlugin extends Plugin {
   /* ══════════ 五处各自的背景（v3.14）══════════
    * 把主页/目录/日历/悬浮窗/流线图各一份的背景配置，写到各自的根元素上。
    * 没配的项一律删变量，CSS 自动回落到主题值。 */
-  /* 某处背景「今天该长什么样」：把固定配置和换色节奏合到一起。
-     以前只读 mode/image/texture/glass，完全不读 rhythm，
-     所以用户「按日/按周/按月放了七张图」永远不生效——这就是那个 bug 的根。
-     现在：节奏开了就用槽位里的（可能是纯色 / 图片 / 纹理），没开才用固定配置。 */
+  /* v3.23：某处背景「今天该长什么样」。
+     原来这里会再叠一层「换色节奏」槽位（按日/按周/按月），
+     用户要求删掉按色结构，所以现在就是配置本身，不再按日期轮换。
+     dateStr 参数保留，只为不惊动所有调用点。 */
   resolveBgOf(cfg, dateStr) {
-    const out = {
+    return {
       mode: cfg.mode || "color",
       color: cfg.color || "",
       image: cfg.image || "",
@@ -1423,18 +1451,6 @@ class GridDiaryPlugin extends Plugin {
       video: cfg.video || "",
       fromRhythm: "",
     };
-    if (!cfg.rhythm || cfg.rhythm === "off") return out;
-    let slot = null;
-    try { slot = bgSlotOf(cfg, dateStr); } catch (e) { slot = null; }
-    if (!slot) return out;
-    if (slot.kind === "image") {
-      out.mode = "image"; out.image = slot.value; out.fromRhythm = "image";
-    } else if (slot.kind === "texture") {
-      out.mode = "texture"; out.texture = slot.value; out.fromRhythm = "texture";
-    } else if (slot.kind === "color" && slot.value) {
-      out.mode = "color"; out.color = slot.value; out.fromRhythm = "color";
-    }
-    return out;
   }
 
   /* 视频背景：CSS 背景放不了视频，得单独铺一层 <video> */
@@ -1535,10 +1551,10 @@ class GridDiaryPlugin extends Plugin {
         el.style.removeProperty("--gd-cell-bg-image");
         el.style.removeProperty("--gd-cell-blur");
 
-        /* 1.5：主页的「上区背景」跟「下区格子」拆成两块。
-           以前整页底图铺在格子后面，格子的磨砂和底色都被它盖住。
-           现在背景只画在上区（封面舞台 / 旧版封面），根元素自己透明，
-           下面那块格子只吃自己的格子背景。 */
+        /* 主页：中间背景与格子背景彻底分家。
+           中间背景（上区舞台 / 旧版封面）由 home 那份配置画，
+           根部自己保持透明；格子只吃 cellMode，不再跟中间背景叠一层。
+           v3.23：这里不再留任何「先画一层再清掉」的弯路。 */
         if (key === "home") {
           el.setAttr?.("data-pbg", "transparent");
           el.removeAttribute?.("data-pbg-tex");
@@ -1560,16 +1576,19 @@ class GridDiaryPlugin extends Plugin {
         }
 
         /* 目录上下两块各自的磨砂（3.7）：互不影响，没开就没有 backdrop-filter 开销 */
-        if (key === "dir") {
-          el.toggleClass?.("gd-tree-glass-top", s.treeGlassTop === true);
-          el.toggleClass?.("gd-tree-glass-bot", s.treeGlassBot === true);
+        if (key === "dirTop" || key === "dirBot") {
+          el.toggleClass?.("gd-tree-glass-top", key === "dirTop" && s.treeGlassTop === true);
+          el.toggleClass?.("gd-tree-glass-bot", key === "dirBot" && s.treeGlassBot === true);
         }
 
         /* 照片墙：主页的已经跟着背景搬到上区（见上面 key==="home" 分支），
            这里一律把根元素上的墙清掉，否则会在格子后面多铺一层。 */
         this.applyProjectWall(el, { wall: null });
 
-        /* 格子背景 */
+        /* 格子背景：只有主页（九宫格）和日历（日期格）有格子。
+           目录拆成上下两块之后，dirTop / dirBot 各自带一份自己的，互不影响。 */
+        const hasCells = (key === "home" || key === "cal" || key === "dirTop" || key === "dirBot");
+        if (!hasCells) continue;
         const cm = cfg.cellMode || "follow";
         el.setAttr?.("data-cell-bg", cm);
         if (cm === "color" && cfg.cellColor) el.style.setProperty("--gd-cell-bg", cfg.cellColor);
@@ -1681,9 +1700,6 @@ class GridDiaryPlugin extends Plugin {
       bgGradient: s.bgGradient,
       bgImage: s.bgImage,
       bgTexture: s.bgTexture,
-      bgRhythm: s.bgRhythm,
-      bgByMonth: JSON.parse(JSON.stringify(s.bgByMonth || {})),
-      bgByWeek: JSON.parse(JSON.stringify(s.bgByWeek || {})),
       fontFamily: s.fontFamily,
       fontSize: s.fontSize,
       fontColor: s.fontColor,
@@ -1742,6 +1758,6 @@ class GridDiaryPlugin extends Plugin {
     if (this.sidebar) this.sidebar.render();
     if (this.timeline) this.timeline.render();
     if (this.calendar) this.calendar.rebuild();
-    if (this.float && this.float.el) this.float.render();
+    if (this.float && this.float.el) this.float.paintShell();
   }
 }

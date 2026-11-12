@@ -151,70 +151,18 @@ class GridView extends ItemView {
     el.style.setProperty("--gd-line-w", (clamp(s.lineWidth || 1, 0.5, 4)) + "px");
     el.style.setProperty("--gd-line-style", s.lineStyle || "solid");
 
-    /* 底色：纯色 / 渐变 / 图片 / 纹理
-       v3.21：主页背景改由根元素（.gd-grid-root）画，
-       这里再画一遍会盖住外层（用户报「按频率换图没反应」的真因之一），
-       所以只要主页那份背景有实际取值，这里就整段跳过。 */
-    let ownedByRoot = false;
-    try {
-      const cfg = bgCfgOf(s, "home");
-      ownedByRoot = !!(cfg.color || cfg.image || cfg.video || cfg.gradient ||
-        (cfg.texture && cfg.texture !== "none") || (cfg.rhythm && cfg.rhythm !== "off"));
-    } catch (e) { ownedByRoot = false; }
-
-    if (ownedByRoot) {
-      el.removeAttribute?.("data-bg-mode");
-      el.removeAttribute?.("data-bg-texture");
-      el.removeAttribute?.("data-rhythm");
-      el.style.removeProperty("--gd-bg-color");
-      el.style.removeProperty("--gd-bg-image");
-      el.toggleClass("has-bg", false);
-      try { this.applyBgVideo(); } catch (e) { /* 视频失败不影响排版 */ }
-      return this.applyThemeTail(s, el, true);
-    }
-
-    const bm = s.bgMode || "color";
-    el.setAttr("data-bg-mode", bm);
+    /* 底色：v3.23 起主页背景只有一个出口 —— applyProjectBg()（projectBg.home）。
+       这里绝对不再自己画，否则就是「两次写入抢同一批变量」，
+       用户看到的就是主页背景忽有忽无、改了没反应。
+       老 data.json 里的 bgMode/bgColor/bgImage 由 bgCfgOf() 在 projectBg.home
+       为空时兜底读取，所以不用在这里补一遍。 */
+    el.removeAttribute?.("data-bg-mode");
+    el.removeAttribute?.("data-bg-texture");
+    el.removeAttribute?.("data-rhythm");
     el.style.removeProperty("--gd-bg-color");
     el.style.removeProperty("--gd-bg-image");
-    /* 槽位可能把底色改画成图片或纹理，记在块外，下面清理时要用 */
-    let slotMode = "color";
-    if (bm === "color") {
-      /* 底色优先级：节奏槽位 > 主题里的固定底色。
-         槽位里可能是纯色，也可能是一张图或一种纹理（v3.13）。 */
-      let slot = null;
-      try { slot = bgSlotForDate(this.key || todayStr(), s); } catch (e) { slot = null; }
-      if (slot && slot.kind === "image") {
-        /* 这一格放的是图片：整块铺满，当底图用 */
-        const u = this.coverUrl ? this.coverUrl(slot.value) : "";
-        if (u) el.style.setProperty("--gd-bg-image", 'url("' + u + '")');
-        el.setAttr("data-bg-mode", "image");
-        el.setAttr("data-rhythm", "image");
-        slotMode = "image";
-      } else if (slot && slot.kind === "texture") {
-        /* 这一格放的是纹理：用内置纹理画，一个字节都不占 */
-        el.setAttr("data-bg-mode", "texture");
-        el.setAttr("data-bg-texture", slot.value);
-        el.setAttr("data-rhythm", "texture");
-        slotMode = "texture";
-      } else {
-        const useCol = (slot && slot.kind === "color" ? slot.value : "") || s.bgColor;
-        if (useCol) el.style.setProperty("--gd-bg-color", useCol);
-      }
-      if (!slot || slot.kind === "color") { el.setAttr("data-rhythm", "color"); }
-    }
-    else if (bm === "gradient" && s.bgGradient) el.style.setProperty("--gd-bg-image", s.bgGradient);
-    else if (bm === "image" && s.bgImage) {
-      const u = this.coverUrl ? this.coverUrl(s.bgImage) : "";
-      if (u) el.style.setProperty("--gd-bg-image", 'url("' + u + '")');
-    } else if (bm === "texture" && s.bgTexture && s.bgTexture !== "none") {
-      el.setAttr("data-bg-texture", s.bgTexture);
-    }
-    /* 槽位把底色改成纹理时，bm 还是 color，所以要看 slotMode，
-       否则刚设好的纹理属性会被这一行擦掉（v3.13 修）。 */
-    if (bm !== "texture" && slotMode !== "texture") el.removeAttribute?.("data-bg-texture");
-    if (bm !== "color") el.removeAttribute?.("data-rhythm");
-    return this.applyThemeTail(s, el);
+    el.toggleClass("has-bg", false);
+    return this.applyThemeTail(s, el, true);
   }
 
   /* applyTheme 的尾段：字体、字色、线体、跟随主题、视频。

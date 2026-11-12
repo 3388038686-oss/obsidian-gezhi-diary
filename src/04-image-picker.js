@@ -14,16 +14,35 @@
  * ============================================================ */
 
 function pickIsImagePath(p) { return /\.(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(String(p || "")); }
+function pickIsVideoPath(p) { return typeof isVideoSrc === "function" ? isVideoSrc(p) : /\.(mp4|webm|ogv|mov|m4v|mkv)$/i.test(String(p || "")); }
+function pickIsMediaPath(p) { return pickIsImagePath(p) || pickIsVideoPath(p); }
+/* 系统文件框的 accept：允许视频时一起放开，否则「从系统里选」根本选不到 mp4 */
+function pickAccept(o) {
+  const a = o && o.accept;
+  if (a) return a;
+  return (o && o.allowVideo === false) ? "image/*" : "image/*,video/*";
+}
+function pickExtOf(p) {
+  const m = /\.([a-z0-9]{2,5})$/i.exec(String(p || "").split("?")[0]);
+  return m ? m[1].toLowerCase() : "";
+}
 
-/* 从库里挑：缩略图网格 + 搜索 + 多选 */
+/* 从库里挑：类型筛选（全部 / 图片 / 视频）+ 缩略图网格 + 搜索 + 多选。
+   v3.23：加了 mdOnly，给灵感浮窗的「普通笔记」挑 md 用 —— 那种场景不要视频不要图。 */
 class VaultPickModal extends Modal {
   constructor(app, plugin, opts) {
     super(app);
     this.plugin = plugin;
     this.o = opts || {};
     this.multi = !!this.o.multiple;
+    this.mdOnly = !!this.o.mdOnly;
+    this.allowVideo = this.o.allowVideo !== false;
     this.picked = new Set();
     this.kw = "";
+    /* 类型筛选：跟着设置记住上次选的，下次打开还是那一档 */
+    const saved = plugin && plugin.settings && plugin.settings.pickKind;
+    this.kind = this.o.kind || (saved === "image" || saved === "video" ? saved : (this.allowVideo ? "all" : "image"));
+    if (!this.allowVideo) this.kind = "image";
   }
   onOpen() {
     const { contentEl } = this;
@@ -33,10 +52,28 @@ class VaultPickModal extends Modal {
     contentEl.createEl("h3", { text: this.o.title || "从库里挑一张图" });
     contentEl.createDiv({
       cls: "gd-vaultpick-tip",
-      text: this.multi ? "点图片选中（可多选），最后按「用这些」。" : "点一下图片就选中。",
+      text: this.mdOnly
+        ? (this.multi ? "点一下选中（可多选）。这里只列笔记。" : "点一下就打开这篇笔记。")
+        : (this.multi ? "点一下选中（可多选），最后按「用这些」。图片和视频都在这里。" : "点一下就选中。图片和视频都在这里。"),
     });
 
     const bar = contentEl.createDiv({ cls: "gd-vaultpick-bar" });
+    /* 类型筛选：用户要的「能选视频，也要有格式」。挑笔记时不显示 */
+    if (this.allowVideo && !this.mdOnly) {
+      this.tabsEl = bar.createDiv({ cls: "gd-vaultpick-tabs" });
+      const tabs = [["all", "全部"], ["image", "图片"], ["video", "视频"]];
+      for (const [k, label] of tabs) {
+        const b = this.tabsEl.createEl("button", { text: label, cls: "gd-vaultpick-tab" });
+        if (this.kind === k) b.addClass("is-on");
+        b.onclick = () => {
+          this.kind = k;
+          if (this.plugin && this.plugin.settings) { this.plugin.settings.pickKind = k; try { this.plugin.saveSettings(); } catch (e) { } }
+          for (const x of this.tabsEl.children) x.removeClass("is-on");
+          b.addClass("is-on");
+          this.paint();
+        };
+      }
+    }
     const inp = bar.createEl("input", { attr: { type: "text", placeholder: "搜文件名…" }, cls: "gd-vaultpick-search" });
     inp.oninput = () => { this.kw = String(inp.value || "").trim().toLowerCase(); this.paint(); };
 
@@ -44,7 +81,10 @@ class VaultPickModal extends Modal {
     this.footEl = contentEl.createDiv({ cls: "gd-modal-actions" });
 
     this.all = (this.app.vault.getFiles() || [])
-      .filter((f) => pickIsImagePath(f.path))
+      .filter((f) => {
+        if (this.mdOnly) return f.extension === "md";
+        return this.allowVideo ? pickIsMediaPath(f.path) : pickIsImagePath(f.path);
+      })
       .sort((a, b) => (b.stat && b.stat.mtime ? b.stat.mtime : 0) - (a.stat && a.stat.mtime ? a.stat.mtime : 0));
     this.paint();
 
@@ -63,20 +103,40 @@ class VaultPickModal extends Modal {
   paint() {
     if (!this.gridEl) return;
     this.gridEl.empty();
-    const list = this.kw ? this.all.filter((f) => f.path.toLowerCase().includes(this.kw)) : this.all;
+    let list = this.all;
+    if (!this.mdOnly) {
+      if (this.kind === "image") list = list.filter((f) => pickIsImagePath(f.path));
+      else if (this.kind === "video") list = list.filter((f) => pickIsVideoPath(f.path));
+    }
+    if (this.kw) list = list.filter((f) => f.path.toLowerCase().includes(this.kw));
     if (!list.length) {
+      const what = this.mdOnly ? "笔记" : (this.kind === "video" ? "视频" : (this.kind === "image" ? "图片" : "图片或视频"));
       this.gridEl.createDiv({
         cls: "gd-vaultpick-empty",
-        text: this.all.length ? "没有匹配的图，换个词试试" : "库里还没有图片，先用「从系统里选」传一张",
+        text: this.mdOnly
+          ? (this.all.length ? "没有匹配的笔记，换个词试试" : "库里还没有 md 笔记")
+          : (this.all.length ? `没有匹配的${what}，换个词或切一下上面的「全部 / 图片 / 视频」` : `库里还没有${what}，先用「从系统里选」传一个`),
       });
       return;
     }
     for (const f of list.slice(0, 240)) {
+      const isVid = !this.mdOnly && pickIsVideoPath(f.path);
       const cell = this.gridEl.createDiv({ cls: "gd-vaultpick-cell" });
       if (this.picked.has(f.path)) cell.addClass("is-on");
-      const url = this.plugin && this.plugin.thumbUrl ? this.plugin.thumbUrl(f.path) : "";
       const box = cell.createDiv({ cls: "gd-vaultpick-thumb" });
-      if (url) box.style.backgroundImage = `url("${url}")`;
+      if (this.mdOnly) {
+        box.addClass("is-md");
+        box.createDiv({ cls: "gd-vaultpick-md", text: "MD" });
+      } else if (isVid) {
+        box.addClass("is-video");
+        box.createDiv({ cls: "gd-vaultpick-play", text: "▶" });
+      } else {
+        const url = this.plugin && this.plugin.thumbUrl ? this.plugin.thumbUrl(f.path) : "";
+        if (url) box.style.backgroundImage = `url("${url}")`;
+      }
+      /* 格式角标：视频显示 mp4/webm，图片也标一下扩展名，用户要「有格式」 */
+      const ext = pickExtOf(f.path);
+      if (ext && !this.mdOnly) cell.createDiv({ cls: "gd-vaultpick-badge" + (isVid ? " is-video" : ""), text: ext.toUpperCase() });
       cell.createDiv({ cls: "gd-vaultpick-name", text: f.basename });
       cell.onclick = () => {
         if (this.multi) {
@@ -128,9 +188,9 @@ class ImageSourceModal extends Modal {
   finish(list) { if (this.o.onDone) this.o.onDone(list && list.length ? list : null); }
   async fromSystem() {
     const f = await chooseLocalFile({
-      accept: this.o.accept || "image/*",
+      accept: pickAccept(this.o),
       multiple: !!this.o.multiple,
-      title: this.o.systemTitle || "从电脑里选图",
+      title: this.o.systemTitle || "从电脑里选图或视频",
     });
     if (!f) return;
     const arr = Array.isArray(f) ? f : [f];
@@ -143,6 +203,7 @@ class ImageSourceModal extends Modal {
     new VaultPickModal(this.app, this.plugin, {
       title: this.o.title || "从库里挑一张图",
       multiple: !!this.o.multiple,
+      allowVideo: this.o.allowVideo !== false,
       onDone: (list) => { self.close(); self.finish(list); },
     }).open();
   }

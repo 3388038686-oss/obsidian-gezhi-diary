@@ -17,6 +17,14 @@ class GDFloat {
     this.layout = {};
     this.docked = "";
     this.drag = null;
+    /* v3.23：浮窗有两种模式。
+       grid = 老样子，读当天那篇九宫格日记；
+       note = 普通笔记，直接编辑任意 md，不走模板、不切格子、不受日期限制。
+       用户原话：「灵感悬浮窗设置成不仅有与格子联动还可以当成一个普通的记笔记工具（非格子，
+       不需要格式）……我想使用灵感记录非格子以外总是显示没有对应的模板，不可以这样单一化。」 */
+    this.mode = "grid";
+    this.notePath = "";       // note 模式下当前文件的库内路径
+    this.noteTimer = null;
     this.saveTimer = debounce(() => this.saveNow(), 800);
   }
   get app() { return this.plugin.app; }
@@ -28,6 +36,8 @@ class GDFloat {
   }
   async open(key) {
     if (this.el) { if (key) await this.load(key); return; }
+    /* v3.23：恢复上次用的模式（格子 / 普通笔记） */
+    this.mode = this.sx.floatMode === "note" ? "note" : "grid";
     const host = document.body;
     const wrap = document.createElement("div");
     wrap.addClass("gd-root");
@@ -45,6 +55,7 @@ class GDFloat {
     wrap.style.left = `${clamp(r.left != null ? r.left : vw - w - 40, 0, Math.max(0, vw - w))}px`;
     wrap.style.top = `${clamp(r.top != null ? r.top : 90, 0, Math.max(0, vh - h))}px`;
     this.build();
+    if (this.mode === "note") { await this.loadNote(this.notePath || ""); return; }
     await this.load(key || todayStr());
   }
   close() {
@@ -73,14 +84,21 @@ class GDFloat {
       return btn;
     };
     b("大", "切换尺寸（小 / 中 / 大）", () => this.cycleSize());
-    b("≡", "在主区打开这一天", () => this.plugin.openDay(this.key));
+    b("≡", "在主区打开这一天 / 这篇", () => this.openInMain());
+    /* v3.23：格子 / 笔记 两模式一键切 */
+    const modeBtn = b(this.mode === "note" ? "▦" : "✎",
+      this.mode === "note" ? "切回格子模式（跟当天日记联动）" : "切成普通笔记（随便写，不进格子）",
+      () => this.toggleMode());
+    modeBtn.addClass("gd-float-mode");
     b("—", "收缩成一条（再点展开）", () => this.collapseBar());
     b("×", "关闭悬浮窗（位置会记住）", () => this.close());
 
     this.scrollEl = el.createDiv({ cls: "gd-float-scroll" });
     this.dateEl = this.scrollEl.createDiv({ cls: "gd-float-date" });
     this.gridEl = this.scrollEl.createDiv({ cls: "gd-grid gd-float-grid" });
+    this.noteEl = this.scrollEl.createDiv({ cls: "gd-float-note" });
     this.footEl = el.createDiv({ cls: "gd-float-foot" });
+    el.toggleClass("is-note-mode", this.mode === "note");
 
     /* 拖动标题条 */
     this.barEl.addEventListener("pointerdown", (ev) => {
@@ -185,6 +203,7 @@ class GDFloat {
   }
 
   async load(key) {
+    if (this.mode === "note") { await this.loadNote(); return; }
     this.key = key || todayStr();
     const folder = normalizePath(this.sx.rootFolder || "日记");
     const path = `${folder}/${this.key}.md`;
@@ -199,6 +218,69 @@ class GDFloat {
     this.layout = normalizeLayout(parsed.layout, this.sx);
     this.cells = normalizeCells(parsed.cells, parsed.layout, this.sx);
     this.render();
+  }
+
+  /* ---------- v3.23：普通笔记模式 ----------
+   * 读任意一篇 md 当纯文本编辑，不解析成格子、不进模板、不要求文件名叫日期。
+   * 没选过文件就自己建一篇「灵感-时间戳.md」放在灵感目录里。 */
+  noteFolder() { return normalizePath(this.sx.floatNoteFolder || "灵感"); }
+  async createNote() {
+    const folder = this.noteFolder();
+    await this.plugin.ensureFolder(folder);
+    const d = new Date();
+    const p2 = (n) => String(n).padStart(2, "0");
+    const stamp = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+    let path = `${folder}/灵感-${stamp}.md`;
+    let i = 1;
+    while (this.app.vault.getAbstractFileByPath(path)) path = `${folder}/灵感-${stamp}-${i++}.md`;
+    await this.app.vault.create(path, "");
+    return path;
+  }
+  async loadNote(path) {
+    let p = path || this.notePath;
+    if (!p || !(this.app.vault.getAbstractFileByPath(normalizePath(p)) instanceof TFile)) {
+      p = await this.createNote();
+    }
+    this.notePath = p;
+    const f = this.app.vault.getAbstractFileByPath(normalizePath(p));
+    this.noteFile = f;
+    this.render();
+  }
+  /* 切模式：格子 ⇄ 笔记。笔记模式下没有日期翻页，也不会再去找模板。
+     先把模式定下来，再重建外壳（按钮图标跟着模式变），最后加载对应内容。 */
+  async toggleMode() {
+    this.mode = this.mode === "note" ? "grid" : "note";
+    try { this.plugin.settings.floatMode = this.mode; this.plugin.saveSettings(); } catch (e) { }
+    this.build();
+    if (this.mode === "note") await this.loadNote(this.notePath || "");
+    else await this.load(this.key);
+  }
+  /* 只刷新外观（背景 / 字色 / 圆角 / 皮肤），绝不重建内容。
+     v3.24：设置页调外观时用它，避免把正在写的 textarea 拆掉。 */
+  paintShell() {
+    if (!this.el) return;
+    const el = this.el;
+    el.style.setProperty("--gd-cols", String(clamp(this.sx.columns, 1, 6)));
+    el.style.setProperty("--gd-row-h", `${clamp(this.sx.rowHeight, 80, 600)}px`);
+    el.style.setProperty("--gd-gap", `${clamp(this.sx.gap, 0, 48)}px`);
+    el.style.setProperty("--gd-radius", `${clamp(this.sx.radius, 0, 28)}px`);
+    el.style.setProperty("--gd-font-size", `${clamp(this.sx.fontSize, 10, 26)}px`);
+    el.classList.toggle("is-hover-lift", !!this.sx.hoverLift);
+    try { this.plugin.applyShellTheme(el, this.sx.floatFollowTheme === false ? "float" : null); } catch (e) { }
+    try { this.plugin.applyProjectBg && this.plugin.applyProjectBg(); } catch (e) { }
+    const bg = this.sx.floatBg || "";
+    const op = clamp(this.sx.floatBgOpacity == null ? 1 : this.sx.floatBgOpacity, 0.2, 1);
+    el.style.setProperty("--gd-float-bg-opacity", String(op));
+    if (bg) {
+      const u = /^https?:\/\//i.test(bg) ? bg : (this.plugin.thumbUrl ? this.plugin.thumbUrl(bg) : "");
+      if (u) {
+        el.style.backgroundImage = 'url("' + u + '")';
+        el.addClass("has-bg");
+      }
+    } else {
+      el.style.backgroundImage = "";
+      el.removeClass("has-bg");
+    }
   }
   render() {
     if (!this.el) return;
@@ -234,6 +316,17 @@ class GDFloat {
     }
 
     this.dateEl.empty();
+    if (this.mode === "note") {
+      /* 笔记模式：标题换成文件名，右边一排「新建 / 挑一篇 / 在库里打开」，没有日期翻页 */
+      const f = this.noteFile || (this.notePath ? this.app.vault.getAbstractFileByPath(normalizePath(this.notePath)) : null);
+      this.dateEl.createSpan({ cls: "gd-float-day", text: f ? f.basename : "新笔记" });
+      const nav = this.dateEl.createDiv({ cls: "gd-float-nav" });
+      const nb2 = (t, tt, fn) => { const x = nav.createEl("button", { text: t, cls: "gd-float-mini", attr: { title: tt } }); x.onclick = fn; };
+      nb2("＋新", "新建一篇空白笔记", async () => { this.notePath = ""; await this.loadNote(""); this.render(); });
+      nb2("挑", "从库里挑一篇已有的 md", () => this.pickNote());
+      this.renderNote();
+      return;
+    }
     this.dateEl.createSpan({ cls: "gd-float-day", text: `${dateShort(this.key)} ${weekdayCN(this.key)}` });
     const nav = this.dateEl.createDiv({ cls: "gd-float-nav" });
     const nb = (t, tt, fn) => { const x = nav.createEl("button", { text: t, cls: "gd-float-mini", attr: { title: tt } }); x.onclick = fn; };
@@ -252,6 +345,109 @@ class GDFloat {
     this.footEl.createSpan({ text: `${this.cells.length} 格 · ${this.cells.reduce((n, x) => n + x.content.length, 0)} 字` });
     const hint = this.footEl.createSpan({ cls: "gd-float-hint", text: "Ctrl+S 保存 · Esc 关闭" });
     hint.onclick = () => this.saveNow(true);
+  }
+
+  /* ---------- v3.23：笔记模式的渲染 ----------
+   * 一个整块的 textarea，直接写 md 原文。不做格子、不做格式、不弹模板。
+   * v3.24 修：这段以前每 400ms 被 notifyRefresh 重建一次，输入时光标跟着飞。
+   * 现在跟格子模式同一套保护：_saving 标记 + 焦点守卫，见 refresh()。 */
+  async renderNote() {
+    const el = this.noteEl;
+    if (!el) return;
+    this.gridEl.empty();
+    this.gridEl.style.display = "none";
+    el.style.display = "";
+    el.empty();
+    if (!this.notePath) {
+      el.createDiv({ cls: "gd-float-empty", text: "点上面的「＋新」建一篇，或点「挑」选库里已有的一篇。" });
+      this.footEl.empty();
+      this.footEl.createSpan({ text: "普通笔记模式 · 不进格子、不需要模板" });
+      return;
+    }
+    const f = this.app.vault.getAbstractFileByPath(normalizePath(this.notePath));
+    if (!(f instanceof TFile)) {
+      el.createDiv({ cls: "gd-float-empty", text: "这篇不见了：可能被改名或删了。点「＋新」重开一篇。" });
+      return;
+    }
+    this.noteFile = f;
+    let text = "";
+    try { text = await this.app.vault.read(f); } catch (e) { text = ""; }
+    const ta = el.createEl("textarea", { cls: "gd-float-note-ta", attr: { placeholder: "随便写。这里是普通笔记，不进格子，不需要模板。" } });
+    ta.value = text;
+    ta.oninput = () => { this.saveNote(ta.value); };
+    /* 失焦才落盘。以前这里同步调 saveNoteNow，配合下面 refresh 的重建会把光标顶掉 */
+    ta.addEventListener("blur", () => this.saveNoteNow());
+    /* Ctrl+S 立刻落盘 */
+    ta.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); this.saveNoteNow(); }
+    });
+
+    this.paintNoteFoot(f, text);
+  }
+  /* 只更新底部字数，不碰 textarea —— 输入过程中只走这一条，绝不重建 */
+  paintNoteFoot(f, text) {
+    if (!this.footEl) return;
+    this.footEl.empty();
+    const base = (f && f.basename) || "新笔记";
+    const len = String(text == null ? "" : text).length;
+    this.footEl.createSpan({ text: `${base} · ${len} 字` });
+    const open = this.footEl.createSpan({ cls: "gd-float-hint", text: "在库里打开" });
+    open.onclick = () => {
+      const ff = this.noteFile || (this.notePath ? this.app.vault.getAbstractFileByPath(normalizePath(this.notePath)) : null);
+      if (ff instanceof TFile) { try { this.app.workspace.getLeaf(true).openFile(ff); } catch (e) { } }
+    };
+  }
+  /* 从库里挑一篇 md 当笔记 */
+  pickNote() {
+    const files = (this.app.vault.getFiles() || []).filter((f) => f.extension === "md");
+    new VaultPickModal(this.app, this.plugin, {
+      title: "挑一篇笔记",
+      allowVideo: false,
+      mdOnly: true,
+      onDone: async (list) => {
+        if (!list || !list.length) return;
+        this.notePath = list[0].path;
+        await this.loadNote(this.notePath);
+        this.render();
+      },
+    }).open();
+  }
+  saveNote(text) {
+    if (!this.notePath) return;
+    if (this.noteTimer) clearTimeout(this.noteTimer);
+    this.noteTimer = setTimeout(() => this.saveNoteNow(text), 700);
+  }
+  /* v3.24：完全照搬格子模式 saveNow 的做法 ——
+     落盘期间挂 _saving，写完再让别的视图知道「文件变了」。
+     不调 notifyRefresh 就不会触发自己重建，光标不会飞。
+     底部字数在写完后就地更新，也不碰 textarea。 */
+  async saveNoteNow(text) {
+    if (!this.notePath) return;
+    if (this.noteTimer) { clearTimeout(this.noteTimer); this.noteTimer = null; }
+    const f = this.app.vault.getAbstractFileByPath(normalizePath(this.notePath));
+    if (!(f instanceof TFile)) return;
+    const ta = this.noteEl ? this.noteEl.querySelector(".gd-float-note-ta") : null;
+    const val = typeof text === "string" ? text : (ta ? ta.value : "");
+    try {
+      const cur = await this.app.vault.read(f);
+      if (cur === val) { this.paintNoteFoot(f, val); return; }
+      this._saving = true;
+      try {
+        await this.app.vault.modify(f, val);
+        /* 只让别的视图知道文件变了；自己这边一个字都不动 */
+        try { this.plugin.notifyRefresh && this.plugin.notifyRefresh(); } catch (e) { }
+      } finally { this._saving = false; }
+      this.paintNoteFoot(f, val);
+    } catch (e) { this._saving = false; console.error("[格间日记] 笔记保存失败", e); }
+  }
+  /* 主区打开：格子模式打开那天，笔记模式打开那篇 */
+  openInMain() {
+    if (this.mode === "note" && this.notePath) {
+      const f = this.app.vault.getAbstractFileByPath(normalizePath(this.notePath));
+      if (f instanceof TFile) { try { this.app.workspace.getLeaf(true).openFile(f); return; } catch (e) { } }
+      return;
+    }
+    this.plugin.openDay(this.key);
   }
   renderCell(c) {
     const el = this.gridEl.createDiv({ cls: "gd-cell gd-float-cell" });
@@ -300,6 +496,7 @@ class GDFloat {
   }
   async saveNow(immediate) {
     this.saveTimer.cancel();
+    if (this.mode === "note") { await this.saveNoteNow(); return; }
     if (!(this.file instanceof TFile)) return;
     try {
       const text = serializeDay(this.key, this.cells, {
@@ -327,12 +524,46 @@ class GDFloat {
   }
   refresh(key, force) {
     if (!this.el) return;
+    /* v3.24：笔记模式和格子模式走完全同一套保护。
+       以前笔记分支直接 renderNote()，绕过 _saving 与焦点守卫，
+       结果 notifyRefresh（400ms 防抖，文件一改就触发）反复重建 textarea，
+       打字打到一半光标就飞、内容也存不全 —— 用户报的「输入时跳转保存」就是这条。
+       现在：自己在保存中 / 光标在输入框里 → 一律不重建，只刷新底部字数。 */
+    if (this.mode === "note") {
+      if (this._saving) return;
+      const act = document.activeElement;
+      const inEditor = !!(act && this.el.contains(act) &&
+        (act.tagName === "TEXTAREA" || act.tagName === "INPUT"));
+      if (!force && inEditor) return;   // 正在写，一个字都别动
+      /* 没在写的时候才允许同步一次（例如别的窗口改了同一个文件、或切了模式） */
+      try { this.syncNoteFromDisk(); } catch (e) { }
+      return;
+    }
     /* 自己刚写完的、或者光标还在输入框里，就别重建，否则光标飞了。
        force=true 是「别的窗口换了天」，这时候必须跟，哪怕光标在输入框里。 */
     if (this._saving) return;
-    const act = document.activeElement;
-    if (!force && act && this.el.contains(act) && (act.tagName === "TEXTAREA" || act.tagName === "INPUT")) return;
+    const act2 = document.activeElement;
+    if (!force && act2 && this.el.contains(act2) && (act2.tagName === "TEXTAREA" || act2.tagName === "INPUT")) return;
     if (key && splitDayKey(key).date !== splitDayKey(this.key).date) this.load(key);
     else this.load(this.key);
+  }
+  /* 把磁盘上的内容同步进已经开着的 textarea，但不重建它。
+     光标位置、滚动位置都原样保住；内容没变就什么都不做。 */
+  async syncNoteFromDisk() {
+    if (this.mode !== "note" || !this.notePath) return;
+    const f = this.app.vault.getAbstractFileByPath(normalizePath(this.notePath));
+    if (!(f instanceof TFile)) return;
+    const ta = this.noteEl ? this.noteEl.querySelector(".gd-float-note-ta") : null;
+    if (!ta) { await this.renderNote(); return; }
+    let disk = "";
+    try { disk = await this.app.vault.read(f); } catch (e) { return; }
+    if (disk === ta.value) { this.paintNoteFoot(f, ta.value); return; }
+    /* 磁盘内容和正在写的不一样：说明是外部改的，保留光标位置再换文本 */
+    const s0 = ta.selectionStart, s1 = ta.selectionEnd;
+    const top = ta.scrollTop;
+    ta.value = disk;
+    try { ta.selectionStart = Math.min(s0, disk.length); ta.selectionEnd = Math.min(s1, disk.length); } catch (e) { }
+    ta.scrollTop = top;
+    this.paintNoteFoot(f, disk);
   }
 }

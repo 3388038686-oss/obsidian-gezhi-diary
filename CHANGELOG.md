@@ -1,5 +1,67 @@
 # 更新日志
 
+## 3.24.1 — 2026-11-12
+
+修复灵感浮窗「普通笔记」模式输入时跳转、内容存不全。
+
+- 根因：`GDFloat.refresh()` 的笔记分支直接 `renderNote()`，绕过了格子模式那两道保护（`_saving` 标记与光标守卫）。`renderNote()` 会 `empty()` 后重建 textarea，于是「打字 → 700ms 防抖落盘 → vault modify → notifyRefresh（400ms）→ 无条件重建」形成循环，光标每 1.1 秒被重置一次。
+- 修法：笔记模式完全套用格子模式那一套 —— `saveNoteNow()` 落盘期间挂 `_saving`，写完再 `notifyRefresh`；`refresh()` 里若在保存中、或光标就在编辑框里，一律不重建。
+- 新增 `syncNoteFromDisk()`：外部改了同一个文件时就地替换 `value`，并恢复 `selectionStart` / `selectionEnd` / `scrollTop`，不重建节点。
+- 新增 `paintShell()`：设置页改背景 / 透明度 / 跟随主题那 4 处、以及 `applyAllTheme()` 那 1 处，原来都调 `float.render()`（笔记模式下会重建正文），现改为只重绘 CSS 变量与 class。
+- 字数改由 `paintNoteFoot()` 就地更新，不碰编辑器。
+- 测试：`domsmoke.mjs` 新增 [D22] 7 条，含「正在输入时 refresh 不重建编辑框（同一节点引用）」「内容没被清空」「保存中不重建」。
+
+## 3.24.0 — 2026-11-12
+
+日历底图收成两种摆法，横幅不再压住日历。
+
+- 根因：旧实现用 `::before` 画一层固定 96px 的图，内容区只加 4px padding，图片是浮在字上的，所以「日历与图片重叠」。
+- **顶部横幅**（新默认）：面板改成 flex 纵向排列，横幅是真实占位的首个子项（`flex: 0 0 var(--gd-cal-wall-h)`），日历整体排在它后面，结构上不可能重叠。横幅高度 60–360px 可调，日历跟着让位。
+- **整块铺满**：图片当整页背景，日历浮在上面，压 68% 蒙层保证数字可读。修掉浮窗自身 `--gd-cal-float-bg` 盖住图片的问题（`has-wall-full` 时底色让位）。
+- 裁剪框比例跟着当前摆法走（横幅按「面板宽 × 横幅高度」、铺满按整页），拖选区即换取景，所见即所得。
+- 新增「图片在框里怎么放」：填满 / 完整放下。
+- 移除 `left-top` / `right-bottom` / `both` 三种摆位（它们就是「图压在日历上」的那三种），以及 `calFloatWallOnTop` 外壳开关。
+- 一次性迁移：老的四摆位统一转成 `banner`，`full` 保留。
+
+## 3.23.0 — 2026-11-12
+
+背景配置收口、删掉按色结构、灵感浮窗支持普通笔记。
+
+### 删掉「除目录以外」的按色结构
+
+- 整块移除按日 / 按周 / 按月换色：`MONTH_SLOT_N`、`MONTH_PALETTE`、`WEEK_PALETTE`、`DAY_PALETTE`、`parseSlot`、`slotRaw`、`bgRawSlot`、`bgRawSlotOf`、`bgSlotOf`、`bgSlotForDate`、`bgColorForDate`。
+- 流线图卡片左边那三条改动色条（绿 `#4caf7d` / 橙 `#e0a33e` / 红 `#d9534f`）连同设置开关一起删除。
+- `migrateSettings()` 主动清掉老 data.json 里的 `bgRhythm` / `bgByDay` / `bgByWeek` / `bgByMonth` / `timelineColorDiff` / `diffColorMigrated`，避免「界面没入口、内存还留旧值」。
+- 目录的按序配色（`TREE_COLOR_SETS` / `treeColorOf` / `treeRingRandom`）保留。
+
+### 背景分区（原来同一个 CSS 变量被三套写，改一处别处跟着变）
+
+- 目录拆成 `dirTop` / `dirBot`，分别画在 `.gd-split-top` / `.gd-split-bot`，老数据的一份 `projectBg.dir` 自动兜底给两块。
+- 主页：中间背景画在封面舞台，根元素保持透明，格子只吃自己的 `cellMode`，不再叠一层。
+- 日历格子背景补上 `.gd-cal-cell` 规则 —— 之前写的是 `.gd-cell`，选择器不匹配，这块从来没生效过。
+- `BG_PROJECTS` 从 5 条变 6 条。
+
+### 文字配色
+
+- `PROJECT_VAR_KEYS` 从 12 项收到 3 项（字色 / 线色 / 强调色），兜底统一 `pv.x || s.x`。
+- 字族 / 字号 / 行高 / 首行缩进统一归「主题」一套。
+- `applyShellTheme()` 不再写 `--gd-bg-color`（D 类串台来源），圆角 / 字号 / 字族只取全局。
+
+### 灵感浮窗：普通笔记模式
+
+- 标题栏 `✎` / `▦` 一键切换格子模式与普通笔记模式。
+- 普通笔记直接编辑任意 md，不进格子、不要求模板、不跟日期绑；「＋新」按时间戳建、「挑」从库里选。
+- `createDayFileFor()` 遇到模板文件不存在时不再弹「模板文件不存在」拦人，改为静默跳过建成空格子日记（用户 data.json 里填的 `05template模板/…` 实际不存在，导致每次新建都弹一次）。
+
+### 选图器
+
+- 库里选图支持视频，面板顶部加「全部 / 图片 / 视频」筛选，缩略图带格式角标。
+- 系统文件框 `accept` 从 `image/*` 放开成 `image/*,video/*`。
+
+### 修
+
+- 浮窗 / 日历浮窗被 `.gd-grid-root, …, .gd-float, … { position: relative }` 这条后置同权重规则覆盖掉 `position: fixed`，退回文档流、看起来打不开、四角缩放全失效。`.gd-float` 已从该规则中剔除。
+
 ## 3.22.2 — 2026-11-10
 
 修复「流线图改动色条怎么关都还在」。

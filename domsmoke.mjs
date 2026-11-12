@@ -109,6 +109,13 @@ class FakeEl {
     return this._all([]).filter((c) => c.classList && wanted.some((w) => c.classList.has(w)));
   }
   querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
+  contains(node) {
+    if (!node) return false;
+    if (node === this) return true;
+    let p = node.parentElement;
+    while (p) { if (p === this) return true; p = p.parentElement; }
+    return false;
+  }
   remove() {
     if (this.parentElement) {
       const i = this.parentElement.children.indexOf(this);
@@ -324,7 +331,7 @@ mod.default._load = function (req, ...rest) {
 };
 let code = fs.readFileSync(path.join(ROOT, "dist/main.js"), "utf8");
 /* 把内部纯函数临时露出来给断言用（只在测试里改这一份字符串） */
-code = code.replace(/\}\)\(\);\s*$/, 'globalThis.__gd = { extractTemplate, buildFromTemplate, normHeadKey, mergeByTitle, LAYER_KEYS, DEFAULT_LAYERS, normalizeLayers, CAL_SKELETONS, CAL_TEXTURES, TEMPLATE_KINDS, sortTemplates, templateKind, dayKind, applyPasteFilters, HOLIDAYS, TableView, cropCss, applyCrop, CropModal, ImageSourceModal, VaultPickModal, pickImageSources, sourceToFile, saveImageSource, chooseImage, chooseFileLike, stashFile, AVATAR_SHAPES, DAY_PALETTE, bgColorForDate, PROJECT_KEYS, PROJECT_VAR_KEYS, parseSlot, slotRaw, bgRawSlot, bgSlotForDate, GridSettingTab, BG_PROJECTS, BG_MODES, CELL_BG_MODES, bgCfgOf, defaultBgCfg, migrateSettings };\n})();');
+code = code.replace(/\}\)\(\);\s*$/, 'globalThis.__gd = { extractTemplate, buildFromTemplate, normHeadKey, mergeByTitle, LAYER_KEYS, DEFAULT_LAYERS, normalizeLayers, CAL_SKELETONS, CAL_TEXTURES, TEMPLATE_KINDS, sortTemplates, templateKind, dayKind, applyPasteFilters, HOLIDAYS, TableView, cropCss, applyCrop, CropModal, ImageSourceModal, VaultPickModal, pickImageSources, sourceToFile, saveImageSource, chooseImage, chooseFileLike, stashFile, AVATAR_SHAPES, PROJECT_KEYS, PROJECT_VAR_KEYS, GridSettingTab, CalendarPanel, DEFAULT_SETTINGS, CAL_WALL_POS, BG_PROJECTS, BG_MODES, CELL_BG_MODES, bgCfgOf, defaultBgCfg, migrateSettings };\n})();');
 const m = mod.default;
 const srcMod = new m.Module("gd", null);
 srcMod.filename = path.join(ROOT, "dist/gd-cjs.js");
@@ -728,217 +735,16 @@ console.log("\n[D9] 模板存内容 + 目录原生菜单");
   ok("模板与目录菜单无异常", !err, err ? err.constructor.name + ": " + err.message : "");
 }
 
-console.log("\n[D10] v3.7：模板分类 / 目录功能条 / 粘贴过滤 / 节假日 / 时间线浮窗");
-{
-  let err = null;
-  try {
-    const g = globalThis.__gd || {};
-
-    /* 模板分类 */
-    const fake = [
-      { name: "A", kind: "grid", cells: [] },
-      { name: "B", kind: "home", cells: [] },
-      { name: "C", kind: "cal", cells: [] },
-      { name: "D", cells: [] },
-    ];
-    const sorted = g.sortTemplates(fake).map((x) => x.name);
-    ok("模板按 主页→目录→日历→悬浮窗→格子→表格 排序", sorted.join("") === "BCAD", "实际 " + sorted.join(""));
-    ok("没写种类的模板默认归「格子」", g.templateKind({ name: "x" }) === "grid");
-    ok("TEMPLATE_KINDS 有 6 类", Array.isArray(g.TEMPLATE_KINDS) && g.TEMPLATE_KINDS.length === 6);
-
-    /* 粘贴过滤 */
-    const raw = "寒暄一句\n\n今日事件\n写了很多\n\n今日书账\n花了 20 元\n\n广告一段";
-    const f1 = g.applyPasteFilters(raw, { pasteKeepFrom: "今日事件" });
-    ok("从某行开始截取生效", f1.startsWith("今日事件") && !f1.includes("寒暄"), f1.slice(0, 20));
-    const f2 = g.applyPasteFilters(raw, { pasteDropKeywords: ["广告"] });
-    ok("丢弃关键词生效", !f2.includes("广告"));
-    const f3 = g.applyPasteFilters("**粗体** ![x](a.png)", { pasteFormatFilter: "text" });
-    ok("格式过滤去掉了 Markdown 记号", !f3.includes("**"));
-    const f4 = g.applyPasteFilters("**粗体** ![x](a.png)", { pasteFormatFilter: "plain" });
-    ok("格式过滤去掉了图片", !f4.includes("a.png"));
-    const f5 = g.applyPasteFilters(raw, { pasteKeepKeywords: ["书账"] });
-    ok("只保留关键词分段生效", f5.includes("书账") && !f5.includes("今日事件"), f5.slice(0, 20));
-
-    /* 节假日 */
-    ok("2026-10-01 是国庆（holiday）", g.dayKind("2026-10-01").kind === "holiday");
-    ok("2026-11-07 是周末（weekend）", g.dayKind("2026-11-07").kind === "weekend");
-    ok("HOLIDAYS 不是空的", g.HOLIDAYS && Object.keys(g.HOLIDAYS).length > 10);
-
-    /* 目录：功能条已撤掉，改成「文件夹」标题即菜单入口；文件行带缩略图位 */
-    const sv = views["gd-sidebar-view"];
-    let headBtn = 0, thumbs = 0, funcSel = 0;
-    walk(sv.contentEl, (e) => {
-      if (e.classList.has("gd-tree-headbtn")) headBtn++;
-      if (e.classList.has("gd-tree-thumb")) thumbs++;
-      if (e.classList.has("gd-side-funcbar")) funcSel++;
-    });
-    ok("目录顶部那一排下拉已经撤掉", funcSel === 0, "实际 " + funcSel);
-    ok("文件夹标题本身就是菜单入口", headBtn >= 1, "实际 " + headBtn);
-    ok("文件行带封面缩略图位", thumbs >= 1, "实际 " + thumbs);
-
-    /* 时间线浮窗：开 / 多开 / 关 */
-    const p1 = plugin.openTimelineFloat("2026-11-07");
-    ok("时间线浮窗能打开", !!p1 && !!p1.el);
-    const fw = plugin.tlFloats.length;
-    ok("时间线浮窗登记了 1 个", fw === 1, "实际 " + fw);
-    const p2 = plugin.openTimelineFloat("2026-11-07");
-    ok("时间线浮窗可以多开", plugin.tlFloats.length === 2, "实际 " + plugin.tlFloats.length);
-    plugin.closeAllTimelineFloats();
-    ok("时间线浮窗能全部关闭", plugin.tlFloats.length === 0 && !!p2);
-
-    /* 时间线：严格只出那一天 */
-    const tv = views["gd-timeline-view"];
-    tv.panel.followDay = true;
-    tv.panel.activeKey = "2026-11-07";
-    ok("时间线严格过滤：focusDate 只返回当天", tv.panel.focusDate() === "2026-11-07", "实际 " + tv.panel.focusDate());
-    tv.panel.followDay = false;
-    ok("关掉跟随后 focusDate 为空", tv.panel.focusDate() === "");
-  } catch (e) { err = e; }
-  ok("v3.7 新能力无异常", !err, err ? err.constructor.name + ": " + err.message : "");
-}
-
-console.log("\n[D11] 表格视图（左目录 + 右表格）");
-{
-  let err = null;
-  try {
-    const leaf = { app: app, detach() {}, setViewState() {} };
-    const TV = (globalThis.__gd||{}).TableView; const tv = new TV(leaf, plugin);
-    app.workspace.getLeavesOfType = (ty) => (ty === "gd-table-view" ? [leaf] : []);
-    leaf.view = tv;
-    plugin.contentEl = plugin.contentEl || null;
-    ok("TableView 能构造", !!tv && typeof tv.getViewType === "function");
-    ok("viewType 是 gd-table-view", tv.getViewType() === "gd-table-view");
-    tv.contentEl = new FakeEl("div");
-    tv.contentEl.addClass("gd-root");
-    tv.contentEl.addClass("gd-table-root");
-    tv.build();
-    await tv.openKey("2026-11-07");
-    let tbl = 0, dirItem = 0, thr = 0;
-    walk(tv.contentEl, (e) => {
-      if (e.tagName === "TABLE" && e.classList.has("gd-tbl-sheet")) tbl++;
-      if (e.classList.has("gd-tbl-dir-item")) dirItem++;
-      if (e.tagName === "TH") thr++;
-    });
-    ok("表格渲染出了 <table>", tbl >= 1, "实际 " + tbl);
-    ok("表头有三列", thr === 3, "实际 " + thr);
-    ok("左边目录列出了日记", dirItem >= 4, "实际 " + dirItem);
-  } catch (e) { err = e; }
-  ok("表格视图无异常", !err, err ? err.constructor.name + ": " + err.message : "");
-}
-
-
-/* ================= [D8] 座右铭是独立对象（v3.11.2） ================= */
-console.log("\n[D8] 座右铭独立定位");
-{
-  const gv = plugin._views["gd-grid-view"](mkLeaf(app));
-  gv.contentEl = new FakeEl("div");
-  gv.contentEl.addClass("gd-root");
-  gv.contentEl.addClass("gd-grid-root");
-  gv.build();
-
-  /* 1) 老日记没有 layers 字段，走折算时座右铭不该再压在头像上 */
-  const migrated = globalThis.__gd.normalizeLayers(null, { motto: "我真的", avatar: "x.png" }, plugin.settings);
-  ok("老布局折算出了座右铭层", !!(migrated && migrated.text));
-  ok("折算后不再压在头像位置（y 不是 58）", migrated.text.y !== 58, "y=" + migrated.text.y);
-
-  gv.layout.layers = globalThis.__gd.normalizeLayers(null, { motto: "我真的" }, plugin.settings);
-  plugin.settings.showMotto = true;
-  plugin.settings.showStage = true;
-  gv.render();
-  const lay = gv.layout.layers;
-  ok("座右铭层存在", !!(lay && lay.text));
-
-  /* 拖到别处，再渲染，坐标必须还在 */
-  lay.text.x = 33; lay.text.y = 44; lay.text.w = 40; lay.text.h = 20;
-  gv.render();
-  const el = (() => {
-    let hit = null;
-    walk(gv.contentEl, (e) => { if (e.classList.has("gd-layer-text")) hit = e; });
-    return hit;
-  })();
-  ok("座右铭层真的画出来了", !!el);
-  ok("位置跟着坐标走", !!el && el.style.left === "33%" && el.style.top === "44%",
-    el ? el.style.left + "/" + el.style.top : "没画出来");
-
-  /* 总开关关掉，层就不该画 */
-  plugin.settings.showMotto = false;
-  gv.render();
-  let n2 = 0;
-  walk(gv.contentEl, (e) => { if (e.classList.has("gd-layer-text")) n2++; });
-  ok("关掉总开关后座右铭层消失", n2 === 0, "实际 " + n2);
-
-  /* 舞台高度上限：1200 不许再被夹到 520 */
-  plugin.settings.showMotto = true;
-  plugin.settings.stageHeight = 900;
-  gv.render();
-  const stage = (() => {
-    let hit = null;
-    walk(gv.contentEl, (e) => { if (e.classList.has("gd-cover-stage")) hit = e; });
-    return hit;
-  })();
-  ok("舞台高度能到 900", !!stage && stage.style.height === "900px", stage ? stage.style.height : "没找到");
-}
-
-
-console.log("\n[D9] 统一选图器（三来源）");
+console.log("\n[D10] 按色结构已删除 + 头像轮廓");
 {
   const g = globalThis.__gd || {};
-  ok("导出了 ImageSourceModal", typeof g.ImageSourceModal === "function");
-  ok("导出了 VaultPickModal", typeof g.VaultPickModal === "function");
-  ok("导出了 pickImageSources", typeof g.pickImageSources === "function");
-  ok("导出了 chooseFileLike", typeof g.chooseFileLike === "function");
-  ok("导出了 stashFile", typeof g.stashFile === "function");
-
-  /* 三来源对话框：三个入口都要在，少一个就是没统一 */
-  const dlg = new g.ImageSourceModal(app, plugin, { title: "选图" });
-  let opened = null;
-  try { dlg.onOpen(); opened = true; } catch (e) { opened = e; }
-  ok("来源对话框能打开", opened === true, opened && opened.message ? opened.message : "");
-  let names = [];
-  walk(dlg.contentEl, (e) => { if (e.classList.has("gd-src-name")) names.push(e.textContent); });
-  /* v3.20 起多一条「下载网络图片」（问题 3：粘网址断网看不见 → 可以存进库） */  ok("四个来源都在（系统 / 库里 / 链接 / 下载）", names.length >= 4 && names.some((x) => x.includes("系统")) && names.some((x) => x.includes("库里")) && names.some((x) => x.includes("链接")) && names.some((x) => x.includes("下载")), names.join(" | "));
-  try { dlg.close(); } catch (e) { }
-
-  /* 库内选图：库里有的图都要列出来 */
-  const vp = new g.VaultPickModal(app, plugin, { title: "从库里挑" });
-  let vok = null;
-  try { vp.onOpen(); vok = true; } catch (e) { vok = e; }
-  ok("库内选图能打开", vok === true, vok && vok.message ? vok.message : "");
-  let cells = 0;
-  walk(vp.contentEl, (e) => { if (e.classList.has("gd-vaultpick-cell")) cells++; });
-  ok("库内图片都列出来了", cells > 0, "列了 " + cells + " 张");
-  try { vp.close(); } catch (e) { }
-
-  /* 链接来源：不该被当成库内路径 */
-  const f2 = await g.sourceToFile(plugin, { kind: "url", url: "https://example.com/a.png" });
-  ok("链接来源转成文件对象", !!f2 && f2.name === "a.png" && typeof f2.arrayBuffer === "function", f2 ? f2.name : "null");
-
-  /* 落盘：库里已有的图不重复存一份 */
-  const existPath = "日记/attachments/x.png";
-  const stashed = await g.stashFile(plugin, { name: "x.png", path: existPath, arrayBuffer: () => Promise.resolve(new ArrayBuffer(4)) }, "");
-  ok("库里已有的图直接复用不重复存", stashed === existPath, stashed || "空");
-}
-
-
-console.log("\n[D10] 按日换色 + 头像轮廓");
-{
-  const g = globalThis.__gd || {};
-
-  /* 按日换色：七个色，隔一天换一个，隔七天转回来 */
-  ok("导出了 DAY_PALETTE", Array.isArray(g.DAY_PALETTE) && g.DAY_PALETTE.length === 7, "长度 " + (g.DAY_PALETTE || []).length);
-  const s1 = Object.assign({}, plugin.settings, { bgRhythm: "day", bgByDay: {} });
-  const c1 = g.bgColorForDate("2026-11-08", s1);
-  const c2 = g.bgColorForDate("2026-11-09", s1);
-  const c8 = g.bgColorForDate("2026-11-15", s1);
-  ok("按日换色有颜色", !!c1 && !!c2, c1 + " / " + c2);
-  ok("相邻两天颜色不同", c1 !== c2, c1 + " vs " + c2);
-  ok("隔七天转回同一个色", c1 === c8, c1 + " vs " + c8);
-  const slot = ["d0","d1","d2","d3","d4","d5","d6"].find((k) => g.DAY_PALETTE.indexOf(g.bgColorForDate("2026-11-08", s1)) >= 0
-    && g.DAY_PALETTE[Number(k.slice(1))] === g.bgColorForDate("2026-11-08", s1));
-  const s2 = Object.assign({}, plugin.settings, { bgRhythm: "day", bgByDay: { [slot]: "#123456" } });
-  const c3 = g.bgColorForDate("2026-11-08", s2);
-  ok("自定义七色能覆盖默认", c3 === "#123456", "槽位 " + slot + " 实际 " + c3);
-  ok("关掉换色就没有色", g.bgColorForDate("2026-11-08", Object.assign({}, plugin.settings, { bgRhythm: "off" })) === "", "应返回空");
+  ok("按色结构已删除（DAY_PALETTE 不存在）", !("DAY_PALETTE" in g));
+  ok("按色结构已删除（bgColorForDate 不存在）", typeof g.bgColorForDate !== "function");
+  ok("换色节奏字段已从设置里移除", !("bgRhythm" in plugin.settings));
+  ok("projectBg 里没有 rhythm/byDay", (() => {
+    const c = g.defaultBgCfg ? g.defaultBgCfg() : {};
+    return !("rhythm" in c) && !("byDay" in c) && !("byWeek" in c) && !("byMonth" in c);
+  })());
 
   /* 头像轮廓 */
   ok("导出了 AVATAR_SHAPES", Array.isArray(g.AVATAR_SHAPES) && g.AVATAR_SHAPES.length >= 6, "共 " + (g.AVATAR_SHAPES || []).length + " 种");
@@ -993,10 +799,10 @@ console.log("\n[D11] 项目各管一份视觉");
   ok("导出了 PROJECT_KEYS", Array.isArray(g.PROJECT_KEYS) && g.PROJECT_KEYS.length === 4, "共 " + (g.PROJECT_KEYS || []).length + " 个");
   const pnames = (g.PROJECT_KEYS || []).map((x) => x[1]);
   ok("四个项目都在（目录/日历/悬浮窗/流线图）", pnames.includes("目录") && pnames.includes("日历") && pnames.includes("悬浮窗") && pnames.includes("流线图"), pnames.join("/"));
-  ok("导出了 PROJECT_VAR_KEYS", Array.isArray(g.PROJECT_VAR_KEYS) && g.PROJECT_VAR_KEYS.length >= 8, "共 " + (g.PROJECT_VAR_KEYS || []).length + " 项");
-  const hasFont = (g.PROJECT_VAR_KEYS || []).some((x) => x[0] === "fontFamily");
-  const hasCell = (g.PROJECT_VAR_KEYS || []).some((x) => x[0] === "radius" || x[0] === "gap");
-  ok("字体和格子都在可覆盖项里", hasFont && hasCell, "字体 " + hasFont + " / 格子 " + hasCell);
+  ok("导出 PROJECT_VAR_KEYS 正好 3 项", Array.isArray(g.PROJECT_VAR_KEYS) && g.PROJECT_VAR_KEYS.length === 3, "共 " + (g.PROJECT_VAR_KEYS || []).length + " 项");
+  const pvk = (g.PROJECT_VAR_KEYS || []).map((x) => x[0]);
+  ok("只留字色/线色/强调色", pvk.includes("fontColor") && pvk.includes("lineColor") && pvk.includes("accent") && pvk.length === 3, pvk.join("/"));
+  ok("字体与圆角已收归全局，不再逐处覆盖", !pvk.includes("fontFamily") && !pvk.includes("fontSize") && !pvk.includes("radius") && !pvk.includes("gap"), pvk.join("/"));
 
   /* 默认：全部空 → 一个变量都不写（= 完全跟主题） */
   plugin.settings.projectVars = { dir: {}, cal: {}, float: {}, tl: {} };
@@ -1071,142 +877,69 @@ console.log("\n[D12] 头像裁剪真的生效");
 }
 
 
-console.log("\n[D13] 换色槽位认三种值");
+console.log("\n[D13] 换色槽位系统已删除");
 {
   const g = globalThis.__gd || {};
-  ok("parseSlot 存在", typeof g.parseSlot === "function");
-  ok("slotRaw 存在", typeof g.slotRaw === "function");
-  ok("bgSlotForDate 存在", typeof g.bgSlotForDate === "function");
-
-  if (typeof g.parseSlot === "function") {
-    const c = g.parseSlot("#5b8def");
-    ok("纯色被认成 color", c && c.kind === "color" && c.value === "#5b8def");
-
-    const im = g.parseSlot("img:日记/attachments/a.png");
-    ok("img: 被认成图片", im && im.kind === "image" && im.value === "日记/attachments/a.png");
-
-    const tx = g.parseSlot("tex:dots");
-    ok("tex: 被认成纹理", tx && tx.kind === "texture" && tx.value === "dots");
-
-    ok("空值返回 null", g.parseSlot("") === null);
-
-    ok("slotRaw 能写回图片", g.slotRaw("", "image", "a/b.png") === "img:a/b.png");
-    ok("slotRaw 能写回纹理", g.slotRaw("", "texture", "diag") === "tex:diag");
-    ok("slotRaw 颜色原样", g.slotRaw("", "color", "#fff") === "#fff");
-  }
-
-  /* 按日槽位：设了图片，那天就该拿到图片 */
-  const s2 = JSON.parse(JSON.stringify(plugin.settings));
-  s2.bgRhythm = "day";
-  s2.bgByDay = { d0: "img:日记/x.png", d1: "tex:dots", d2: "#123456" };
-  const r0 = g.bgRawSlot("2026-11-08", s2);
-  ok("按日槽位能取到东西", !!r0);
-  const kinds = new Set();
-  for (let d = 1; d <= 7; d++) {
-    const dt = "2026-11-" + String(d).padStart(2, "0");
-    const sl = g.bgSlotForDate(dt, s2);
-    kinds.add(sl ? sl.kind : "null");
-  }
-  ok("七天里三种槽位都能出现", kinds.has("image") || kinds.has("texture") || kinds.has("color"), Array.from(kinds).join(","));
-
-  /* 纹理种类够多 */
+  ok("parseSlot 已删除", typeof g.parseSlot !== "function");
+  ok("slotRaw 已删除", typeof g.slotRaw !== "function");
+  ok("bgSlotForDate 已删除", typeof g.bgSlotForDate !== "function");
   ok("纹理种类 ≥ 12", (g.CAL_TEXTURES || []).length >= 12, "实际 " + (g.CAL_TEXTURES || []).length);
 }
 
-
-console.log("\n[D14] 设置页换色槽位能画出来");
+console.log("\n[D14] 设置页能渲染 + 目录上下分区");
 {
-  const { GridSettingTab } = globalThis.__gd || {};
+  const { GridSettingTab, PROJECT_KEYS } = globalThis.__gd || {};
   ok("GridSettingTab 已导出", typeof GridSettingTab === "function");
   if (typeof GridSettingTab === "function") {
     const tab = new GridSettingTab(app, plugin);
     tab.containerEl = document.createElement("div");
     let err = null;
-    try { tab.display(); } catch (e) { err = e; }
-    ok("设置页能渲染不报错", !err, err ? String(err.message || err) : "");
-
-    /* 主页标签的背景块：先把节奏打开，槽位网格才会画出来 */
-    plugin.settings.projectBg = plugin.settings.projectBg || {};
-    plugin.settings.projectBg.home = Object.assign({}, plugin.settings.projectBg.home || {}, { rhythm: "day" });
-    tab.tab = "home";   /* 默认是主题页，那里已经没有底色了 */
-    err = null;
-    try { tab.display(); } catch (e) { err = e; }
-    ok("按日节奏下也能渲染", !err, err ? String(err.message || err) : "");
-
-    const cells = [];
-    walk(tab.containerEl, (e) => { if (e.classList.has("gd-slot-pv")) cells.push(e); });
-    ok("出现了槽位预览块", cells.length > 0, "实际 " + cells.length + " 个");
+    for (const key of ["theme", "home", "dir", "calendar", "float", "timeline"]) {
+      tab.tab = key;
+      try { tab.display(); } catch (e) { err = key + ": " + (e && e.message); }
+    }
+    ok("六个标签页都能渲染不报错", !err, err || "");
+    ok("PROJECT_KEYS 仍是四块（dir/cal/float/tl）", Array.isArray(PROJECT_KEYS) && PROJECT_KEYS.length === 4);
   }
 }
 
-
-console.log("\n[D15] 槽位设成纹理/图片时，格子上真的画出来");
+console.log("\n[D15] 背景按色结构已删：一处背景就是一份固定配置");
 {
-  const s = plugin.settings;
-  const old = { rhythm: s.bgRhythm, day: s.bgByDay, mode: s.bgMode };
-  s.bgMode = "color";
-  s.bgRhythm = "day";
-
-  /* 让今天那个槽位是纹理 */
   const g = globalThis.__gd;
-  const today = new Date();
-  const idx = ((Math.floor((today.getTime() - today.getTimezoneOffset() * 60000) / 86400000) % 7) + 7) % 7;
-  s.bgByDay = { ["d" + idx]: "tex:diag" };
-
+  const s = plugin.settings;
+  /* 老数据里即使还留着 rhythm/byDay，也不该再影响渲染 */
+  s.projectBg = s.projectBg || {};
+  s.projectBg.home = Object.assign({}, s.projectBg.home || {}, { mode: "texture", texture: "diag" });
   const v = plugin._views["gd-grid-view"](mkLeaf(app));
   try { await v.onOpen(); } catch (e) { }
   try { v.render(); } catch (e) { }
-  /* v3.21 起主页底色由根元素画（避免里层盖住外层）。
-     applyProjectBg 是用 document.querySelectorAll 找根元素的，
-     所以视图根必须真的挂进 fakeBody，否则永远找不到（这是测试桩的事，不是产品 bug）。 */
   try { fakeBody.appendChild(v.contentEl); } catch (e) { }
   try { plugin.applyProjectBg(); } catch (e) { }
-  let scroll = null;
-  walk(v.contentEl, (e) => { if (e.classList.has("gd-scroll")) scroll = e; });
-  ok("格子上有滚动层", !!scroll);
-  /* v3.20 起主页背景拆成上下两块：背景只画在上区（封面舞台 / 旧版封面），
-     根元素自己转成 transparent，下区格子只吃自己的格子背景。
-     所以这里找「上区」而不是根。 */
-  let root = null;
-  walk(v.contentEl, (e) => {
-    if (!root && (e.classList.has("gd-cover-stage") || e.classList.has("gd-cover-wrap"))) root = e;
-  });
-  if (!root) root = v.contentEl;
   const attrOf = (el, k) => {
     if (!el) return "";
     if (typeof el.getAttr === "function") return String(el.getAttr(k) ?? "");
     if (typeof el.getAttribute === "function") return String(el.getAttribute(k) ?? "");
     return "";
   };
-  ok("纹理槽位把底色改成 texture", attrOf(root, "data-pbg") === "texture" || attrOf(root, "data-bg-mode") === "texture",
-    "mode=" + attrOf(root, "data-bg-mode") + " tex=" + attrOf(root, "data-bg-texture") + " rhythm=" + attrOf(root, "data-rhythm") + " key=" + (v.key || "") + " day=" + JSON.stringify(s.bgByDay));
-  ok("纹理名写进了 data-pbg-tex", attrOf(root, "data-pbg-tex") === "diag" || attrOf(root, "data-bg-texture") === "diag",
-    "pbg-tex=" + attrOf(root, "data-pbg-tex") + " bg-texture=" + attrOf(root, "data-bg-texture"));
-
-  /* 换成图片槽位 */
-  s.bgByDay = { ["d" + idx]: "img:日记/attachments/a.png" };
-  const v2 = plugin._views["gd-grid-view"](mkLeaf(app));
-  try { await v2.onOpen(); } catch (e) { }
-  try { v2.render(); } catch (e) { }
-  try { fakeBody.appendChild(v2.contentEl); } catch (e) { }
-  try { plugin.applyProjectBg(); } catch (e) { }
-  let root2 = null;
-  walk(v2.contentEl, (e) => {
-    if (!root2 && (e.classList.has("gd-cover-stage") || e.classList.has("gd-cover-wrap"))) root2 = e;
+  let root = null;
+  walk(v.contentEl, (e) => {
+    if (!root && (e.classList.has("gd-cover-stage") || e.classList.has("gd-cover-wrap"))) root = e;
   });
-  if (!root2) root2 = v2.contentEl;
-  ok("图片槽位把底色改成 image",
-    attrOf(root2, "data-pbg") === "image" || attrOf(root2, "data-bg-mode") === "image",
-    "pbg=" + attrOf(root2, "data-pbg") + " bg-mode=" + attrOf(root2, "data-bg-mode"));
-
-  s.bgRhythm = old.rhythm; s.bgByDay = old.day; s.bgMode = old.mode;
+  if (!root) root = v.contentEl;
+  ok("主页中间背景按配置画出 texture", attrOf(root, "data-pbg") === "texture", "pbg=" + attrOf(root, "data-pbg"));
+  ok("纹理名写进了 data-pbg-tex", attrOf(root, "data-pbg-tex") === "diag", "pbg-tex=" + attrOf(root, "data-pbg-tex"));
+  ok("不再有 data-pbg-rhythm 这种按色残留", !attrOf(root, "data-pbg-rhythm"), attrOf(root, "data-pbg-rhythm"));
+  s.projectBg.home = Object.assign({}, s.projectBg.home || {}, { mode: "image", image: "日记/attachments/a.png" });
+  plugin.applyProjectBg();
+  ok("换成 image 也能画", attrOf(root, "data-pbg") === "image", "pbg=" + attrOf(root, "data-pbg"));
 }
+
 
 
 console.log("\n[D16] 五处各管自己的背景");
 {
   const g = globalThis.__gd;
-  ok("BG_PROJECTS 有五个", (g.BG_PROJECTS || []).length === 5, "实际 " + (g.BG_PROJECTS || []).length);
+  ok("BG_PROJECTS 有六块（含目录上/下）", (g.BG_PROJECTS || []).length === 6, "实际 " + (g.BG_PROJECTS || []).length);
   ok("BG_MODES 含玻璃", (g.BG_MODES || []).some((x) => x[0] === "glass"));
   ok("bgCfgOf 存在", typeof g.bgCfgOf === "function");
 
@@ -1226,19 +959,19 @@ console.log("\n[D16] 五处各管自己的背景");
     fakeBody.appendChild(e);
     return e;
   };
-  mkRoot("gd-grid-root"); mkRoot("gd-sidebar-root"); mkRoot("gd-cal-panel");
+  mkRoot("gd-sidebar-root"); mkRoot("gd-split-top"); mkRoot("gd-split-bot");
   mkRoot("gd-float"); mkRoot("gd-timeline-root");
   plugin.applyProjectBg();
   const roots = {
-    dir: document.querySelector(".gd-sidebar-root"),
+    top: document.querySelector(".gd-split-top"),
+    bot: document.querySelector(".gd-split-bot"),
     cal: document.querySelector(".gd-cal-panel"),
   };
-  ok("目录根元素存在", !!roots.dir);
-  if (roots.dir) {
+  ok("目录上下两块根元素都被找到", !!roots.top && !!roots.bot);
+  if (roots.top) {
     const a = (el, k) => (el && el.getAttr ? el.getAttr(k) : "");
-    ok("目录挂上 data-pbg=glass", a(roots.dir, "data-pbg") === "glass", a(roots.dir, "data-pbg"));
+    ok("目录上区挂上 data-pbg=glass", a(roots.top, "data-pbg") === "glass", a(roots.top, "data-pbg"));
   }
-
   s.projectBg = JSON.parse(old || "{}");
   plugin.applyProjectBg();
 }
@@ -1307,17 +1040,95 @@ console.log("\n[D19] v3.21 四角缩放 / 换天联动 / 外壳主题");
   s.projectVars = JSON.parse(oldPv2);
 }
 
-console.log("\n[D20] v3.22.2 改动色条一次性迁移");
+console.log("\n[D20] v3.23 按色结构 / 改动色条已彻底移除");
 {
-  const migrateSettings = (globalThis.__gd || {}).migrateSettings;
+  const g = globalThis.__gd || {};
+  console.log("\n[D21] v3.24 日历底图只留横幅 / 铺满两种，横幅不重叠");
+{
+  const g = globalThis.__gd || {};
+  const posList = (g.CAL_WALL_POS || []).map((x) => x[0]);
+  ok("CAL_WALL_POS 只有 banner / full", posList.length === 2 && posList[0] === "banner" && posList[1] === "full", posList.join(","));
+  ok("默认摆法是横幅", (g.DEFAULT_SETTINGS || {}).calWallpaperPos === "banner", String((g.DEFAULT_SETTINGS || {}).calWallpaperPos));
+  ok("横幅高度可调（有 calBannerH）", typeof plugin.settings.calBannerH === "number" || plugin.settings.calBannerH === undefined);
+  ok("图片缩放方式字段存在", "calWallFit" in plugin.settings);
+
+  /* 造一个日历面板，验证 banner 下真的挂上 is-wall-banner，且不是 is-wall-full */
+  const s = plugin.settings;
+  const oldWp = s.calWallpaper, oldPos = s.calWallpaperPos, oldCrop = s.calWallCrop;
+  const p2 = new g.CalendarPanel(plugin);
+  const el = document.createElement("div");
+  p2.el = el; el.addClass("gd-cal-panel");
+  s.calWallpaper = "日记/attachments/a.png";
+  p2.thumbOf = () => "app://a.png";
+  s.calWallpaperPos = "banner";
+  p2.applyWallpaper();
+  ok("横幅模式挂上 is-wall-banner", el.classList.has("is-wall-banner"), [...el.classList].join(","));
+  ok("横幅模式不挂 is-wall-full", !el.classList.has("is-wall-full"));
+  ok("横幅高度写进 --gd-cal-wall-h", !!el.style.getPropertyValue("--gd-cal-wall-h"), el.style.getPropertyValue("--gd-cal-wall-h"));
+  ok("横幅不再用左上/右下/双角", !el.classList.has("is-wall-corner"));
+
+  s.calWallpaperPos = "full";
+  p2.applyWallpaper();
+  ok("铺满模式挂上 is-wall-full", el.classList.has("is-wall-full"), [...el.classList].join(","));
+  ok("铺满模式不挂 is-wall-banner", !el.classList.has("is-wall-banner"));
+
+  s.calWallpaper = oldWp; s.calWallpaperPos = oldPos; s.calWallCrop = oldCrop;
+}
+
+console.log("\n[D22] v3.24 笔记模式跟格子模式同一套输入保护");
+{
+  const s = plugin.settings;
+  const oldWp = s.calWallpaper;
+  const f = plugin.float;
+  ok("paintShell 存在（只换外观不重建）", typeof f.paintShell === "function");
+  ok("syncNoteFromDisk 存在（就地换文本）", typeof f.syncNoteFromDisk === "function");
+
+  /* 造一个笔记模式的浮窗，验证 refresh 不重建 textarea */
+  f.mode = "note";
+  f.notePath = "灵感/测试.md";
+  const mkF = new TFile("灵感/测试.md", "正文内容");
+  f.el = document.createElement("div");
+  f.el.addClass("gd-float");
+  f.noteEl = f.el.createDiv({ cls: "gd-float-note" });
+  f.gridEl = f.el.createDiv({ cls: "gd-grid" });
+  f.footEl = f.el.createDiv({ cls: "gd-float-foot" });
+  f.dateEl = f.el.createDiv({ cls: "gd-float-date" });
+  f._saving = false;
+
+  await f.renderNote();
+  const ta1 = f.noteEl.querySelector(".gd-float-note-ta");
+  ok("笔记模式画出了编辑框", !!ta1);
+  if (ta1) {
+    ta1.value = "我打到一半的内容";
+    /* 模拟光标在里面时的 notifyRefresh */
+    fakeBody.appendChild(f.el);
+    document.activeElement = ta1;
+    f.refresh();
+    const ta2 = f.noteEl.querySelector(".gd-float-note-ta");
+    ok("正在输入时 refresh 不重建编辑框（同一个节点）", ta1 === ta2, ta1 === ta2 ? "" : "被替换了");
+    ok("内容没被清空", ta1.value === "我打到一半的内容", ta1.value);
+    /* 保存中也不该动 */
+    f._saving = true;
+    f.refresh();
+    ok("保存中 refresh 不重建", f.noteEl.querySelector(".gd-float-note-ta") === ta1);
+    f._saving = false;
+    document.activeElement = null;
+  }
+
+  /* 收尾 */
+  f.mode = "grid";
+  f.notePath = "";
+  f.el = null; f.noteEl = null; f.gridEl = null; f.footEl = null; f.dateEl = null;
+  s.calWallpaper = oldWp;
+}
+
+const migrateSettings = g.migrateSettings;
   ok("migrateSettings 已导出", typeof migrateSettings === "function");
-  const m1 = migrateSettings({ version: 3, timelineColorDiff: true });
-  ok("老存档的改动色条被强制关掉", m1.timelineColorDiff === false, String(m1.timelineColorDiff));
-  ok("迁移后写标记", m1.diffColorMigrated === true);
-  const m2 = migrateSettings({ version: 3, timelineColorDiff: true, diffColorMigrated: true });
-  ok("已迁移过的不再强制（用户可自己开回来）", m2.timelineColorDiff === true);
-  const m3 = migrateSettings({ version: 3, timelineColorDiff: false, diffColorMigrated: true });
-  ok("已迁移过的保留用户选择", m3.timelineColorDiff === false);
+  const m1 = migrateSettings({ version: 3, timelineColorDiff: true, bgRhythm: "day", bgByDay: { d0: "#123456" } });
+  ok("改动色条字段已不在设置里", !("timelineColorDiff" in m1));
+  ok("迁移标记字段已不在设置里", !("diffColorMigrated" in m1));
+  ok("换色节奏字段已不在设置里", !("bgRhythm" in m1) && !("bgByDay" in m1));
+  ok("projectBg 默认配置里也没有按色字段", (() => { const c = g.defaultBgCfg(); return !("rhythm" in c) && !("byDay" in c); })());
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败\n`);

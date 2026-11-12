@@ -139,10 +139,11 @@ class GridSettingTab extends PluginSettingTab {
       this.display();
     };
 
+    const isDir = (key === "dirTop" || key === "dirBot");
     p.createEl("h4", { text: name + "的背景" });
     p.createDiv({
       cls: "gd-set-hint",
-      text: "第一层是主题底色，第二层是" + (key === "dir" ? "「缩略图」（一张，只当图标用，不能拖不能缩）" : "「图片」") +
+      text: "第一层是主题底色，第二层是" + (isDir ? "「缩略图」（一张，只当图标用，不能拖不能缩）" : "「图片」") +
         "。纯色、图片、渐变、纹理、玻璃磨砂、视频、透明七种都在这儿选" +
         (key === "home" ? "；照片墙在下面单独一块（只有主页有）。" : "。") +
         (key === "home" ? "格子背景也在下面。" : ""),
@@ -151,8 +152,8 @@ class GridSettingTab extends PluginSettingTab {
     /* 第二层的叫法按项目不同：主页叫照片墙（多张），目录叫缩略图，
        其余一律叫图片（一张）。用户明确要求，不许混着叫。 */
     const modeLabel = (k) => {
-      if (key !== "home" && key !== "dir" && k === "image") return "图片";
-      if (key === "dir" && k === "image") return "缩略图";
+      if (key !== "home" && !isDir && k === "image") return "图片";
+      if (isDir && k === "image") return "缩略图";
       const hit = BG_MODES.find((x) => x[0] === k);
       return hit ? hit[1] : k;
     };
@@ -184,7 +185,7 @@ class GridSettingTab extends PluginSettingTab {
     }
 
     if (cfg.mode === "image") {
-      new Setting(p).setName(key === "dir" ? "第二层 · 缩略图（一张）" : "第二层 · 图片（一张）")
+      new Setting(p).setName(isDir ? "第二层 · 缩略图（一张）" : "第二层 · 图片（一张）")
         .setDesc(cfg.image ? "当前：" + String(cfg.image).split("/").pop() : "还没选图。" +
           (key === "home" ? "主页的背景只有一张，而且是全局的：换哪天都一样。" : ""))
         .addButton((bb) => bb.setButtonText("选图…").onClick(async () => {
@@ -242,7 +243,7 @@ class GridSettingTab extends PluginSettingTab {
 
     /* —— 目录第二层的「缩略图」 ——
        用户定案：目录 = 主题底色 + 一张缩略图，当图标用；**每个文件夹各一张**（问题 1）。 */
-    if (key === "dir") {
+    if (isDir) {
       p.createEl("h4", { text: "目录的第二层 · 缩略图" });
       p.createDiv({
         cls: "gd-set-hint",
@@ -330,53 +331,26 @@ class GridSettingTab extends PluginSettingTab {
       }
     }
 
-    /* —— 换色节奏 —— */
-    new Setting(p).setName("换色节奏")
-      .setDesc("按日七槽一天一换；按周七天各一槽；按月九槽循环（月不统一，九槽够用）。每槽都能是颜色、图片或纹理。")
-      .addDropdown((d) => {
-        d.addOption("off", "不换（用上面的固定背景）");
-        d.addOption("day", "按日换（七个槽循环）");
-        d.addOption("week", "按周换（周一起，七天七槽）");
-        d.addOption("month", "按月换（一个月一个槽）");
-        d.setValue(cfg.rhythm || "off");
-        d.onChange((v) => write({ rhythm: v }));
-      });
-
-    const rhythm = cfg.rhythm || "off";
-    const mk = async (mapName, key2, kind, value) => {
-      const cur = Object.assign({}, cfg[mapName] || {});
-      cur[key2] = slotRaw("", kind, value);
-      await write({ [mapName]: cur });
-    };
-    if (rhythm === "day") {
-      const keys = [], labels = [];
-      for (let i = 0; i < 7; i++) { keys.push("d" + i); labels.push("第 " + (i + 1) + " 槽"); }
-      this.slotGridFor(p, cfg, "byDay", keys, labels, DAY_PALETTE, mk);
-    }
-    if (rhythm === "week") {
-      const wd = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-      const keys = [], labels = [];
-      for (let i = 0; i < 7; i++) { keys.push("wd" + i); labels.push(wd[i]); }
-      this.slotGridFor(p, cfg, "byWeek", keys, labels, WEEK_PALETTE, mk);
-    }
-    if (rhythm === "month") {
-      /* 用户：「月不统一，按 9 个色来变就行」→ 9 个槽循环 */
-      const keys = [], labels = [];
-      for (let m = 0; m < MONTH_SLOT_N; m++) { keys.push("m" + m); labels.push("第 " + (m + 1) + " 槽"); }
-      const pal = keys.map((k) => MONTH_PALETTE[k] || "#ffffff");
-      this.slotGridFor(p, cfg, "byMonth", keys, labels, pal, mk);
-    }
+    /* —— v3.23：换色节奏（按日/按周/按月七槽九槽）已整体删除 ——
+       用户要求「删掉除目录以外的按色结构」。它跟 projectBg 抢同一批变量，
+       是背景串台的主要来源。现在一处背景就是一份固定配置，不再按日期轮换。 */
 
     /* —— 格子背景：只有主页下区（九宫格）和日历有格子 ——
-       用户：「标题要写清「格子的背景」」；目录/灵感/流线图没有格子，不许出现。 */
-    if (key === "home" || key === "cal") {
-      p.createEl("h4", { text: key === "home" ? "格子的背景" : "日历格子的背景" });
-      p.createDiv({
-        cls: "gd-set-hint",
-        text: key === "home"
-          ? "这一块只管下区那九宫格，跟上面「背景」分开算。九宫格本体不动，只换格子的底色 / 底图 / 磨砂。"
-          : "日历每个日期小格自己的底色 / 底图 / 磨砂。",
-      });
+       用户：「标题要写清「格子的背景」」；灵感/流线图没有格子，不许出现。
+       v3.23：目录上下两块也各有自己的行（文件夹行 / 文件行），所以也放进来。 */
+    if (key === "home" || key === "cal" || key === "dirTop" || key === "dirBot") {
+      const cellTitle = key === "home" ? "格子的背景"
+        : key === "cal" ? "日历格子的背景"
+          : key === "dirTop" ? "文件夹行的背景" : "文件行的背景";
+      const cellHint = key === "home"
+        ? "这一块只管下区那九宫格，跟上面「背景」分开算。九宫格本体不动，只换格子的底色 / 底图 / 磨砂。"
+        : key === "cal"
+          ? "日历每个日期小格自己的底色 / 底图 / 磨砂。"
+          : key === "dirTop"
+            ? "目录上半每个文件夹行自己的底色 / 底图 / 磨砂，跟这一区的整体背景分开算。"
+            : "目录下半每个文件行自己的底色 / 底图 / 磨砂，跟这一区的整体背景分开算。";
+      p.createEl("h4", { text: cellTitle });
+      p.createDiv({ cls: "gd-set-hint", text: cellHint });
       new Setting(p).setName("格子背景形态")
         .setDesc("「跟着上面的背景」= 格子透明，露出底图。")
         .addDropdown((d) => {
@@ -412,189 +386,6 @@ class GridSettingTab extends PluginSettingTab {
             .onChange((v) => write({ cellGlass: v })));
       }
     }
-  }
-
-  /* 五处共用的槽位网格：读写都走传进来的 mk */
-  slotGridFor(p, cfg, mapName, keys, labels, palette, mk) {
-    /* 用户：「一格一格点换要重复七次」→ 给一个批量按钮，
-       一次进库里多选，勾几张就按顺序填进后面的槽位。 */
-    const bulkRow = p.createDiv({ cls: "gd-slot-bulk" });
-    const bulkBtn = bulkRow.createEl("button", { cls: "gd-mini-btn", text: "批量选图（一次填满这些槽）" });
-    bulkBtn.onclick = async () => {
-      const got = await chooseImage(this.app, this.plugin, {
-        title: "一次选多张，按顺序填进 " + labels.length + " 个槽",
-        multiple: true,
-      });
-      if (!got) return;
-      const list = (Array.isArray(got) ? got : [got]).filter((g) => g && g.path);
-      if (!list.length) return;
-      /* 一次把要写的槽位全算好，再逐槽落盘。
-         以前先 mk(第 0 槽) 再循环 1..n，cur 白算一遍、单槽时还会漏写。 */
-      const n = Math.min(list.length, keys.length);
-      for (let i = 0; i < n; i++) {
-        await mk(mapName, keys[i], "image", list[i].path);
-      }
-      new Notice("已填进 " + n + " 个槽");
-    };
-    bulkRow.createSpan({ cls: "gd-slot-tip", text: "选中的图片会按顺序放进第 1、2、3… 个槽。" });
-
-    const box = p.createDiv({ cls: "gd-month-grid" });
-    const map = cfg[mapName] || {};
-    keys.forEach((key, idx) => {
-      const cell = box.createDiv({ cls: "gd-month-cell" });
-      cell.createDiv({ cls: "gd-month-label", text: labels[idx] });
-      const raw = map[key] || palette[idx] || "";
-      const slot = parseSlot(raw);
-      const pv = cell.createDiv({ cls: "gd-slot-pv" });
-      this.paintSlot(pv, slot);
-      const row = cell.createDiv({ cls: "gd-slot-row" });
-      const pick = row.createEl("button", { cls: "gd-slot-btn", text: "换" });
-      pick.onclick = (e) => {
-        const m = new Menu();
-        m.addItem((i) => i.setTitle("纯色…").setIcon("palette").onClick(() => {
-          const inp = cell.createEl("input");
-          inp.type = "color";
-          inp.style.position = "absolute";
-          inp.style.opacity = "0";
-          inp.value = slot && slot.kind === "color" ? slot.value : "#ffffff";
-          inp.onchange = async () => { await mk(mapName, key, "color", inp.value); inp.remove(); };
-          inp.click();
-        }));
-        m.addItem((i) => i.setTitle("用图片…").setIcon("image").onClick(async () => {
-          const got = await chooseImage(this.app, this.plugin, { title: "给这一槽选张图", multiple: false });
-          if (!got) return;
-          await mk(mapName, key, "image", got.path);
-        }));
-        const sub = new Menu();
-        m.addItem((i) => i.setTitle("用纹理").setIcon("grid").onClick(() => {
-          for (const [v, nm] of CAL_TEXTURES) {
-            if (v === "none") continue;
-            sub.addItem((ii) => ii.setTitle(nm).onClick(async () => { await mk(mapName, key, "texture", v); }));
-          }
-          showMenuAt(sub, e);
-        }));
-        m.addSeparator();
-        m.addItem((i) => i.setTitle("恢复这一槽").setIcon("rotate-ccw").onClick(async () => {
-          const cur = Object.assign({}, cfg[mapName] || {});
-          delete cur[key];
-          await mk(mapName, key, "color", palette[idx] || "");
-        }));
-        showMenuAt(m, e);
-      };
-    });
-  }
-
-  /* 一排槽位：每格能存 纯色 / 图片 / 纹理 三种之一。
-     mapName 是设置里的字段名（bgByDay / bgByWeek / bgByMonth）。 */
-  slotGrid(p, mapName, keys, labels, palette) {
-    const s = this.s;
-    const map = s[mapName] || {};
-    const box = p.createDiv({ cls: "gd-month-grid" });
-    keys.forEach((key, idx) => {
-      const cell = box.createDiv({ cls: "gd-month-cell" });
-      cell.createDiv({ cls: "gd-month-label", text: labels[idx] });
-      const raw = map[key] || palette[idx] || palette[String(idx + 1).padStart(2, "0")] || "";
-      const slot = parseSlot(raw);
-
-      /* 预览块：颜色就是色块，纹理和图片也画在同一个位置 */
-      const pv = cell.createDiv({ cls: "gd-slot-pv" });
-      this.paintSlot(pv, slot);
-
-      const row = cell.createDiv({ cls: "gd-slot-row" });
-      const pick = row.createEl("button", { cls: "gd-slot-btn", text: "换" });
-      pick.onclick = (e) => {
-        const m = new Menu();
-        m.addItem((i) => i.setTitle("纯色…").setIcon("palette").onClick(() => {
-          const inp = cell.createEl("input");
-          inp.type = "color";
-          inp.style.position = "absolute";
-          inp.style.opacity = "0";
-          inp.value = slot && slot.kind === "color" ? slot.value : "#ffffff";
-          inp.onchange = async () => {
-            await this.setSlot(mapName, key, "color", inp.value);
-            inp.remove();
-          };
-          inp.click();
-        }));
-        m.addItem((i) => i.setTitle("用图片…").setIcon("image").onClick(async () => {
-          const got = await chooseImage(this.app, this.plugin, { title: "给这一格选张图", multiple: false });
-          if (!got) return;
-          await this.setSlot(mapName, key, "image", got.path);
-        }));
-        const sub = new Menu();
-        m.addItem((i) => i.setTitle("用纹理").setIcon("grid").onClick(() => {
-          for (const [v, nm] of CAL_TEXTURES) {
-            if (v === "none") continue;
-            sub.addItem((ii) => ii.setTitle(nm).onClick(async () => {
-              await this.setSlot(mapName, key, "texture", v);
-            }));
-          }
-          showMenuAt(sub, e);
-        }));
-        m.addSeparator();
-        m.addItem((i) => i.setTitle("恢复这个槽").setIcon("rotate-ccw").onClick(async () => {
-          const mm = Object.assign({}, s[mapName] || {});
-          delete mm[key];
-          s[mapName] = mm;
-          await this.save(); this.plugin.applyAllTheme(); this.display();
-        }));
-        showMenuAt(m, e);
-      };
-    });
-    if (!p.querySelector(".gd-slot-tip")) {
-      p.createDiv({ cls: "gd-slot-tip gd-set-hint", text: "点「换」可以把这一格设成纯色、图片或纹理。纹理是代码画的，不占空间。" });
-    }
-  }
-
-  /* 把一张槽位预览画出来 */
-  paintSlot(el, slot) {
-    el.empty();
-    el.removeClass?.("is-tex");
-    if (!slot) { el.style.background = "transparent"; el.style.backgroundImage = "none"; return; }
-    if (slot.kind === "color") {
-      el.style.backgroundImage = "none";
-      el.style.backgroundColor = slot.value || "transparent";
-      return;
-    }
-    if (slot.kind === "image") {
-      const u = this.plugin.thumbUrl ? this.plugin.thumbUrl(slot.value) : "";
-      el.style.backgroundColor = "var(--background-secondary)";
-      el.style.backgroundImage = u ? 'url("' + u + '")' : "none";
-      el.style.backgroundSize = "cover";
-      el.style.backgroundPosition = "center";
-      return;
-    }
-    /* 纹理：借网格页的 data-bg-texture 规则太远，这里直接画个近似 */
-    const t = slot.value || "none";
-    el.style.backgroundColor = "var(--background-secondary)";
-    el.style.backgroundSize = "12px 12px";
-    const line = "var(--background-modifier-border)";
-    const maps = {
-      graph: "linear-gradient(90deg," + line + " 1px,transparent 1px),linear-gradient(0deg," + line + " 1px,transparent 1px)",
-      dots: "radial-gradient(" + line + " 1px,transparent 1px)",
-      lines: "linear-gradient(0deg," + line + " 1px,transparent 1px)",
-      diag: "repeating-linear-gradient(45deg," + line + " 0 1px,transparent 1px 8px)",
-      cross: "linear-gradient(45deg,transparent 46%," + line + " 46% 54%,transparent 54%),linear-gradient(-45deg,transparent 46%," + line + " 46% 54%,transparent 54%)",
-      noise: "radial-gradient(" + line + " .5px,transparent .6px)",
-      wood: "repeating-linear-gradient(90deg," + line + " 0 2px,transparent 2px 9px)",
-      marble: "radial-gradient(ellipse at 22% 18%,transparent 42%," + line + " 43%,transparent 45%)",
-      checker: "linear-gradient(45deg," + line + " 25%,transparent 25% 75%," + line + " 75%)",
-      paper: "linear-gradient(0deg," + line + " 1px,transparent 1px)",
-      gradient: "linear-gradient(135deg,var(--background-secondary),var(--background-modifier-border))",
-    };
-    el.style.backgroundImage = maps[t] || "none";
-    if (t === "graph" || t === "cross" || t === "checker") el.style.backgroundSize = "14px 14px";
-    if (t === "noise") el.style.backgroundSize = "6px 6px";
-  }
-
-  async setSlot(mapName, key, kind, value) {
-    const s = this.s;
-    const mm = Object.assign({}, s[mapName] || {});
-    mm[key] = slotRaw("", kind, value);
-    s[mapName] = mm;
-    await this.save();
-    this.plugin.applyAllTheme();
-    this.display();
   }
 
   _rgbOfHsl(hsl) {
@@ -921,10 +712,13 @@ class GridSettingTab extends PluginSettingTab {
 
   /* ---------- 主页 ---------- */
   homePane(p) {
-    /* 背景归这一处自己管（v3.14：从主题里拆出来，五处各一份） */
-    this.bgPane(p, "home", "主页");
-
+    /* v3.23：主页中间背景与九宫格背景彻底分家。
+       bgPane 里 home 那份只画在上区（舞台 / 旧版封面），
+       「格子的背景」那一块只管下区九宫格，两者互不覆盖。 */
     p.createEl("h3", { text: "主页" });
+    p.createDiv({ cls: "gd-set-hint", text: "主页分两块：上面是「中间背景」（封面舞台那一整块），下面是「格子」。两块背景各自一份，改一块不影响另一块。" });
+    this.bgPane(p, "home", "主页中间");
+
     p.createDiv({ cls: "gd-set-hint", text: "主页＝九宫格那一页。这里管它的底色、字体、封面、格子、座右铭、头像。" });
     p.createEl("h4", { text: "主页基础" });
     new Setting(p).setName("主页的日记文件夹").setDesc("所有日期 md 都放这里；目录、日历、流线图都读这个文件夹。").addDropdown((d) => {
@@ -943,11 +737,13 @@ class GridSettingTab extends PluginSettingTab {
     new Setting(p).setName("目录显示：文件夹树连线").addToggle((t) => t.setValue(this.s.showTreeLines !== false).onChange(async (v) => { this.s.showTreeLines = v; await this.save(); this.refresh(); }));
   }
 
-  /* ---------- 项目自己的视觉（字体 / 线体 / 格子） ----------
-   * 用户：「我想让他们每个人都有自己的一份，这样的话我就可以单独对他们进行设计，
-   *       而不是统一对他们进行设计。」以及「按顺序来。背景、字体、颜色，然后往下排」。
-   * 所以这里按统一顺序画四段，每个项目页面直接调它。
-   * 留空 = 跟主题；填了 = 这个项目单独用这份，换主题也不被覆盖。 */
+  /* ---------- 项目自己的视觉（字色 / 线色 / 强调色） ----------
+   * 用户：「我想让他们每个人都有自己的一份…而不是统一对他们进行设计。」
+   * 以及 v3.23：「先讨论和梳理背景，文字颜色，文字格式和其他功能」——
+   * 结论：文字格式（字族 / 字号 / 行高 / 首行缩进）统一放「主题」标签页一套，
+   *       每处只留「字色 / 线色 / 强调色」三项，够了且不会互相打架。
+   * 留空 = 跟全局（s.fontColor / s.lineColor / s.accent），
+   * 兜底逻辑在 applyProjectVars() 里是 pv.x || s.x，所以清空就一定回到全局。 */
   projectLook(p, key, name) {
     const s = this.s;
     if (!s.projectVars || typeof s.projectVars !== "object") s.projectVars = {};
@@ -957,68 +753,43 @@ class GridSettingTab extends PluginSettingTab {
       await this.save();
       this.plugin.applyProjectVars();
     };
-    const followBtn = (b) => b.setIcon("rotate-ccw").setTooltip("跟主题（清空这一项）").onClick(async () => {
-      for (const k of Object.keys(box)) delete box[k];
+    const clearOne = (k) => async (b) => {
+      delete box[k];
       await this.save();
       this.plugin.applyProjectVars();
       this.display();
+    };
+
+    p.createEl("h4", { text: name + "的文字与配色" });
+    p.createDiv({
+      cls: "gd-set-hint",
+      text: "只留三项：字色、线色、强调色。留空就跟全局（主题标签页里那一套）。"
+        + "字号 / 字族 / 行高 / 首行缩进已经统一收到「主题」里，这里不再重复设，免得一处改、另一处没动。",
     });
-
-    p.createEl("h4", { text: name + "的背景" });
-    p.createDiv({ cls: "gd-set-hint", text: "这里的背景只管" + name + "自己。想跟主页一致就别填。" });
-    new Setting(p).setName(name + "的底色").setDesc("留空＝跟主题。")
-      .addText((tx) => { tx.setValue(box.bgColor || ""); tx.inputEl.type = "color"; tx.onChange(async (v) => sync("bgColor", v)); })
-      .addExtraButton((b) => b.setIcon("eraser").setTooltip("跟主题").onClick(async () => { delete box.bgColor; await this.save(); this.plugin.applyProjectVars(); this.display(); }));
-    new Setting(p).setName(name + "的底图").setDesc("库里已有的图片路径；留空＝不用图。")
-      .addText((tx) => tx.setValue(box.bgImage || "").setPlaceholder("留空 = 不用底图")
-        .onChange(async (v) => sync("bgImage", v.trim())))
-      .addButton((b) => b.setButtonText("从系统 / 库里 / 链接选…").onClick(async () => {
-        const got = await chooseImage(this.app, this.plugin, { title: "给" + name + "选一张底图", ratio: 0, prefix: key + "-bg" });
-        if (!got) return;
-        box.bgImage = got.path;
-        await this.save();
-        this.plugin.applyProjectVars();
-        this.display();
-        new Notice(name + "的底图已换好");
-      }));
-
-    p.createEl("h4", { text: name + "的字体" });
-    new Setting(p).setName(name + "的字族").setDesc("留空＝跟主题。")
-      .addText((tx) => tx.setValue(box.fontFamily || "").setPlaceholder("留空 = 跟主题")
-        .onChange(async (v) => sync("fontFamily", v.trim())));
-    new Setting(p).setName(name + "的字号").setDesc("0＝跟主题。")
-      .addSlider((sl) => sl.setLimits(0, 28, 1).setValue(Number(box.fontSize) || 0).setDynamicTooltip()
-        .onChange(async (v) => sync("fontSize", Number(v) ? Number(v) : "")));
-    new Setting(p).setName(name + "的字色").setDesc("留空＝跟主题。")
+    new Setting(p).setName(name + "的字色").setDesc("留空＝跟全局。")
       .addText((tx) => { tx.setValue(box.fontColor || ""); tx.inputEl.type = "color"; tx.onChange(async (v) => sync("fontColor", v)); })
-      .addExtraButton(followBtn);
-
-    p.createEl("h4", { text: name + "的线体与格子" });
-    new Setting(p).setName(name + "的线色").setDesc("留空＝跟主题。")
+      .addExtraButton((b) => b.setIcon("eraser").setTooltip("跟全局").onClick(clearOne("fontColor")));
+    new Setting(p).setName(name + "的线色").setDesc("留空＝跟全局。")
       .addText((tx) => { tx.setValue(box.lineColor || ""); tx.inputEl.type = "color"; tx.onChange(async (v) => sync("lineColor", v)); })
-      .addExtraButton((b) => b.setIcon("eraser").setTooltip("跟主题").onClick(async () => { delete box.lineColor; await this.save(); this.plugin.applyProjectVars(); this.display(); }));
-    new Setting(p).setName(name + "的线宽").setDesc("0＝跟主题。")
-      .addSlider((sl) => sl.setLimits(0, 4, 0.5).setValue(Number(box.lineWidth) || 0).setDynamicTooltip()
-        .onChange(async (v) => sync("lineWidth", Number(v) ? Number(v) : "")));
-    new Setting(p).setName(name + "的强调色").setDesc("留空＝跟主题。")
+      .addExtraButton((b) => b.setIcon("eraser").setTooltip("跟全局").onClick(clearOne("lineColor")));
+    new Setting(p).setName(name + "的强调色").setDesc("留空＝跟全局。")
       .addText((tx) => { tx.setValue(box.accent || ""); tx.inputEl.type = "color"; tx.onChange(async (v) => sync("accent", v)); })
-      .addExtraButton((b) => b.setIcon("eraser").setTooltip("跟主题").onClick(async () => { delete box.accent; await this.save(); this.plugin.applyProjectVars(); this.display(); }));
-    new Setting(p).setName(name + "的圆角").setDesc("0＝跟主题。")
-      .addSlider((sl) => sl.setLimits(0, 28, 1).setValue(Number(box.radius) || 0).setDynamicTooltip()
-        .onChange(async (v) => sync("radius", Number(v) ? Number(v) : "")));
-    new Setting(p).setName(name + "的间距").setDesc("0＝跟主题。")
-      .addSlider((sl) => sl.setLimits(0, 40, 1).setValue(Number(box.gap) || 0).setDynamicTooltip()
-        .onChange(async (v) => sync("gap", Number(v) ? Number(v) : "")));
-    p.createDiv({ cls: "gd-set-hint", text: "这些项留空时全都跟主题走；只有你亲手填过的项才会固定住，换主题不再覆盖它。想恢复联动，点那一行的「跟主题」。" });
+      .addExtraButton((b) => b.setIcon("eraser").setTooltip("跟全局").onClick(clearOne("accent")));
+    p.createDiv({ cls: "gd-set-hint", text: "想全部恢复联动，点对应那一行的橡皮擦即可；清空后立刻回到全局配色。" });
   }
 
   /* 包一层，把「目录」和搬过来的几项合起来 */
   dirPane(p) {
-    /* 背景归这一处自己管（v3.14：从主题里拆出来，五处各一份） */
-    this.bgPane(p, "dir", "目录");
+    /* v3.23：目录拆成上区（文件夹）/ 下区（文件）两块，背景各自一份，
+       不再是一份铺满整个侧栏。老数据里那份 projectBg.dir 会自动兜底。 */
+    p.createEl("h3", { text: "目录" });
+    p.createDiv({ cls: "gd-set-hint", text: "目录分上下两块：上区是文件夹，下区是文件。两块背景、磨砂完全分开，改一块不影响另一块。" });
+    this.bgPane(p, "dirTop", "目录上层区");
+    this.bgPane(p, "dirBot", "目录下层区");
 
-    this.projectLook(p, "dir", "目录");
+    /* 上区专属：文件夹行的配色（只目录有按色结构） */
     this.treePane(p);
+    this.projectLook(p, "dir", "目录");
     p.createEl("h4", { text: "目录显示" });
     this.dirExtras(p);
     /* 3.7：磨砂 —— 上（文件夹区）下（文件区）两块各自开，互不影响 */
@@ -1062,12 +833,7 @@ class GridSettingTab extends PluginSettingTab {
     p.createDiv({ cls: "gd-set-hint", text: "流线图的价值就是「回得去」：每次改动前自动留一版，比 Ctrl+Z 记得久，还看得见。默认开着。" });
     new Setting(p).setName("自动留版本").setDesc("关掉后，流线图里只剩手动备份的版本。")
       .addToggle((t) => t.setValue(this.s.autoSnapshot !== false).onChange(async (v) => { this.s.autoSnapshot = v; await this.save(); new Notice(v ? "已开启自动留版本" : "已关闭自动留版本"); }));
-    new Setting(p).setName("改动上色").setDesc("默认关。打开后新增 / 修改 / 删除 各一个颜色标在卡片左边（绿 / 橙 / 红），这是语义色、不跟主题走。")
-      .addToggle((t) => t.setValue(this.s.timelineColorDiff !== false).onChange(async (v) => {
-        this.s.timelineColorDiff = v;
-        await this.save();
-        if (this.plugin.refreshAllTimelinePanels) this.plugin.refreshAllTimelinePanels();
-      }));
+    /* v3.23：「改动上色」开关已删除，连同卡片左边那三条绿/橙/红色条。 */
     new Setting(p).setName("跟随主题配色").setDesc("开着：强调色 / 字色 / 线色 / 底色都跟主题走（下面「流线图的强调色」等暂时不生效）。关掉才会用你单独填的那份。")
       .addToggle((t) => t.setValue(this.s.tlFollowTheme !== false).onChange(async (v) => {
         this.s.tlFollowTheme = v;
@@ -1424,6 +1190,39 @@ class GridSettingTab extends PluginSettingTab {
 
     this.projectLook(p, "float", "灵感");
     p.createDiv({ cls: "gd-set-note", text: "悬浮窗不占主编辑区：在别的笔记里也能随手写今天那一格，写完关掉。位置和大小会记住。快捷键可在「快捷键」里搜「悬浮窗」自定。" });
+
+    /* v3.23：两种模式 —— 跟格子联动 / 当普通笔记本用 */
+    p.createEl("h4", { text: "灵感怎么用" });
+    p.createDiv({
+      cls: "gd-set-hint",
+      text: "「格子模式」：跟主页当天那篇九宫格日记联动，改一格就是改日记。"
+        + "「普通笔记」：直接编辑一篇 md，不进格子、不需要模板、不跟日期绑，纯粹拿来记灵感。"
+        + "打开浮窗后点标题栏那个 ✎ / ▦ 按钮也能随时切。",
+    });
+    new Setting(p).setName("默认模式")
+      .addDropdown((d) => {
+        d.addOption("grid", "格子模式（跟当天日记联动）");
+        d.addOption("note", "普通笔记（自由 md，不进格子）");
+        d.setValue(this.s.floatMode === "note" ? "note" : "grid")
+          .onChange(async (v) => {
+            this.s.floatMode = v;
+            await this.save();
+            if (this.plugin.float && this.plugin.float.el) {
+              this.plugin.float.mode = v;
+              this.plugin.float.build();
+              if (v === "note") await this.plugin.float.loadNote(this.plugin.float.notePath || "");
+              else await this.plugin.float.load(this.plugin.float.key);
+            }
+          });
+      });
+    new Setting(p).setName("普通笔记放哪个文件夹")
+      .setDesc("「＋新」建的空白笔记会放进这里；已有笔记用「挑」随便选，不受这条限制。")
+      .addText((tx) => tx.setValue(this.s.floatNoteFolder || "灵感").setPlaceholder("灵感")
+        .onChange(async (v) => {
+          this.s.floatNoteFolder = String(v || "").trim() || "灵感";
+          await this.save();
+        }));
+
     new Setting(p).setName("启用悬浮窗").addToggle((t) => t.setValue(this.s.floatEnabled).onChange(async (v) => { this.s.floatEnabled = v; await this.save(); }));
     new Setting(p).setName("默认尺寸").addDropdown((d) => {
       d.addOption("s", "小（480×420）"); d.addOption("m", "中（720×660）"); d.addOption("l", "大（1000×760）");
@@ -1511,13 +1310,13 @@ class GridSettingTab extends PluginSettingTab {
         if (!got) return;
         s.floatBg = got.path;
         await this.save();
-        if (this.plugin.float) this.plugin.float.render();
+        if (this.plugin.float) this.plugin.float.paintShell();
         this.display();
       }))
       .addExtraButton((b) => b.setIcon("eraser").setTooltip("清空（跟主题）").onClick(async () => {
         s.floatBg = "";
         await this.save();
-        if (this.plugin.float) this.plugin.float.render();
+        if (this.plugin.float) this.plugin.float.paintShell();
         this.display();
       }));
 
@@ -1529,7 +1328,7 @@ class GridSettingTab extends PluginSettingTab {
         .onChange(async (v) => {
           s.floatBgOpacity = v / 100;
           await this.save();
-          if (this.plugin.float) this.plugin.float.render();
+          if (this.plugin.float) this.plugin.float.paintShell();
         }));
 
     new Setting(p).setName("跟随主题配色")
@@ -1537,7 +1336,7 @@ class GridSettingTab extends PluginSettingTab {
       .addToggle((tg) => tg.setValue(s.floatFollowTheme !== false).onChange(async (v) => {
         s.floatFollowTheme = v;
         await this.save();
-        if (this.plugin.float) this.plugin.float.render();
+        if (this.plugin.float) this.plugin.float.paintShell();
       }));
   }
 
@@ -1603,8 +1402,8 @@ class GridSettingTab extends PluginSettingTab {
     p.createEl("h4", { text: "日历底图" });
     new Setting(p)
       .setName("日历底图")
-      .setDesc("可以从电脑里选、从库里挑，也可以直接填一个网络图片地址。建议用浅色图，深色图会自动压一层蒙层保证字能看清。")
-      .addButton((b) => b.setButtonText("裁剪…").onClick(() => this.plugin.cropCalWall()))
+      .setDesc("可以从电脑里选、从库里挑，也可以直接填一个网络图片地址。")
+      .addButton((b) => b.setButtonText("裁剪 / 调位置…").onClick(() => this.plugin.cropCalWall()))
       .addButton((b) => b.setButtonText("从电脑选…").onClick(async () => { await this.plugin.pickCalWallpaper("file"); }))
       .addButton((b) => b.setButtonText("从库里挑…").onClick(() => this.plugin.pickCalWallpaper("vault")))
       .addButton((b) => b.setButtonText("用网络图…").onClick(() => this.plugin.pickCalWallpaper("url")));
@@ -1612,10 +1411,30 @@ class GridSettingTab extends PluginSettingTab {
       .setDesc("设好之后这里会显示缩略图，方便确认到底有没有生效。")
       .addButton((b) => b.setButtonText("刷新预览").onClick(() => { this.plugin.showCalWallPreview(); this.refresh(); }));
     new Setting(p).setName("日历清理底图").addButton((b) => b.setButtonText("去掉").setWarning().onClick(async () => { this.s.calWallpaper = ""; await this.save(); this.calRefresh(); }));
-    new Setting(p).setName("日历底图摆位").addDropdown((d) => {
-      for (const [v, n] of CAL_WALL_POS) d.addOption(v, n);
-      d.setValue(this.s.calWallpaperPos).onChange(async (v) => { this.s.calWallpaperPos = v; await this.save(); this.calRefresh(); });
-    });
+
+    new Setting(p).setName("底图怎么摆")
+      .setDesc("横幅：图片独占顶部一条，日历排在它下面，两者永不重叠（推荐）。"
+        + "铺满：图片当整页背景，日历浮在上面，会压一层蒙层保证数字看得清。")
+      .addDropdown((d) => {
+        for (const [v, n] of CAL_WALL_POS) d.addOption(v, n);
+        d.setValue(this.s.calWallpaperPos === "full" ? "full" : "banner")
+          .onChange(async (v) => { this.s.calWallpaperPos = v; await this.save(); this.calRefresh(); this.display(); });
+      });
+    if ((this.s.calWallpaperPos || "banner") !== "full") {
+      new Setting(p).setName("横幅高度（px）")
+        .setDesc("横幅越高，图片露出的部分越多，底下留给日历的地方就越少。")
+        .addSlider((sl) => sl.setLimits(60, 360, 10).setValue(Number(this.s.calBannerH) || 120).setDynamicTooltip()
+          .onChange(async (v) => { this.s.calBannerH = v; await this.save(); this.calRefresh(); }));
+    }
+    new Setting(p).setName("图片在框里怎么放")
+      .setDesc("点上面的「裁剪 / 调位置…」进框选界面，拖动选区就能改图片露出的部分；这里只改总体缩放方式。")
+      .addDropdown((d) => {
+        d.addOption("cover", "填满（可能裁掉边上）");
+        d.addOption("contain", "完整放下（可能留白）");
+        d.setValue(this.plugin.settings.calWallFit || "cover")
+          .onChange(async (v) => { this.plugin.settings.calWallFit = v; await this.save(); this.calRefresh(); });
+      });
+
     new Setting(p).setName("日历底图透明度").addSlider((sl) => sl.setLimits(10, 100, 5).setValue(Math.round(this.s.calWallpaperOpacity * 100)).setDynamicTooltip().onChange(async (v) => { this.s.calWallpaperOpacity = v / 100; await this.save(); this.calRefresh(); }));
     new Setting(p).setName("日历底图模糊（px）").addSlider((sl) => sl.setLimits(0, 12, 1).setValue(this.s.calWallpaperBlur).setDynamicTooltip().onChange(async (v) => { this.s.calWallpaperBlur = v; await this.save(); this.calRefresh(); }));
 

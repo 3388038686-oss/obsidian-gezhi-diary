@@ -233,37 +233,9 @@ class TimelinePanel {
       row.createDiv({ cls: "gd-tl-node" });
 
       const card = row.createDiv({ cls: "gd-tl-card" });
-      /* 改动类型上色：新增 / 修改 / 删除 各一色（用户：只做颜色，不细到哪一格）。
-         判断依据是「这一天的正文」跟「最近一版快照」比：
-           没有快照          → 新增（这一版从没被覆盖过）
-           正文比快照变短/为空 → 删除
-           正文跟快照不同      → 修改
-           正文跟快照相同      → 不打标（还没动过）
-         以前两个分支都加 edit，del 那条 CSS 写了却永远用不上。 */
-      let snapsForDay = [];
-      try {
-        const f0x = g.items[0] && g.items[0].file;
-        if (f0x) snapsForDay = (await this.plugin.history.list(f0x)) || [];
-        if (this.plugin.settings.timelineColorDiff !== false) {
-          const bodyText = allText.replace(/\s/g, "");
-          if (!snapsForDay.length) card.addClass("gd-tl-diff-new");
-          else {
-            let prevText = "";
-            try { prevText = await this.plugin.app.vault.adapter.read(snapsForDay[0].path); } catch (e) { prevText = ""; }
-            /* 快照里除了正文还有 layout 那段 JSON，直接比长度会被它带偏，
-               所以先解析出正文再比。 */
-            let prevBody = "";
-            try {
-              const pd = parseDay(prevText);
-              prevBody = (pd.cells || []).map((c) => c.content || "").join("").replace(/\s/g, "");
-            } catch (e) { prevBody = String(prevText || "").replace(/\s/g, ""); }
-            const prevLen = prevBody.length;
-            if (!bodyText.length) card.addClass("gd-tl-diff-del");
-            else if (prevLen > 0 && bodyText.length < prevLen * 0.5) card.addClass("gd-tl-diff-del");
-            else if (prevBody !== bodyText) card.addClass("gd-tl-diff-edit");
-          }
-        }
-      } catch (e) { /* 上色失败不影响列表 */ }
+      /* v3.23：改动上色（新增/修改/删除 三条左边色条）已删除。
+         用户要求「删掉除目录以外的按色结构」—— 这三条语义色不跟主题走，
+         是之前一直动不掉的橙色/绿色左边框的来源。 */
       const dk = dayKind(g.date);
       if (dk.kind === "holiday") card.addClass("is-holiday");
       else if (dk.kind === "weekend") card.addClass("is-weekend");

@@ -81,13 +81,13 @@ const CAL_TEXTURES = [
   ["marble", "大理石"],
   ["checker", "棋格"],
 ];
-/* ---- 日历底图摆放 ----
- * 用户要的是「左上角是图片 / 右下角是图片 / 双角都放 / 整块当网格背景」 */
+/* ---- 日历底图摆放（v3.24 收成两种）----
+ * 用户：「日历整张铺满并不是我想要的……日历会随着摆放的位置变动，日历与图片不会重叠」
+ * 所以只留：横幅（图片独占一条，日历排在下面，永不重叠）/ 整块铺满（图片当整页背景）。
+ * 原来的左上角、右下角、双角三种是「图片压在日历上」，正是重叠的来源，删掉。 */
 const CAL_WALL_POS = [
-  ["left-top", "左上角"],
-  ["right-bottom", "右下角"],
-  ["both", "左上 + 右下"],
-  ["full", "整块铺满"],
+  ["banner", "顶部横幅（日历在下方，不重叠）"],
+  ["full", "整块铺满（图片当整页背景）"],
 ];
 
 /* ══════════ 目录颜色编号（v4 T-03）══════════
@@ -117,104 +117,14 @@ const TREE_COLOR_SETS = [
   { id: "random-b", name: "随机 B（冷彩）", ring: treeRing(196, 55, 44, 12) },
 ];
 
-/* ══════════ 底图颜色节奏（v4 T-04）══════════
- * 用户要求：底图颜色按周、按月切换 —— 一个月一种颜色的底图。
- * 优先级：按周 > 按月 > 主题默认底色。
- * ═══════════════════════════════════════════════════ */
-/* 12 个月色板（默认值，可在设置里改） */
-/* 按月不按 12 个月对齐（用户：「月不统一，按 9 个色来变就行」），
-   所以是 9 个槽循环，键名 m0–m8，取「今年第几个月 % 9」。 */
-const MONTH_SLOT_N = 9;
-const MONTH_PALETTE = {
-  m0: "#f2f5f9", m1: "#f7f2f4", m2: "#f1f7f1",
-  m3: "#f8f6ef", m4: "#f3f7fa", m5: "#f6f4fa",
-  m6: "#faf5ee", m7: "#f4f7f3", m8: "#f8f3f0",
-};
-
-/* 一周七色（周一起） */
-const WEEK_PALETTE = ["#f7f4ef", "#f2f6fa", "#f6f2f7", "#f2f8f4", "#faf6f0", "#f4f4fa", "#f8f2f2"];
-
-/* 按日循环的七色：跟星期无关，隔七天转一圈，所以每篇日记的底色都在慢慢走 */
-const DAY_PALETTE = ["#f7f4ef", "#f2f6fa", "#f6f2f7", "#f2f8f4", "#faf6f0", "#f4f4fa", "#f8f2f2"];
-
-/* 取某天该用的底图色：先按周，再按月 */
-function bgColorForDate(dateStr, settings) {
-  const slot = bgSlotForDate(dateStr, settings);
-  /* 槽位里放的是图或纹理时，这里没有颜色可给，交给调用方去画 */
-  if (!slot || slot.kind !== "color") return "";
-  return slot.value;
-}
-
-/* ══════════ 换色槽位：一格能存三种东西（v3.13）══════════
- * 用户要求：光有纯色不够，还要能放图片、放纹理。
- * 存法（都是字符串，老数据不用改）：
- *   "#5b8def"        纯色
- *   "img:日记/a.png" 图片
- *   "tex:dots"       纹理（见 CAL_TEXTURES）
- * ═══════════════════════════════════════════════════════ */
-function parseSlot(v) {
-  const s = String(v === undefined || v === null ? "" : v).trim();
-  if (!s) return null;
-  if (s.slice(0, 4) === "img:") return { kind: "image", value: s.slice(4), raw: s };
-  if (s.slice(0, 4) === "tex:") return { kind: "texture", value: s.slice(4), raw: s };
-  return { kind: "color", value: s, raw: s };
-}
-
-function slotRaw(v, kind, value) {
-  if (kind === "image") return "img:" + String(value || "");
-  if (kind === "texture") return "tex:" + String(value || "none");
-  return String(value || "");
-}
-
-/* 取某天该用的那个槽位（原样字符串，可能是自定义的，也可能是调色板兜底） */
-function bgRawSlot(dateStr, settings) {
-  const s = settings || {};
-  const mode = s.bgRhythm || "week";
-  if (mode === "off") return "";
-  const d = parseDate(dateStr);
-  if (mode === "day") {
-    const map = s.bgByDay || {};
-    const idx = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000) % 7;
-    const i2 = ((idx % 7) + 7) % 7;
-    if (map["d" + i2]) return map["d" + i2];
-    return DAY_PALETTE[i2] || "";
-  }
-  if (mode === "week") {
-    const idx = (d.getDay() + 6) % 7;
-    const map = s.bgByWeek || {};
-    if (map["wd" + idx]) return map["wd" + idx];
-    return WEEK_PALETTE[idx] || "";
-  }
-  /* 按月：9 个槽循环（用户：「月不统一，按 9 个色来变」） */
-  const mi = (((d.getMonth() % MONTH_SLOT_N) + MONTH_SLOT_N) % MONTH_SLOT_N);
-  const key = "m" + mi;
-  const map = s.bgByMonth || {};
-  if (map[key]) return map[key];
-  if (map[String(d.getMonth() + 1).padStart(2, "0")]) return map[String(d.getMonth() + 1).padStart(2, "0")];
-  return MONTH_PALETTE[key] || "";
-}
-
-/* 按「某一个项目」的配置取当天该用的槽位。
-   目录是主力（三档全要）；其余项目只留纯色和图片，节奏可以不开。
-   cfg 来自 bgCfgOf(settings, key)。 */
-function bgRawSlotOf(cfg, dateStr) {
-  if (!cfg || !cfg.rhythm || cfg.rhythm === "off") return "";
-  return bgRawSlot(dateStr, {
-    bgRhythm: cfg.rhythm,
-    bgByDay: cfg.byDay || {},
-    bgByWeek: cfg.byWeek || {},
-    bgByMonth: cfg.byMonth || {},
-  });
-}
-
-function bgSlotOf(cfg, dateStr) {
-  return parseSlot(bgRawSlotOf(cfg, dateStr));
-}
-
-/* 解析成 {kind, value, raw}；没设过就是 null */
-function bgSlotForDate(dateStr, settings) {
-  return parseSlot(bgRawSlot(dateStr, settings));
-}
+/* ══════════ v3.23：按色结构已删除 ══════════
+ * 用户：「删掉除目录以外的按色结构」。
+ * 这里原本是一整套「按日 / 按周 / 按月换底色」的槽位系统：
+ *   MONTH_SLOT_N / MONTH_PALETTE / WEEK_PALETTE / DAY_PALETTE /
+ *   parseSlot / slotRaw / bgRawSlot / bgRawSlotOf / bgSlotOf / bgSlotForDate / bgColorForDate
+ * 它跟 projectBg 的「五处背景」写同一批 CSS 变量（--gd-bg-color / --gd-bg-image），
+ * 是背景串台的主要来源之一，整体移除。
+ * 目录的按序配色（TREE_COLOR_SETS / treeColorOf / treeRingRandom）保留，不动。 */
 
 /* 按序号取色（同组内 0,1,2… 依次换色，循环） */
 function treeColorOf(setId, index) {
@@ -231,13 +141,15 @@ function treeRingRandom(setId, seed) {
   return treeRing(base, 58, 44, n);
 }
 
-/* ══════════ 五处各自的背景（v3.14）══════════
- * 用户要求：底图从「主题」里拿出来，分散装到五处；每处都能纯色/图片/渐变/纹理/玻璃；
+/* ══════════ 各处各自的背景（v3.14，v3.23 拆细）══════════
+ * 用户要求：底图从「主题」里拿出来，分散装到各处；每处都能纯色/图片/渐变/纹理/玻璃；
  * 格子背景也跟背景放在一起，不许再散。
- * ═══════════════════════════════════════════════════ */
+ * v3.23：用户「目录上层区和下层区」「主页中间背景 / 主页中间的格子」
+ *       要分开管，所以目录拆成 dirTop / dirBot 两条，各自画在自己那块面板上。 */
 const BG_PROJECTS = [
-  ["home", "主页", ".gd-grid-root"],
-  ["dir", "目录", ".gd-sidebar-root"],
+  ["home", "主页中间", ".gd-grid-root"],
+  ["dirTop", "目录上层区", ".gd-split-top"],
+  ["dirBot", "目录下层区", ".gd-split-bot"],
   ["cal", "日历", ".gd-cal-panel"],
   ["float", "灵感", ".gd-float"],
   ["tl", "流线图", ".gd-timeline-root"],
@@ -246,7 +158,7 @@ const BG_PROJECTS = [
 /* 一处背景的默认值 */
 function defaultBgCfg() {
   return {
-    mode: "color",       // color / image / gradient / texture / glass
+    mode: "color",       // color / image / gradient / texture / glass / video / transparent
     color: "",
     image: "",
     crop: null,          // 背景图 / 缩略图的裁剪框（只存百分比坐标，不剪原图）
@@ -257,8 +169,6 @@ function defaultBgCfg() {
     video: "",           // 视频背景（库内路径），mode=video 时用
     videoLoop: true,
     wall: null,          // 照片墙（只主页有）：{on, items:[{src,x,y,w,h}], limit, unlimited}
-    rhythm: "off",       // off / day / week / month
-    byDay: {}, byWeek: {}, byMonth: {},
     /* 格子背景：跟背景放在一起 */
     cellMode: "follow",  // follow / color / image / glass
     cellColor: "",
@@ -267,10 +177,15 @@ function defaultBgCfg() {
   };
 }
 
-/* 取某一处的背景配置（补齐默认值，不改原对象） */
+/* 取某一处的背景配置（补齐默认值，不改原对象）。
+   v3.23：目录拆成 dirTop / dirBot 两条之后，老数据里只有一份 projectBg.dir，
+   所以这两条都回落到那份老配置 —— 用户升级后不会突然变空。 */
 function bgCfgOf(settings, key) {
   const s = settings || {};
-  const raw = (s.projectBg && s.projectBg[key]) || {};
+  const pb = s.projectBg || {};
+  let raw = pb[key];
+  if (!raw && (key === "dirTop" || key === "dirBot")) raw = pb.dir;
+  raw = raw || {};
   const out = defaultBgCfg();
   for (const k of Object.keys(out)) {
     if (raw[k] !== undefined) out[k] = raw[k];
@@ -282,10 +197,6 @@ function bgCfgOf(settings, key) {
     if (raw.image === undefined && s.bgImage) out.image = s.bgImage;
     if (raw.gradient === undefined && s.bgGradient) out.gradient = s.bgGradient;
     if (raw.texture === undefined && s.bgTexture) out.texture = s.bgTexture;
-    if (raw.rhythm === undefined && s.bgRhythm) out.rhythm = s.bgRhythm;
-    if (raw.byDay === undefined && s.bgByDay) out.byDay = s.bgByDay;
-    if (raw.byWeek === undefined && s.bgByWeek) out.byWeek = s.bgByWeek;
-    if (raw.byMonth === undefined && s.bgByMonth) out.byMonth = s.bgByMonth;
   }
   return out;
 }
@@ -346,20 +257,14 @@ const PROJECT_KEYS = [
   ["tl", "流线图", ".gd-timeline-root"],
 ];
 
-/* 每个项目能单独覆盖的项：CSS 变量名 → 说明 */
+/* 每个项目能单独覆盖的项：CSS 变量名 → 说明。
+   v3.23：从 12 项收到 3 项。底色/底图归 projectBg（背景那一套），
+   字族/字号/线宽/圆角/间距/内边距/不透明度统一由全局主题管，
+   每处只留字色 / 线色 / 强调色，避免同一变量被两套写来写去。 */
 const PROJECT_VAR_KEYS = [
-  ["bgColor", "--gd-bg-color", "底色"],
-  ["bgImage", "--gd-bg-image", "底图"],
-  ["fontFamily", "--gd-font", "字族"],
-  ["fontSize", "--gd-font-size", "字号"],
   ["fontColor", "--gd-ink", "字色"],
   ["lineColor", "--gd-line", "线色"],
-  ["lineWidth", "--gd-line-w", "线宽"],
   ["accent", "--gd-accent", "强调色"],
-  ["radius", "--gd-radius", "圆角"],
-  ["gap", "--gd-gap", "间距"],
-  ["pad", "--gd-pad", "内边距"],
-  ["cellOpacity", "--gd-opacity", "不透明度"],
 ];
 
 /* 头像轮廓（用户：「就是一个轮廓，只要不是圆的就行。多设计几种轮廓。」） */
@@ -523,7 +428,10 @@ const DEFAULT_SETTINGS = {
   projectName: "日记",
   projectCarryLayout: true,   /* 切项目时连视觉（主题/皮肤/边框/底色）一起换 */
   projectLayouts: {},         /* 每个项目记住自己的一套视觉 */           // 当前项目名（多项目由 themeDir 下的项目文件管理）
-  /* 底色（主题组 bg） */
+  /* 底色（主题组 bg）
+     注意：v3.23 起主页背景的唯一出口是 applyProjectBg()（projectBg.home）。
+     这几项只是给「老 data.json」留的兜底字段，bgCfgOf() 在 projectBg.home 没写时才读它们；
+     界面里已经不再提供入口，也不再参与按日/按周/按月的换色。 */
   bgMode: "color",               // color | gradient | image | texture
   bgColor: "",
   bgGradient: "",
@@ -546,11 +454,7 @@ const DEFAULT_SETTINGS = {
   treeColorOverrides: {},
   treeColorRing: [],          // 当前生效的色环（空 = 用方案默认）
   treeRandomSeed: 0,
-  /* 底图月/周节奏（T-04） */
-  bgByMonth: {},
-  bgByWeek: {},
-  bgRhythm: "week",              // day | week | month | off
-  bgByDay: {},                   // 按日换色的七色（d0..d6）
+  /* v3.23：底图月/周/日节奏（T-04）已整体删除，见文件上方说明 */
   /* 视频/动图壁纸（T-06） */
   videoEnabled: false,
   videoMaxMB: 20,
@@ -623,6 +527,8 @@ const DEFAULT_SETTINGS = {
   floatSize: "m",                // s | m | l
   floatEdgeDock: false,          // 贴边半收
   floatTitle: "灵感笔记",        // 悬浮窗标题（原「格间日记」，改名以区分日历浮窗）
+  floatMode: "grid",             /* v3.23：grid=跟当天九宫格日记联动 | note=普通笔记 */
+  floatNoteFolder: "灵感",       /* 普通笔记模式新建文件放这儿 */
   /* 灵感自己的背景（用户：只留图片 + 透明度两项） */
   floatBg: "",
   floatBgOpacity: 1,
@@ -662,8 +568,7 @@ const DEFAULT_SETTINGS = {
   treeFolderOrder: [],           // 文件夹手动顺序
   treeFolderStyles: {},          // 每个文件夹独立外观 { 路径: {color, emoji, icon, img} }
   timelineCompactTop: true,      // 流线图顶部收成一个图标
-  timelineColorDiff: false,      // 流线图按新增/删除/修改上色（默认关：左边那三条色条不是用户设计的配色）
-  diffColorMigrated: false,      // v3.22.2 一次性迁移标记：老存档里的 true 会被强制改成 false，只改一次
+  /* v3.23：流线图的「改动上色」整块删除（连卡片左边那三条色条） */
   treeShowHidden: false,         // 临时显示被隐藏的文件夹
   treeFolderColor: "",           // 文件夹主色（空 = 跟随调色板）
   treeShowOtherFiles: true,
@@ -709,9 +614,15 @@ const DEFAULT_SETTINGS = {
   calShowFestival: true,
   calShowHoliday: true,         // 显示节日
   calWallpaper: "",              // 日历底图（库内图片路径）
-  calWallpaperPos: "left-top",   // left-top | right-bottom | both | full
+  /* v3.24：日历底图只留两种摆法
+     banner = 顶部横幅，图片独占一条，日历排在它下面，两者永不重叠
+     full   = 整块铺满，图片当整张背景，日历浮在上面 */
+  calWallpaperPos: "banner",     // banner | full
+  calBannerH: 120,               // banner 模式下横幅高度（px），可调
   calWallpaperOpacity: 0.85,
   calWallpaperBlur: 0,           // 0-12，模糊度（铺满时常用）
+  calWallFit: "cover",           // cover | contain —— 图片在框里的总体缩放方式
+  calWallWallMigrated: false,    // v3.24 一次性迁移标记：老的四摆位统一转成 banner
   calPanel: "tab",               // tab（标签页）| float（悬浮窗）
   calFloatRect: null,            // 悬浮日历的位置与尺寸
   calWeekStart: 1,
@@ -1022,12 +933,29 @@ function migrateSettings(saved) {
   const s = mergeDefaults(saved, DEFAULT_SETTINGS);
   if (!saved || typeof saved !== "object") return s;
   const v = Number(saved.version) || 1;
-  /* v3.22.2：老用户的 data.json 里 timelineColorDiff 存着 true，光改默认值不生效；
-     而且运行中的插件会拿内存里的旧值把磁盘覆盖回去。这里做一次性迁移强制关掉，
-     之后用户在设置里再打开（diffColorMigrated 已为 true）不会被反复改回。 */
-  if (!s.diffColorMigrated) {
-    s.timelineColorDiff = false;
-    s.diffColorMigrated = true;
+  /* v3.23：按色结构整体删除后，老 data.json 里的字段会被 mergeDefaults 原样带回来。
+     这里统一清掉，免得「设置里已经没有入口、内存里还留着旧值」这两套并行。 */
+  for (const dead of ["bgRhythm", "bgByDay", "bgByWeek", "bgByMonth", "timelineColorDiff", "diffColorMigrated"]) {
+    if (dead in s) delete s[dead];
+  }
+  if (s.projectBg && typeof s.projectBg === "object") {
+    for (const k of Object.keys(s.projectBg)) {
+      const box = s.projectBg[k];
+      if (!box || typeof box !== "object") continue;
+      for (const dead of ["rhythm", "byDay", "byWeek", "byMonth"]) {
+        if (dead in box) delete box[dead];
+      }
+    }
+  }
+  /* v3.24：日历底图从「四摆位」收成「横幅 / 铺满」。
+     老值 left-top / right-bottom / both 是压在日历上的那三种（就是用户说的重叠），
+     一律转成 banner；full 保留。
+     另外 banner 是新的默认，老存档里如果从没设过摆位，也统一成 banner。 */
+  if (!(s.calWallWallMigrated)) {
+    const legacyCorners = ["left-top", "right-bottom", "both"];
+    if (legacyCorners.indexOf(s.calWallpaperPos) >= 0) s.calWallpaperPos = "banner";
+    else if (s.calWallpaperPos !== "full") s.calWallpaperPos = "banner";
+    s.calWallWallMigrated = true;
   }
   if (v >= 3) return s;
 
